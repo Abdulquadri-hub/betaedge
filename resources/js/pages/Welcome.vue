@@ -6,7 +6,7 @@ import { Camera, GraduationCap } from 'lucide-vue-next';
 
 <template>
   <div class="border p-10 max-w-full bg-linear-to-br from-teal-300 to-gray-500">
-    <Switch variant="ghost"/>
+    <Switch />
     <Camera 
        color="red"
        :size="100"

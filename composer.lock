@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "2349d3c1eb290967cc673113e3c6d0ef",
+    "content-hash": "adf615ceb60e6e2f1e94ec409cb111a7",
     "packages": [
         {
             "name": "brick/math",
@@ -2148,6 +2148,53 @@
                 }
             ],
             "time": "2025-11-18T12:17:23+00:00"
+        },
+        {
+            "name": "michielkempen/laravel-encryptable",
+            "version": "0.1.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/michielkempen/laravel-encryptable.git",
+                "reference": "4db109a227a0631eeb90a972cd6ed46e560fb628"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/michielkempen/laravel-encryptable/zipball/4db109a227a0631eeb90a972cd6ed46e560fb628",
+                "reference": "4db109a227a0631eeb90a972cd6ed46e560fb628",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=7.1"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "MichielKempen\\LaravelEncryptable\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Michiel Kempen",
+                    "email": "kempenmichiel@gmail.com",
+                    "homepage": "https://michielkempen.com",
+                    "role": "Developer"
+                }
+            ],
+            "description": "A trait to automatically encrypt/decrypt sensitive attributes of Laravel models.",
+            "homepage": "https://github.com/michielkempen/laravel-encryptable",
+            "keywords": [
+                "Laravel Encryptable",
+                "Michiel Kempen"
+            ],
+            "support": {
+                "issues": "https://github.com/michielkempen/laravel-encryptable/issues",
+                "source": "https://github.com/michielkempen/laravel-encryptable/tree/master"
+            },
+            "time": "2019-01-24T14:08:39+00:00"
         },
         {
             "name": "monolog/monolog",
