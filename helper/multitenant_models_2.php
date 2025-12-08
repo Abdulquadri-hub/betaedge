@@ -310,7 +310,7 @@ class DomainVerification extends Model
     // Helper Methods
     public static function generateVerificationCode(): string
     {
-        return 'teach-verify-' . Str::random(32);
+        return config('app.name') . '-verify-' . Str::random(32);
     }
 
     public function verify(): bool

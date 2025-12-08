@@ -16,10 +16,8 @@ class TenantService implements TenantServiceInterface
 
     public function setup(array $onboardingData): ?array
     {
-        //get input from onbaording process table
-
         try {
-           return DB::transaction(function () use ($onboardingData) {
+           return DB::transaction(function ($onboardingData) {
                 return [];
             });
 
