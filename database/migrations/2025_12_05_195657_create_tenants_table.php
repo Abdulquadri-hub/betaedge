@@ -18,9 +18,6 @@ return new class extends Migration
             $table->string('custom_domain')->nullable()->unique();
             $table->string('subdomain')->unique();
             $table->foreignId('owner_id')->constrained('users')->onDelete('cascade');
-            
-            //school profile
-
             $table->string('school_type')->nullable(); // academy, tutoring, university, etc
             $table->string('website')->nullable();
             $table->string('year_established')->nullable();
@@ -42,6 +39,12 @@ return new class extends Migration
             $table->string('onboarding_step')->nullable(); // 
             $table->timestamps();
             $table->softDeletes();
+
+            $table->timestamp('email_verified_at')->nullable();
+            $table->string('verification_token')->unique()->nullable();
+            $table->string('owner_email')->index()->nullable();
+            
+            $table->index('verification_token');
 
             $table->index('slug');
             $table->index('custom_domain');

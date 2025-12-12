@@ -13,11 +13,18 @@ return new class extends Migration
     {
         Schema::create('onboarding_processes', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('tenant_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('tenant_id')->nullable()->constrained()->cascadeOnDelete();
             $table->json('profile')->nullable();
             $table->json('plan')->nullable();
             $table->json('payment')->nullable();
-            $table->enum('status', ['pending', 'failed', 'processing', 'completed', 'processed', 'error'])->default('pending');
+            $table->enum('status', ['pending', 'failed', 'processing', 'completed', 'processed', 'error'])->default('pending')->index();
+            $table->foreignId('session_id')->nullable()->index();
+            $table->string('current_step', 50)->default('profile');
+            $table->tinyInteger('progress_percentage')->default(0);
+            $table->string('progress_message')->nullable();
+            $table->string('job_id')->unique()->nullable()->index();
+            $table->text('error_message')->nullable();
+            $table->timestamp('completed_at')->nullable();
             $table->timestamps();
         });
     }

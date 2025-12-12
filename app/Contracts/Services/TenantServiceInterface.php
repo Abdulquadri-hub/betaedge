@@ -6,8 +6,8 @@ use App\Models\Tenant;
 
 interface TenantServiceInterface
 {
-    public function setup(array $onboardingData): ?array;
-    public function retrySetup(int $id, array $onboardingData): ?array;
+    public function setup(int $onboardingId);
+    public function retrySetup(int $tenantId, int $sessionId, array $onboardingData): ?array;
     public function delete(Tenant $tenant): bool;
     public function update(Tenant $tenant, array $data): bool;
 }

@@ -3,11 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Tenant extends Model
 {
@@ -19,6 +20,7 @@ class Tenant extends Model
         'custom_domain',
         'subdomain',
         'owner_id',
+        'owner_email',
         'school_type',
         'website',
         'year_established',
@@ -33,6 +35,8 @@ class Tenant extends Model
         'currency',
         'status',
         'is_verified',
+        'email_verified_at',
+        'verification_token',
         'trial_ends_at',
         'setup_completed',
         'onboarding_step',
@@ -41,11 +45,17 @@ class Tenant extends Model
     protected $casts = [
         'is_verified' => 'boolean',
         'setup_completed' => 'boolean',
+        'email_verified_at' => 'datetime',
         'trial_ends_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
     ];
+
+    protected $hidden = [
+        'verification_token'
+    ];
+
 
     protected static function boot()
     {
@@ -62,6 +72,15 @@ class Tenant extends Model
 
                 $tenant->subdomain = $tenant->slug . '.' . $parsedDomain;
             }
+
+            if (empty($tenant->trial_ends_at)) {
+                $tenant->trial_ends_at = now()->addDays(14);
+            }
+        });
+
+        static::updated(function ($tenant) {
+            Cache::forget("tenant_host_{$tenant->slug}." . config('app.main_domain'));
+            Cache::forget("tenant_host_{$tenant->custom_domain}");
         });
          
     }
@@ -237,12 +256,35 @@ class Tenant extends Model
         $this->update(['onboarding_step' => $step]);
     }
 
-    private function calculateStorgeUsage(): int {
-        return $this->files()->sum('size');
+    public function markEmailAsVerified(): void {
+        $this->update([
+            'email_verified_at' => now(),
+            'verification_token' => null,
+            'is_verified' => true
+        ]);
     }
 
-    private static function generateUniqueSlug(string $name) {
+    public function generateVerificationToken(): string
+    {
+        $token = hash('sha256', Str::random(64) . now()->timestamp);
+        $this->update(['verification_token' => $token]);
+        return $token;
+    }
+
+    public function isEmailVerified(): bool {
+        return !is_null($this->email_verified_at);
+    }
+
+    // Slug Generation with Blacklist
+    public static function generateUniqueSlug(string $name): string
+    {
         $slug = Str::slug($name);
+        
+        // Check reserved slugs
+        if (in_array($slug, self::$reservedSlugs)) {
+            $slug .= '-school';
+        }
+
         $originalSlug = $slug;
         $counter = 1;
 
@@ -254,4 +296,20 @@ class Tenant extends Model
         return $slug;
     }
 
+    public static function isSlugReserved(string $slug): bool
+    {
+        return in_array($slug, self::$reservedSlugs);
+    }
+
+    private function calculateStorgeUsage(): int {
+        return $this->files()->sum('size');
+    }
+
+    private static array $reservedSlugs = [
+        'www', 'api', 'admin', 'app', 'mail', 'ftp', 'smtp',
+        'localhost', 'staging', 'dev', 'test', 'beta', 'demo',
+        'help', 'support', 'blog', 'forum', 'shop', 'store',
+        'cdn', 'static', 'assets', 'files', 'downloads',
+        'dashboard', 'panel', 'console', 'portal'
+    ];
 }
