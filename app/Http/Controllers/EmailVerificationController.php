@@ -17,13 +17,21 @@ class EmailVerificationController extends Controller
         protected TenantVerificationEmailService $mailService,
     ){}
 
-    public function notice() {
+    /**
+     * Show email verification notice page
+     */
+    public function notice() 
+    {
         return Inertia::render('Auth/VerifyEmailNotice', [
             'message' => 'Please check your email for verification link'
         ]);
     }
 
-    public function verify(string $token) {
+    /**
+     * Verify email with token and show password setup page
+     */
+    public function verify(string $token) 
+    {
         $key = 'verify-email:' . request()->ip();
         
         if (RateLimiter::tooManyAttempts($key, 10)) {
@@ -40,17 +48,24 @@ class EmailVerificationController extends Controller
             ]);
         }
 
+        // Already verified - redirect to login
         if ($tenant->email_verified_at) {
             return redirect()->route('login')->with('info', 'Email already verified. Please login.');
         }
 
+        // Check if token expired (24 hours)
         if ($tenant->updated_at->addHours(24) < now()) {
             return Inertia::render('Auth/VerificationExpired', [
-                'tenant' => $tenant,
+                'tenant' => [
+                    'id' => $tenant->id,
+                    'name' => $tenant->name,
+                    'email' => $tenant->owner_email,
+                ],
                 'canResend' => true
             ]);
         }
 
+        // Token is valid - show password setup page
         return Inertia::render('Auth/SetPassword', [
             'tenant' => [
                 'id' => $tenant->id,
@@ -62,6 +77,9 @@ class EmailVerificationController extends Controller
         ]);
     }
 
+    /**
+     * Set password and complete verification
+     */
     public function setPassword(Request $request)
     {
         $request->validate([
@@ -75,15 +93,24 @@ class EmailVerificationController extends Controller
             return back()->withErrors(['token' => 'Invalid verification token']);
         }
 
+        // Check if token expired
+        if ($tenant->updated_at->addHours(24) < now()) {
+            return back()->withErrors(['token' => 'Verification link has expired']);
+        }
+
+        // Mark email as verified
         $tenant->markEmailAsVerified();
 
+        // Set password for owner user
         $tenant->owner->update([
             'password' => Hash::make($request->password),
             'email_verified_at' => now()
         ]);
 
+        // Log the user in
         Auth::login($tenant->owner);
 
+        // Set active tenant session
         session(['active_tenant_id' => $tenant->id]);
 
         // Log activity
@@ -92,14 +119,17 @@ class EmailVerificationController extends Controller
             ->performedOn($tenant)
             ->log('Email verified and password set');
 
-
+        // Redirect to tenant admin dashboard
         $adminUrl = 'https://' . $tenant->subdomain . '/admin';
         
         return Inertia::location($adminUrl);
     }
 
-    public function resend(Request $request) {
-
+    /**
+     * Resend verification email
+     */
+    public function resend(Request $request) 
+    {
         $request->validate([
             'email' => 'required|email'
         ]);
@@ -108,6 +138,7 @@ class EmailVerificationController extends Controller
         
         if (RateLimiter::tooManyAttempts($key, 3)) {
             return response()->json([
+                'success' => false,
                 'message' => 'Too many resend attempts. Please try again later.'
             ], 429);
         }
@@ -118,16 +149,23 @@ class EmailVerificationController extends Controller
             ->whereNull('email_verified_at')
             ->first();
 
+        // Always return success for security (don't reveal if email exists)
         if (!$tenant) {
             return response()->json([
+                'success' => true,
                 'message' => 'If this email exists, a verification link has been sent.'
             ]);
         }
 
         try {
+            // Generate new token
+            $tenant->generateVerificationToken();
+            
+            // Send verification email
             $this->mailService->send($tenant);
 
             return response()->json([
+                'success' => true,
                 'message' => 'Verification email has been resent successfully.'
             ]);
         } catch (\Exception $e) {
@@ -137,6 +175,7 @@ class EmailVerificationController extends Controller
             ]);
 
             return response()->json([
+                'success' => false,
                 'message' => 'Failed to send email. Please try again later.'
             ], 500);
         }

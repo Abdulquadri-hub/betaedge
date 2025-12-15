@@ -19,11 +19,12 @@ class TenantRepository implements TenantRepositoryInterface
         $user = User::create([
             'name' => $profile['owner_name'] ?? $profile['school_name'] . ' Admin',
             'email' => $profile['owner_email'],
+            'user_type' => 'admin',
             'password' => Hash::make(Str::random(32)), 
             'email_verified_at' => null
         ]);
 
-        return Tenant::create([
+        $tenant = Tenant::create([
             'name' => $profile['school_name'],
             'owner_id' => $user->id,
             'owner_email' => $profile['owner_email'],
@@ -41,6 +42,11 @@ class TenantRepository implements TenantRepositoryInterface
             'is_verified' => false,
             'trial_ends_at' => now()->addDays(14)
         ]);
+
+        $user->tenant_id = $tenant->id;
+        $user->save();
+
+        return $tenant;
     }
 
     public function getByDomain(string $domain): ?Tenant

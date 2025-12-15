@@ -60,7 +60,7 @@ class TenantSubscription extends Model
         return $this->belongsTo(SubscriptionPlan::class, 'plan_id');
     }
 
-    public function generateSubscriptionCode(): string {
+    public static function generateSubscriptionCode(): string {
         do {
            $code = 'TSUB-' . strtoupper(Str::random(10));
         } while (self::where('subscription_code', $code)->exists());

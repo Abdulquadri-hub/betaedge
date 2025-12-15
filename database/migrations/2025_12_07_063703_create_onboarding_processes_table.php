@@ -17,8 +17,8 @@ return new class extends Migration
             $table->json('profile')->nullable();
             $table->json('plan')->nullable();
             $table->json('payment')->nullable();
-            $table->enum('status', ['pending', 'failed', 'processing', 'completed', 'processed', 'error'])->default('pending')->index();
-            $table->foreignId('session_id')->nullable()->index();
+            $table->enum('status', ['pending', 'failed', 'processing', 'completed', 'processed', 'error', 'draft'])->default('pending')->index();
+            $table->text('session_id')->nullable()->index();
             $table->string('current_step', 50)->default('profile');
             $table->tinyInteger('progress_percentage')->default(0);
             $table->string('progress_message')->nullable();

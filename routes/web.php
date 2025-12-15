@@ -2,7 +2,7 @@
 
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\OnbaordingController;
+use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\TenantPublicPageController;
 use App\Http\Controllers\EmailVerificationController;
 
@@ -12,32 +12,32 @@ Route::get('/', function () {
 
 
 Route::middleware(['guest', 'throttle:60,1'])->group(function () {
-    Route::get('/onboarding', [OnbaordingController::class, 'index'])
+    Route::get('/onboarding', [OnboardingController::class, 'index'])
         ->name('onboarding.index');
     
-    Route::post('/onboarding/draft', [OnbaordingController::class, 'saveDraft'])
+    Route::post('/onboarding/save', [OnboardingController::class, 'save'])
         ->name('onboarding.draft');
     
-    Route::post('/onboarding/submit', [OnbaordingController::class, 'submit'])
+    Route::post('/onboarding/submit', [OnboardingController::class, 'submit'])
         ->middleware('throttle:onboarding')
         ->name('onboarding.submit');
     
-    Route::get('/onboarding/status/{jobId}', [OnbaordingController::class, 'status'])
+    Route::get('/onboarding/status/{jobId}', [OnboardingController::class, 'status'])
         ->middleware('throttle:onboarding-status')
         ->name('onboarding.status');
 });
 
 // Email verification routes
-Route::get('/verify-email-notice', [EmailVerificationController::class, 'notice'])
+Route::get('/verification/notice', [EmailVerificationController::class, 'notice'])
     ->name('verification.notice');
 
-Route::get('/verify-email/{token}', [EmailVerificationController::class, 'verify'])
+Route::get('/verification/verify/{token}', [EmailVerificationController::class, 'verify'])
     ->name('verification.verify');
 
-Route::post('/set-password', [EmailVerificationController::class, 'setPassword'])
+Route::post('/verification/set-password', [EmailVerificationController::class, 'setPassword'])
     ->name('password.set');
 
-Route::post('/resend-verification', [EmailVerificationController::class, 'resend'])
+Route::post('/verification/resend', [EmailVerificationController::class, 'resend'])
     ->middleware('throttle:3,60')
     ->name('verification.resend');
 

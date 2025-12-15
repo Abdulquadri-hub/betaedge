@@ -7,7 +7,7 @@ use App\Models\OnboardingProcess;
 
 class OnboardingProcessRepository implements OnboardingProcessRepositoryInterface
 {
-    public function create(int $sessionId, array $data): ?OnboardingProcess
+    public function create(string $sessionId, array $data): ?OnboardingProcess
     {
         return OnboardingProcess::create([
             'session_id' => $sessionId,
@@ -20,7 +20,7 @@ class OnboardingProcessRepository implements OnboardingProcessRepositoryInterfac
         ]);
     }
    
-    public function update(int $sessionId, array $data): ?OnboardingProcess
+    public function update(string $sessionId, array $data): ?OnboardingProcess
     {
         $draft = $this->getBySessionId($sessionId);
 
@@ -43,14 +43,14 @@ class OnboardingProcessRepository implements OnboardingProcessRepositoryInterfac
         return $draft->fresh();
     }
 
-    public function delete(int $sessionId): bool
+    public function delete(string $sessionId): bool
     {
         return OnboardingProcess::where('session_id', $sessionId)
             ->whereIn('status', ['draft', 'failed'])
             ->delete();
     }
 
-    public function getBySessionId(int $sessionId): ?OnboardingProcess
+    public function getBySessionId(string $sessionId): ?OnboardingProcess
     {
         return OnboardingProcess::where('session_id', $sessionId)
             ->whereIn('status', ['draft', 'processing'])
@@ -58,12 +58,12 @@ class OnboardingProcessRepository implements OnboardingProcessRepositoryInterfac
             ->first();
     }
 
-    public function getById(int $id): ?OnboardingProcess
+    public function getById(string $id): ?OnboardingProcess
     {
         return OnboardingProcess::find($id);
     }
 
-    public function getByJobId(int $jobId): ?OnboardingProcess
+    public function getByJobId(string $jobId): ?OnboardingProcess
     {
         return OnboardingProcess::where('job_id', $jobId)->first();
     }

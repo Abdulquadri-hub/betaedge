@@ -4,6 +4,7 @@ namespace App\Repositories;
 
 use App\Contracts\Repositories\SubscriptionPlanRepositoryInterface;
 use App\Models\SubscriptionPlan;
+use Illuminate\Database\Eloquent\Collection;
 
 class SubscriptionPlanRepository implements SubscriptionPlanRepositoryInterface
 {
@@ -12,7 +13,7 @@ class SubscriptionPlanRepository implements SubscriptionPlanRepositoryInterface
         return SubscriptionPlan::find($id);
     }
 
-    public function getInOrdered(): SubscriptionPlan
+    public function getInOrdered(): Collection
     {
         return SubscriptionPlan::active()->ordered()->get();
     }

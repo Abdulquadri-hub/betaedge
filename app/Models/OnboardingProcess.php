@@ -26,6 +26,7 @@ class OnboardingProcess extends Model
         'profile' => 'array',
         'plan' => 'array',
         'payment' => 'array',
+        'completed_at' => 'datetime',
     ];
 
     public function tenant(): BelongsTo {

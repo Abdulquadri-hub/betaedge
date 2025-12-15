@@ -11,15 +11,13 @@ use Illuminate\Support\Facades\RateLimiter;
 use App\Contracts\Services\OnboardingProcessServiceInterface;
 use App\Contracts\Repositories\SubscriptionPlanRepositoryInterface;
 
-class OnbaordingController extends Controller
+class OnboardingController extends Controller
 {
     public function __construct(
         private OnboardingProcessServiceInterface $service,
         private SubscriptionPlanRepositoryInterface $subRepo,
         private Paystack $gateway,
-    ){
-        // $this->middleware('throttle:onboarding')->only(['submit']);
-    }
+    ){}
 
 
     public function index(Request $request) {
@@ -27,12 +25,14 @@ class OnbaordingController extends Controller
         $sessionId = $this->service->getOrCreateSessionId($request);
 
         $draft = $this->service->fetch($sessionId);
-        $plans = $this->subRepo->getInOrdered();
+        $plans = $this->subRepo->getInOrdered()->toArray();
 
         return Inertia::render('Onboarding/Index', [
             'draft' => $draft,
             'plans' => $plans,
-            'paystackPublicKey' => $this->gateway->getPublicKey()
+            'job_id' => $draft['job_id'] ?? null,
+            'paystackPublicKey' => $this->gateway->getPublicKey(),
+            'name' => config('app.name')
         ]);
     }
 
@@ -46,10 +46,9 @@ class OnbaordingController extends Controller
             $request->input('step')
         );
 
-        return response()->json(
-            $result,
-            Status::OK->value,
-        );
+        return back()->with([
+            'draft' => $result['draft'] ?? null,
+        ]);
     }
 
     public function submit(Request $request)
@@ -68,12 +67,17 @@ class OnbaordingController extends Controller
         RateLimiter::hit($key, 600); // 10 minutes
 
         $result = $this->service->submit($sessionId);
-
-        if (!$result['success']) {
-            return response()->json($result, 422);
+    
+        if (!($result['success'] ?? false)) {
+            return back()->withErrors([
+                'server' => $result['message'] ?? 'Submission failed',
+            ]);
         }
-
-        return response()->json($result);
+    
+        return back()->with([
+            'job_id' => $result['job_id'] ?? null,
+            'message' => $result['message'] ?? 'Onboarding process started',
+        ]);
     }
 
     

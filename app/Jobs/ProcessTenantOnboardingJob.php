@@ -22,7 +22,6 @@ class ProcessTenantOnboardingJob implements ShouldQueue
     public function __construct(
         private int $onboardingId,
         private string $jobId,
-        protected TenantServiceInterface $tenantService
     ){}
 
     public function handle(): void
@@ -34,7 +33,7 @@ class ProcessTenantOnboardingJob implements ShouldQueue
                 'job_id' => $this->jobId
             ]);
 
-            $this->tenantService->setup($this->onboardingId);
+           app(TenantServiceInterface::class)->setup($this->onboardingId);
 
         } catch (\Exception $e) {
             Log::error("Onboarding failed", [

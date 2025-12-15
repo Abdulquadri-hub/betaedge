@@ -20,7 +20,7 @@ class OnboardingProcessService implements OnboardingProcessServiceInterface
         protected OnboardingProcessRepositoryInterface $repo,
     ){}
 
-    public function save(int $sessionId, array $stepData, string $step): ?array
+    public function save(string $sessionId, array $stepData, string $step): ?array
     {
         try{
 
@@ -41,6 +41,7 @@ class OnboardingProcessService implements OnboardingProcessServiceInterface
                 ]);
                 throw new Exception("Error saving onboarding process");
             }
+
 
             return [
                 'draft' => [
@@ -69,7 +70,7 @@ class OnboardingProcessService implements OnboardingProcessServiceInterface
         }
     }
 
-    public function fetch(int $sessionId): ?array
+    public function fetch(string $sessionId): ?array
     {
         try {
             $draft = $this->repo->getBySessionId($sessionId);
@@ -82,6 +83,7 @@ class OnboardingProcessService implements OnboardingProcessServiceInterface
                 'profile' => $draft->getProfile(),
                 'plan' => $draft->getPlan(),
                 'payment' => $draft->getPayment(),
+                'job_id' => $draft->job_id,
                 'current_step' => $draft->current_step,
                 'progress_percentage' => $draft->progress_percentage
             ];
@@ -96,7 +98,7 @@ class OnboardingProcessService implements OnboardingProcessServiceInterface
 
     }
 
-    public function submit(int $sessionId): ?array
+    public function submit(string $sessionId): ?array
     {
          try {
             $draft = $this->repo->getBySessionId($sessionId);
@@ -121,6 +123,7 @@ class OnboardingProcessService implements OnboardingProcessServiceInterface
             ProcessTenantOnboardingJob::dispatch($draft->id, $jobId)->onQueue('onboarding');
 
             return [
+                'success' => true,
                 'job_id' => $jobId,
                 'message' => 'Onboarding process started'
             ];
@@ -150,7 +153,7 @@ class OnboardingProcessService implements OnboardingProcessServiceInterface
                 'error' => $draft->error_message,
                 'session_id' => $draft->sesssion_id,
                 'tenant_id' => $draft->tenant_id,
-                'completed_at' => $draft->completed_at?->toIso8601String()
+                'completed_at' => $draft->completed_at
             ];
         } catch (\Throwable $th) {
             log::error("Failed to fetch progress", [
@@ -186,8 +189,8 @@ class OnboardingProcessService implements OnboardingProcessServiceInterface
             'profile' => [
                 'school_name' => 'required|string|max:255',
                 'owner_email' => 'required|email|max:255',
-                'school_type' => 'nullable|in:primary,secondary,tertiary,training',
-                'country' => 'required|string|size:2',
+                'school_type' => 'nullable|in:primary,secondary,tertiary,training,combined,vocational,university',
+                'country' => 'required|string',
                 'city' => 'nullable|string|max:255',
                 'address' => 'nullable|string|max:500',
                 'description' => 'nullable|string|max:1000',

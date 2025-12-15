@@ -41,7 +41,7 @@ class TenantService implements TenantServiceInterface
                 return;
             } 
 
-            return DB::transaction(function () use ($onboarding){
+            // return DB::transaction(function () use ($onboarding){
                 
                 //step -> 1
                 $onboarding->updateProgress(10, 'Preparing your workspace...');
@@ -94,8 +94,9 @@ class TenantService implements TenantServiceInterface
                 // Step -> 8
                 $onboarding->updateProgress(100, 'Setup complete!');
                 $onboarding->markAsCompleted($tenant->id);
+                $this->tenantRepo->completeOnboarding($tenant);
 
-            });
+            // });
 
         } catch (\Throwable $th) {
             Log::error("Error creating tenant {$th->getMessage()}");
@@ -103,7 +104,7 @@ class TenantService implements TenantServiceInterface
         }
     }
 
-    public function retrySetup(int $tenantId, int $sessionId, array $onboardingData): ?array
+    public function retrySetup(int $tenantId, string $sessionId, array $onboardingData): ?array
     {
         throw new \Exception('Not implemented');
     }

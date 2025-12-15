@@ -1,7 +1,12 @@
 <?php
 
-use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Foundation\Application;
+use App\Http\Middleware\TenantMiddleware;
+use App\Http\Middleware\EnsureTenantAccess;
+use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\TenantOwnerMiddleware;
+use App\Http\Middleware\CheckSubscriptionLimit;
+use App\Http\Middleware\TenantSubdomainRedirect;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
@@ -17,6 +22,14 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
+        ]);
+
+        $middleware->alias([
+            'tenant' => TenantMiddleware::class,
+            'tenant.owner' => TenantOwnerMiddleware::class,
+            'tenant.access' => EnsureTenantAccess::class,
+            'tenant.subdomain' => TenantSubdomainRedirect::class,
+            'subscription.limit' => CheckSubscriptionLimit::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

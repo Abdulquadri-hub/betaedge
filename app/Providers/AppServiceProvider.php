@@ -34,6 +34,9 @@ class AppServiceProvider extends ServiceProvider
     
         // Onboarding submission rate limit
         RateLimiter::for('onboarding', function (Request $request) {
+            if(app()->isLocal()) {
+                return Limit::none();
+            }
             return Limit::perHour(3)->by($request->session()->getId());
         });
     

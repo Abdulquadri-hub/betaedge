@@ -15,11 +15,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 
-class User extends Authenticatable implements MustVerifyEmail, FilamentUser
+class User extends Authenticatable implements MustVerifyEmail
 {
     use HasFactory, Notifiable;
 
     protected $fillable = [
+        'tenant_id',
         'email',
         'username',
         'password',
@@ -48,16 +49,16 @@ class User extends Authenticatable implements MustVerifyEmail, FilamentUser
         ];
     }
 
-    public function canAccessPanel(Panel $panel): bool
-    {
-        $panelId = $panel->getId();
+    // public function canAccessPanel(Panel $panel): bool
+    // {
+    //     $panelId = $panel->getId();
 
-        // if($this->user_type === "admin") {
-        //     return true;
-        // }
+    //     // if($this->user_type === "admin") {
+    //     //     return true;
+    //     // }
 
-        return $this->user_type === $panelId;
-    }
+    //     return $this->user_type === $panelId;
+    // }
 
     public function student(): HasOne {
         return $this->hasOne(Student::class);
