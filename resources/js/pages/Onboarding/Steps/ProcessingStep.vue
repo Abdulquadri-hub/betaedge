@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { router } from '@inertiajs/vue3'
 import { 
   Loader2, 
@@ -36,7 +36,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['complete', 'retry'])
+// const emit = defineEmits(['complete', 'retry'])
 
 const progress = ref(0)
 const status = ref('processing')
@@ -53,7 +53,7 @@ const setupSteps = ref([
   { id: 'email', label: 'Sending verification email', status: 'pending' },
 ])
 
-const generateSubdomain = (name) => {
+const generateSubdomain = (name: string) => {
   return name
     .toLowerCase()
     .replace(/[^a-z0-9\s]/g, '')
@@ -61,7 +61,7 @@ const generateSubdomain = (name) => {
     .substring(0, 20)
 }
 
-const updateProgress = (newProgress, message, stepIndex) => {
+const updateProgress = (newProgress: number, message: string, stepIndex: number) => {
   progress.value = newProgress
   currentMessage.value = message
 

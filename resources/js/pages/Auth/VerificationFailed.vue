@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup>
 import { XCircle } from 'lucide-vue-next'
 
 const XCircleIcon = XCircle

@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup>
 import { ref, computed } from 'vue'
 import { useForm } from '@inertiajs/vue3'
 import { School, CheckCircle, Eye, EyeOff, ArrowRight } from 'lucide-vue-next'

@@ -1,5 +1,5 @@
-<script setup lang="js">
-import { ref, computed } from 'vue'
+<script setup>
+import { ref } from 'vue'
 import { Upload } from 'lucide-vue-next'
 
 const UploadIcon = Upload

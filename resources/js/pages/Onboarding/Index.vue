@@ -1,6 +1,6 @@
-<script setup lang="ts">
+<script setup>
 import {ref, computed, defineAsyncComponent, watch } from 'vue';
-import { router, useForm, Link } from '@inertiajs/vue3';
+import { router, Link } from '@inertiajs/vue3';
 
 import { 
     Check, 
@@ -160,19 +160,19 @@ const handleUpdate = (section, updates) => {
   }
 }
 
-const saveDraft = (step) => {
-    router.post('/onboarding/save', {
-        step,
-        data: formData.value[step]
-    }, {
-        preserveState: true,
-        preserveScroll: true,
-        only: ['draft', 'errors'],
-        onError: (errs) => {
-            errors.value = errs
-        }
-    })
-}
+// const saveDraft = (step) => {
+//     router.post('/onboarding/save', {
+//         step,
+//         data: formData.value[step]
+//     }, {
+//         preserveState: true,
+//         preserveScroll: true,
+//         only: ['draft', 'errors'],
+//         onError: (errs) => {
+//             errors.value = errs
+//         }
+//     })
+// }
 
 const handleNext = () => {
   // Save current step before moving forward
@@ -248,7 +248,7 @@ const handleCompleteSetup = () => {
   router.post('/onboarding/submit', formData.value, {
     preserveState: true,
     preserveScroll: true,
-    onSuccess: (page) => {
+    onSuccess: () => {
       // Move to processing step
       currentStep.value = 5
       processing.value = false

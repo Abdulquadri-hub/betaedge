@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup>
 import { computed } from 'vue'
 import { School, Crown, CreditCard, Edit2, MapPin, Mail, Phone, Building, CheckCircle } from 'lucide-vue-next'
 

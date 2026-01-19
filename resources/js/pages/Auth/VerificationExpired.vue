@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup>
 import { ref } from 'vue'
 import { router } from '@inertiajs/vue3'
 import { Clock, RefreshCw } from 'lucide-vue-next'

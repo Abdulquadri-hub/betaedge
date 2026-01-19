@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup>
 import { Link } from '@inertiajs/vue3'
 import { Check, Star } from 'lucide-vue-next'
 

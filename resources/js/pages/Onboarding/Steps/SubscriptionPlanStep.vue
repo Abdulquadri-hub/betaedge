@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup>
 import { computed } from 'vue'
 import { Check, Gift, Sparkles, Building2, Rocket } from 'lucide-vue-next'
 
