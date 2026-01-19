@@ -4,6 +4,7 @@ namespace App\Repositories;
 
 use App\Models\User;
 use App\Models\Tenant;
+use App\Models\Student;
 use Illuminate\Support\Str;
 use App\Models\OnboardingProcess;
 use Illuminate\Support\Facades\Hash;
@@ -78,7 +79,11 @@ class TenantRepository implements TenantRepositoryInterface
 
     public function getStats(): array
     {
-        return [];
+        return [
+            'total_schools' => Tenant::where('status', 'active')->count(),
+            'total_students' => Student::count(),
+            'countries' => Tenant::distinct('country')->count('country'),
+        ];
     }
 
     public function updateOnboardingStep(Tenant $tenant, string $step): void

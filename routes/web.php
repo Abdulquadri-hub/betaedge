@@ -2,14 +2,16 @@
 
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\PlatformController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\TenantPublicPageController;
 use App\Http\Controllers\EmailVerificationController;
 
-Route::get('/', function () {
-    return Inertia::render('Welcome');
-})->name('home');
-
+Route::domain(config('app.main_domain'))
+    ->middleware(['web'])
+    ->group(function () {
+        Route::get('/', [PlatformController::class, 'landing'])->name('home');
+});
 
 Route::middleware(['guest', 'throttle:60,1'])->group(function () {
     Route::get('/onboarding', [OnboardingController::class, 'index'])
@@ -40,6 +42,7 @@ Route::post('/verification/set-password', [EmailVerificationController::class, '
 Route::post('/verification/resend', [EmailVerificationController::class, 'resend'])
     ->middleware('throttle:3,60')
     ->name('verification.resend');
+
 
 // Tenant public pages (with tenant middleware)
 Route::domain('{tenant}.' . config('app.main_domain'))

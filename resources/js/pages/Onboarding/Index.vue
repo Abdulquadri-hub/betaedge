@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {ref, computed, defineAsyncComponent, watch } from 'vue';
-import { router, useForm } from '@inertiajs/vue3';
+import { router, useForm, Link } from '@inertiajs/vue3';
 
 import { 
     Check, 
@@ -269,6 +269,11 @@ const handleRetry = () => {
 <template>
   <div class="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
     <div class="container mx-auto px-4 py-8">
+       <!-- Back Button -->
+      <Link :href="('/')" class="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary mb-6">
+        <ArrowLeftIcon class="w-4 h-4" />
+        Back to Home
+      </Link>
       <!-- Header -->
       <div class="text-center mb-8">
         <h1 class="text-3xl md:text-4xl font-bold text-foreground mb-2">

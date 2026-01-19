@@ -1,5 +1,6 @@
 <?php
 
+use App\Contracts\Repositories\MarketPlaceListingRepositoryInterface;
 use App\Services\TenantService;
 use App\Services\TenantPageService;
 use App\Services\TenantUserService;
@@ -29,6 +30,9 @@ use App\Contracts\Repositories\TenantPaymentRepositoryInterface;
 use App\Contracts\Repositories\SubscriptionPlanRepositoryInterface;
 use App\Contracts\Repositories\OnboardingProcessRepositoryInterface;
 use App\Contracts\Repositories\TenantSubscriptionRepositoryInterface;
+use App\Contracts\Services\MarketPlaceListingServiceInterface;
+use App\Repositories\MarketPlaceListingRepository;
+use App\Services\MarketPlaceListingService;
 
 return [
 
@@ -39,7 +43,8 @@ return [
         TenantPageRepositoryInterface::class => TenantPageRepository::class,
         TenantPaymentRepositoryInterface::class => TenantPaymentRepository::class,
         TenantSubscriptionRepositoryInterface::class => TenantSubscriptionRepository::class,
-        TenantUserRepositoryInterface::class => TenantUserRepository::class
+        TenantUserRepositoryInterface::class => TenantUserRepository::class,
+        MarketPlaceListingRepositoryInterface::class => MarketPlaceListingRepository::class,
     ],
 
     'services' => [
@@ -49,6 +54,7 @@ return [
         TenantPageServiceInterface::class => TenantPageService::class,
         TenantPaymentServiceInterface::class => TenantPaymentService::class,
         TenantSubscriptionServiceInterface::class => TenantSubscriptionSevice::class,
-        TenantUserServiceInterface::class => TenantUserService::class
+        TenantUserServiceInterface::class => TenantUserService::class,
+        MarketPlaceListingServiceInterface::class => MarketPlaceListingService::class,
     ]
 ];

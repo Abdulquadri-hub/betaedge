@@ -14,7 +14,7 @@ return [
     */
 
     'name' => env('APP_NAME', 'Laravel'),
-    'main_domain' => env('MAIN_DOMAIN', 'betedge.test'),
+    'main_domain' => env('MAIN_DOMAIN', 'betaedge.test'),
 
     /*
     |--------------------------------------------------------------------------

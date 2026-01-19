@@ -9,6 +9,7 @@ use App\Contracts\Repositories\TenantPageRepositoryInterface;
 
 class TenantPageRepository implements TenantPageRepositoryInterface
 {
+
     public function generatePages(Tenant $tenant, OnboardingProcess $onboarding): void {
 
         $profile = $onboarding->getProfile();
@@ -43,7 +44,7 @@ class TenantPageRepository implements TenantPageRepositoryInterface
             'slug' => 'register/student',
             'title' => 'Student Registration',
             'page_type' => 'register_student',
-            'content' => null, // Handled by Vue component
+            'content' => null, 
             'is_active' => true,
             'meta_title' => 'Student Registration - ' . $tenant->name,
             'meta_description' => 'Register as a student at ' . $tenant->name
@@ -55,11 +56,18 @@ class TenantPageRepository implements TenantPageRepositoryInterface
             'slug' => 'register/parent',
             'title' => 'Parent Registration',
             'page_type' => 'register_parent',
-            'content' => null, // Handled by Vue component
+            'content' => null, 
             'is_active' => true,
             'meta_title' => 'Parent Registration - ' . $tenant->name,
             'meta_description' => 'Register as a parent at ' . $tenant->name
         ]);
+    }
+
+    public function getPageContent(Tenant $tenant, string $type): TenantPage {
+        return TenantPage::where('tenant_id', $tenant->id)
+                ->where('page_type', $type)
+                ->where('is_active', true)
+                ->first();
     }
 
     private function getLandingPageTemplate(Tenant $tenant, array $profile): array

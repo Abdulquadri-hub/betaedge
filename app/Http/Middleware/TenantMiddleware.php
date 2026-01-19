@@ -123,7 +123,7 @@ class TenantMiddleware
     protected function isMainPlatformRequest(Request $request): bool
     {
         $host = $request->getHost();
-        $mainDomain = config('app.main_domain', 'teach.com');
+        $mainDomain = config('app.main_domain', 'betaedge.test');
         
         return $host === $mainDomain || 
                $host === 'www.' . $mainDomain ||
