@@ -28,21 +28,21 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        RateLimiter::for('api', function (Request $request) {
-            return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
-        });
+        // RateLimiter::for('api', function (Request $request) {
+        //     return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
+        // });
     
-        // Onboarding submission rate limit
-        RateLimiter::for('onboarding', function (Request $request) {
-            if(app()->isLocal()) {
-                return Limit::none();
-            }
-            return Limit::perHour(3)->by($request->session()->getId());
-        });
+        // // Onboarding submission rate limit
+        // RateLimiter::for('onboarding', function (Request $request) {
+        //     if(app()->isLocal()) {
+        //         return Limit::none();
+        //     }
+        //     return Limit::perHour(3)->by($request->session()->getId());
+        // });
     
-        // Status polling rate limit
-        RateLimiter::for('onboarding-status', function (Request $request) {
-            return Limit::perMinute(30)->by($request->ip());
-        });
+        // // Status polling rate limit
+        // RateLimiter::for('onboarding-status', function (Request $request) {
+        //     return Limit::perMinute(30)->by($request->ip());
+        // });
     }
 }

@@ -58,7 +58,8 @@ class OnboardingProcessService implements OnboardingProcessServiceInterface
                 'errors' => $e->errors(),
                 'message' => 'validation failed'
             ]);
-            throw new Exception("validation error: " . json_encode($e->errors(), JSON_PRETTY_PRINT));
+            throw $e;
+            // throw new Exception("validation error: " . json_encode($e->errors(), JSON_PRETTY_PRINT));
         } 
         catch (\Throwable $th) {
             Log::error("Error drafting onboarding process:", [
@@ -66,7 +67,7 @@ class OnboardingProcessService implements OnboardingProcessServiceInterface
                 'step' => $step,
                 'error' => $th->getMessage()
             ]);
-            throw new Exception("Error drating onboarding process: {$th->getMessage()}");
+            throw $th;
         }
     }
 

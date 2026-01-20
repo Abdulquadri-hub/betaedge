@@ -31,11 +31,19 @@ class TenantSubscriptionSevice implements TenantSubscriptionServiceInterface
 
             $paymentData = $onboarding->getPayment();
 
-            $refrence = $paymentData['paystack_reference'];
+            $reference = $paymentData['paystack_reference'] ?? 'free';
 
-            $verification =  $this->gateway->verify($refrence);
+            if($reference === 'free') {
+                DB::transaction(function () use  ($tenant, $subscription, $paymentData) {
+                    return $this->tenantpayRepo->create($tenant, $subscription,$paymentData, null);
+                });
 
-            if (!$verification['success']) {
+                return;
+            }
+
+            $verification =  $this->gateway->verify($reference);
+
+            if (!$this->isSuccessfullyProcessed($verification)) {
                 throw new Exception(
                     'Payment verification failed: ' . ($verification['error'] ?? 'Unknown error')
                 );
@@ -49,12 +57,12 @@ class TenantSubscriptionSevice implements TenantSubscriptionServiceInterface
                 throw new Exception('Payment amount mismatch');
             }
 
-            DB::transaction(function () use  ($tenant, $subscription,   $verification, $paymentData) {
+            DB::transaction(function () use  ($tenant, $subscription, $verification, $paymentData) {
                 return $this->tenantpayRepo->create($tenant, $subscription,$paymentData, $verification);
             });
 
         } catch (\Throwable $th) {
-            //throw $th;
+            throw $th;
         }
     }
 

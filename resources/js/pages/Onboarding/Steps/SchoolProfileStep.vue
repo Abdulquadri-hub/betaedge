@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { Upload } from 'lucide-vue-next'
 
 const UploadIcon = Upload
@@ -40,6 +40,25 @@ const handleLogoChange = (event) => {
 const getError = (field) => {
   return props.errors[`profile.${field}`] || props.errors[field]
 }
+
+watch(
+  () => props.data.logo, 
+  (file) => {
+    if(!file) {
+      logoPreview.value = null
+      return
+    }
+
+    if (file instanceof File) {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        logoPreview.value = e.target.result
+      }
+      reader.readAsDataURL(file)
+    }
+  },
+  {immediate: true}
+)
 </script>
 
 <template>
@@ -93,7 +112,7 @@ const getError = (field) => {
       </div>
 
       <div class="space-y-2">
-        <label for="schoolType" class="text-sm font-medium">School Type *</label>
+        <label for="schoolType" class="text-sm font-medium">School Type </label>
         <select
           id="schoolType"
           :value="data.school_type"
@@ -130,23 +149,22 @@ const getError = (field) => {
       </div>
 
       <div class="space-y-2">
-        <label for="phone" class="text-sm font-medium">Phone Number *</label>
+        <label for="established" class="text-sm font-medium">Year Established</label>
         <input
-          id="phone"
-          type="tel"
-          placeholder="+234 800 000 0000"
-          :value="data.phone"
-          @input="updateField('phone', $event.target.value)"
-          :class="['flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm', getError('phone') ? 'border-destructive' : '']"
+          id="established"
+          type="number"
+          placeholder="e.g., 1990"
+          :min="1800"
+          :max="new Date().getFullYear()"
+          :value="data.year_established"
+          @input="updateField('year_established', $event.target.value)"
+          class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
         />
-        <p v-if="getError('phone')" class="text-sm text-destructive">
-          {{ getError('phone') }}
-        </p>
       </div>
     </div>
 
-    <div class="grid md:grid-cols-2 gap-4">
-      <div class="space-y-2">
+    <!-- <div class="grid md:grid-cols-2 gap-4"> -->
+      <!-- <div class="space-y-2">
         <label for="website" class="text-sm font-medium">Website (Optional)</label>
         <input
           id="website"
@@ -170,11 +188,11 @@ const getError = (field) => {
           @input="updateField('year_established', $event.target.value)"
           class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
         />
-      </div>
-    </div>
+      </div> -->
+    <!-- </div> -->
 
     <!-- Address -->
-    <div class="space-y-2">
+    <!-- <div class="space-y-2">
       <label for="address" class="text-sm font-medium">Street Address *</label>
       <input
         id="address"
@@ -187,11 +205,11 @@ const getError = (field) => {
       <p v-if="getError('address')" class="text-sm text-destructive">
         {{ getError('address') }}
       </p>
-    </div>
+    </div> -->
 
     <div class="grid md:grid-cols-2 gap-4">
       <div class="space-y-2">
-        <label for="city" class="text-sm font-medium">City *</label>
+        <label for="city" class="text-sm font-medium">City </label>
         <input
           id="city"
           type="text"

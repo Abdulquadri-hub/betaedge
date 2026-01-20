@@ -156,23 +156,23 @@ const handleUpdate = (section, updates) => {
     errors.value = {}
     
     // Auto-save draft
-    // saveDraft(section)
+    saveDraft(section)
   }
 }
 
-// const saveDraft = (step) => {
-//     router.post('/onboarding/save', {
-//         step,
-//         data: formData.value[step]
-//     }, {
-//         preserveState: true,
-//         preserveScroll: true,
-//         only: ['draft', 'errors'],
-//         onError: (errs) => {
-//             errors.value = errs
-//         }
-//     })
-// }
+const saveDraft = (step) => {
+    router.post('/onboarding/save', {
+        step,
+        data: formData.value[step]
+    }, {
+        preserveState: true,
+        preserveScroll: true,
+        only: ['draft', 'errors'],
+        onError: (errs) => {
+            errors.value = errs
+        }
+    })
+}
 
 const handleNext = () => {
   // Save current step before moving forward
@@ -183,12 +183,19 @@ const handleNext = () => {
     router.post('/onboarding/save', {
       step: section,
       data: formData.value[section],
-    }, {
+    }, 
+    {
       preserveState: true,
       preserveScroll: true,
       only: ['draft', 'errors', 'job_id'],
-      onSuccess: () => {
+      onSuccess: (page) => {
         errors.value = {}
+
+        if (page.props.draft) {
+          formData.value.profile = page.props.draft.profile || formData.value.profile
+          formData.value.plan = page.props.draft.plan || formData.value.plan
+          formData.value.payment = page.props.draft.payment || formData.value.payment
+        }
         
         // Mark current step as completed
         if (!completedSteps.value.includes(currentStep.value)) {

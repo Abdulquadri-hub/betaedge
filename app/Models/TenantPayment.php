@@ -41,10 +41,12 @@ class TenantPayment extends Model
         });
     }
 
-    public function generatePaymentReference() {
+    public static function generatePaymentReference() {
         do {
             $reference = 'TPAY-' . strtoupper(Str::random(10));
         } while (self::where('payment_reference', $reference)->exists());
+
+        return $reference;
     }
 
     public function tenant(): BelongsTo {

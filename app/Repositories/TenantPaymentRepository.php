@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\DB;
 
 class TenantPaymentRepository implements TenantPaymentRepositoryInterface
 {
-   public function create(Tenant $tenant, TenantSubscription $subscription, array $paymentData, array $verification) {
+   public function create(Tenant $tenant, TenantSubscription $subscription, ?array $paymentData, ?array $verification) {
 
         $plan = $subscription->plan;
         

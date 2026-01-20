@@ -80,7 +80,6 @@ const initializePayment = () => {
 }
 
 onMounted(() => {
-  // Load Paystack inline script
   if (!window.PaystackPop) {
     const script = document.createElement('script')
     script.src = 'https://js.paystack.co/v1/inline.js'

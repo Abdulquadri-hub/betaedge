@@ -139,7 +139,7 @@ class TenantMiddleware
             return true;
         }
 
-        // Allow *.teach.com
+        // Allow *.betaedge.com
         return str_ends_with($host, $mainDomain);
     }
 }
