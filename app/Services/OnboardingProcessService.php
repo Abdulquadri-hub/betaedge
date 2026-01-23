@@ -48,7 +48,8 @@ class OnboardingProcessService implements OnboardingProcessServiceInterface
                     'profile' => $draft->getProfile(),
                     'plan' => $draft->getPlan(),
                     'payment' => $draft->getPayment(),
-                    'current_step' => $draft->current_step
+                    'current_step' => $draft->current_step,
+                    'job_id' => $draft->job_id
                 ]
             ];
 
@@ -59,7 +60,6 @@ class OnboardingProcessService implements OnboardingProcessServiceInterface
                 'message' => 'validation failed'
             ]);
             throw $e;
-            // throw new Exception("validation error: " . json_encode($e->errors(), JSON_PRETTY_PRINT));
         } 
         catch (\Throwable $th) {
             Log::error("Error drafting onboarding process:", [

@@ -72,7 +72,7 @@ const features = [
         </span>
         <h2 class="font-display text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-6">
           Powerful Features for
-          <span class="text-gradient-primary">Modern Educators</span>
+          <span class="text-primary">Modern Educators</span>
         </h2>
         <p class="text-lg text-muted-foreground">
           From course creation to payment processing, we've built everything you need 
@@ -83,7 +83,7 @@ const features = [
       <!-- Features Grid -->
       <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div
-          v-for="(feature, index) in features"
+          v-for="(feature) in features"
           :key="feature.title"
           class="group p-6 rounded-2xl bg-card border border-border hover:shadow-lg hover:border-primary/30 transition-all duration-300"
         >

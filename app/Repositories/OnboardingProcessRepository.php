@@ -2,8 +2,10 @@
 
 namespace App\Repositories;
 
-use App\Contracts\Repositories\OnboardingProcessRepositoryInterface;
+use App\Models\User;
+use App\Models\Tenant;
 use App\Models\OnboardingProcess;
+use App\Contracts\Repositories\OnboardingProcessRepositoryInterface;
 
 class OnboardingProcessRepository implements OnboardingProcessRepositoryInterface
 {
@@ -53,7 +55,7 @@ class OnboardingProcessRepository implements OnboardingProcessRepositoryInterfac
     public function getBySessionId(string $sessionId): ?OnboardingProcess
     {
         return OnboardingProcess::where('session_id', $sessionId)
-            ->whereIn('status', ['draft', 'processing'])
+            ->whereIn('status', ['draft', 'processing', 'failed'])
             ->latest()
             ->first();
     }
@@ -76,5 +78,17 @@ class OnboardingProcessRepository implements OnboardingProcessRepositoryInterfac
                 'status' => 'failed',
                 'error_message' => 'Job timed out after ' . $minutes . ' minutes'
             ]);
+    }
+
+    public function cleanupFailedOnboarding(OnboardingProcess $onboarding): void {
+        if($onboarding->tenant_id) {
+            $tenant = Tenant::find($onboarding->tenant);
+            if($tenant) {
+                if($tenant->owner_id) {
+                    User::where('id', $tenant->owner_id)->delete();
+                }
+                $tenant->delete();
+            }
+        }
     }
 }

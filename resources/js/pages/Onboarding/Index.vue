@@ -115,7 +115,13 @@ const currentStepData = computed(() => {
     switch (currentStep.value) {
         case 1: return formData.value.profile
         case 2: return { ...formData.value.plan, plans: props.plans }
-        case 3: return {...formData.value.payment, planInfo: formData.value.plan, plans: props.plans}
+        case 3: return {
+          ...formData.value.payment, 
+          planInfo: formData.value.plan, 
+          plans: props.plans,
+          ownerEmail: formData.value.profile.owner_email,
+          schoolName: formData.value.profile.school_name
+        }
         case 4: return formData.value
         case 5: return { schoolName: formData.value.profile.school_name, ownerEmail: formData.value.profile.owner_email, JobId: formData.value.jobId}
         default: return {}

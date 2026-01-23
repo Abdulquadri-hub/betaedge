@@ -2,14 +2,18 @@
 
 namespace App\Jobs;
 
-use App\Contracts\Services\TenantServiceInterface;
+use App\Contracts\Repositories\OnboardingProcessRepositoryInterface;
 use App\Models\OnboardingProcess;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
+use App\Contracts\Services\TenantServiceInterface;
+use App\Models\Tenant;
+use App\Models\User;
 
 class ProcessTenantOnboardingJob implements ShouldQueue
 {
@@ -42,7 +46,7 @@ class ProcessTenantOnboardingJob implements ShouldQueue
                 'trace' => $e->getTraceAsString()
             ]);
 
-            $onboarding = OnboardingProcess::find($this->onboardingId);
+            $onboarding = app(OnboardingProcessRepositoryInterface::class)->getById($this->onboardingId);
             if ($onboarding) {
                 $onboarding->markAsFailed($e->getMessage());
             }
@@ -60,11 +64,32 @@ class ProcessTenantOnboardingJob implements ShouldQueue
             'trace' => $exception->getTraceAsString()
         ]);
 
-        $onboarding = OnboardingProcess::find($this->onboardingId);
+        $onboarding = app(OnboardingProcessRepositoryInterface::class)->getById($this->onboardingId);
         if ($onboarding) {
-            $onboarding->markAsFailed(
-                'Setup failed after multiple attempts. Please contact support. Error: ' . $exception->getMessage()
-            );
+
+            DB::transaction(function () use ($onboarding, $exception){
+                $this->cleanupFailedProcess($onboarding);
+
+                $onboarding->update([
+                    'status' => 'draft',
+                    'tenant_id' => null,
+                    'job_id' => null,
+                    'progress_percentage' => 0,
+                    'error_message' => 'Setup failed: ' . $exception->getMessage(),
+                    'failed_at' => now()
+                ]);
+            });
+        }
+    }
+
+    private function cleanupFailedProcess(OnboardingProcess $onboarding) {
+        try {
+            app(OnboardingProcessRepositoryInterface::class)->cleanupFailedOnboarding($onboarding);
+        } catch (\Exception $e) {
+            Log::error('Failed to cleanup onboarding data', [
+                'onboarding_id' => $onboarding->id,
+                'error' => $e->getMessage()
+            ]);
         }
     }
 }

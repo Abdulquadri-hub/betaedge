@@ -13,4 +13,5 @@ interface OnboardingProcessRepositoryInterface
     public function delete(string $sessionId): bool;
     public function getById(string $id): ?OnboardingProcess;
     public function cleanupStaleJobs(int $minutes = 60): int;
+    public function cleanupFailedOnboarding(OnboardingProcess $onboarding): void;
 }

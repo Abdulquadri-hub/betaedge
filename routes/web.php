@@ -1,68 +1,87 @@
 <?php
 
 use Inertia\Inertia;
+use Illuminate\Auth\Events\Login;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PlatformController;
+use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\OnboardingController;
+use App\Http\Controllers\MarketPlaceController;
+use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\TenantPublicPageController;
+use App\Http\Controllers\Auth\SelectSchoolController;
 use App\Http\Controllers\EmailVerificationController;
 
-Route::domain(config('app.main_domain'))
-    ->middleware(['web'])
-    ->group(function () {
-        Route::get('/', [PlatformController::class, 'landing'])->name('home');
+/**
+ * Main Domain (platform) Routes
+ */
+Route::domain(config('app.main_domain'))->middleware(['web'])->group(function () {
+
+    /**
+     * Homepage Routes
+     */
+    Route::controller(PlatformController::class)->group(function () {
+        Route::get('/', 'landing')->name('home');
+    });
+
+    /**
+     * Marketplace Routes
+     */
+    Route::controller(MarketPlaceController::class)->group(function () {
+        Route::get('/marketplace', 'lists');
+    });
+
+    /**
+     * Authentication Routes
+     */
+    Route::controller(LoginController::class)->group(function () {
+        Route::get('/auth/login', 'index')->name('login.index');
+        Route::post('auth/login', 'initiate')->name('login.initiate');
+    });
+
+    Route::controller(PasswordController::class)->group(function () {
+        Route::get('/auth/forgot-password', 'showforgot');
+        Route::post('/auth/forgot-password', 'forgot');
+        Route::get('/auth/reset-password', 'showReset');
+        Route::post('/auth/reset-password', 'reset');
+    });
+
+    Route::controller(SelectSchoolController::class)->group(function () {
+        Route::get('/auth/select-school', 'showSelectSchool');
+        Route::post('/auth/select-school', 'selectSchool');
+    });
+
+    Route::controller(EmailVerificationController::class)->group(function () {
+        Route::get('/verification/notice',  'notice')->name('verification.notice');
+        Route::get('/verification/verify/{token}',  'verify')->name('verification.verify');
+        Route::post('/verification/set-password',  'setPassword')->name('password.set');
+        Route::post('/verification/resend',  'resend')->middleware('throttle:3,60')->name('verification.resend');
+    });
+
+    Route::controller(OnboardingController::class)->middleware(['guest', 'throttle:60,1'])->group(function () {
+        Route::get('/onboarding', 'index')->name('onboarding.index');
+        Route::post('/onboarding/save', 'save')->name('onboarding.draft');
+        Route::post('/onboarding/submit', 'submit')->middleware('throttle:onboarding')->name('onboarding.submit');
+        Route::get('/onboarding/status/{jobId}', 'status')->middleware('throttle:onboarding-status')->name('onboarding.status');
+    });
 });
 
-Route::middleware(['guest', 'throttle:60,1'])->group(function () {
-    Route::get('/onboarding', [OnboardingController::class, 'index'])
-        ->name('onboarding.index');
-    
-    Route::post('/onboarding/save', [OnboardingController::class, 'save'])
-        ->name('onboarding.draft');
-    
-    Route::post('/onboarding/submit', [OnboardingController::class, 'submit'])
-        ->middleware('throttle:onboarding')
-        ->name('onboarding.submit');
-    
-    Route::get('/onboarding/status/{jobId}', [OnboardingController::class, 'status'])
-        ->middleware('throttle:onboarding-status')
-        ->name('onboarding.status');
-});
 
-// Email verification routes
-Route::get('/verification/notice', [EmailVerificationController::class, 'notice'])
-    ->name('verification.notice');
+/**
+ * Tenant / Schools Routes
+ */
 
-Route::get('/verification/verify/{token}', [EmailVerificationController::class, 'verify'])
-    ->name('verification.verify');
-
-Route::post('/verification/set-password', [EmailVerificationController::class, 'setPassword'])
-    ->name('password.set');
-
-Route::post('/verification/resend', [EmailVerificationController::class, 'resend'])
-    ->middleware('throttle:3,60')
-    ->name('verification.resend');
-
-
-// Tenant public pages (with tenant middleware)
-Route::domain('{tenant}.' . config('app.main_domain'))
-    ->middleware(['web', 'tenant'])
-    ->group(function () {
-        Route::get('/', [TenantPublicPageController::class, 'landing'])
-            ->name('tenant.landing');
-        
-        Route::get('/about', [TenantPublicPageController::class, 'about'])
-            ->name('tenant.about');
-        
-        Route::get('/register/student', [TenantPublicPageController::class, 'registerStudent'])
-            ->name('tenant.register.student');
-        
-        Route::post('/register/student', [TenantPublicPageController::class, 'storeStudent'])
-            ->name('tenant.register.student.store');
-        
-        Route::get('/register/parent', [TenantPublicPageController::class, 'registerParent'])
-            ->name('tenant.register.parent');
-        
-        Route::post('/register/parent', [TenantPublicPageController::class, 'storeParent'])
-            ->name('tenant.register.parent.store');
+Route::domain('{tenant}.' . config('app.main_domain'))->middleware(['web', 'tenant'])->group(function () {
+    /**
+     * School Page Route
+    */
+    Route::controller(TenantPublicPageController::class)->group(function () {
+        Route::get('/',  'landing')->name('tenant.landing');
+        Route::get('/about',  'about')->name('tenant.about');
+        Route::get('/register/student',  'registerStudent')->name('tenant.register.student');
+        Route::post('/register/student',  'storeStudent')->name('tenant.register.student.store');
+        Route::get('/register/parent',  'registerParent')->name('tenant.register.parent');
+        Route::post('/register/parent',  'storeParent')->name('tenant.register.parent.store');
+    });
+ 
 });

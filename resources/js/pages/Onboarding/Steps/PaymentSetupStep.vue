@@ -40,10 +40,16 @@ const selectedPlan = computed(() => {
   return props.plans.find(p => p.id === props.data.planInfo.plan_id)
 })
 
+
+
 const isYearly = computed(() => props.data.planInfo.billing_cycle === 'yearly')
 
 const price = computed(() => {
   return isYearly.value ? selectedPlan.value?.price_yearly : selectedPlan.value?.price_monthly
+})
+
+const ownerEmail = computed(() => {
+  return props.data.ownerEmail || props.data.schoolName || 'owner@school.com'
 })
 
 const isFree = computed(() => selectedPlan.value?.slug === 'free')
@@ -55,13 +61,14 @@ const initializePayment = () => {
 
   const handler = window.PaystackPop.setup({
     key: props.paystackPublicKey,
-    email: 'owner@school.com', // This should come from profile data
-    amount: price.value * 100, // Convert to kobo/cents
+    email: ownerEmail.value, 
+    amount: price.value * 100, 
     currency: 'NGN',
     ref: 'TXN_' + Math.floor((Math.random() * 1000000000) + 1),
     metadata: {
       plan_id: props.data.planInfo.plan_id,
       billing_cycle: props.data.planInfo.billing_cycle,
+      school_name: props.data.schoolName
     },
     callback: function(response) {
       paymentCompleted.value = true

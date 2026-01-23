@@ -43,7 +43,7 @@ class TenantService implements TenantServiceInterface
 
             // return DB::transaction(function () use ($onboarding){
                 
-                //step -> 1
+                //step -> 1 Preparing workspace
                 $onboarding->updateProgress(10, 'Preparing your workspace...');
                 sleep(1);
 
@@ -51,7 +51,7 @@ class TenantService implements TenantServiceInterface
                 sleep(1);
                 $this->validateOnboardingData($onboarding);
 
-                //step -> 2
+                //step -> 2 Creating School
                 $onboarding->updateProgress(30, 'Creating your school workspace...');
                 sleep(1);
             

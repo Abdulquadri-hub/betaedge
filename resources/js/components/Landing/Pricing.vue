@@ -14,16 +14,29 @@ defineProps({
 
 const formatPrice = (plan) => {
   if (plan.price_monthly === 0) return '₦0'
-  return `₦${plan.price_monthly.toLocaleString()}`
+    const formattedPrice = Math.floor(plan.price_monthly).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+  
+  return `₦${formattedPrice}`
 }
 
 const getDisplayFeatures = (plan) => {
   const features = []
-  if (plan.has_custom_domain) features.push('Custom domain')
-  if (plan.has_analytics) features.push('Advanced analytics')
-  if (plan.has_api_access) features.push('API access')
-  return features.slice(0, 3)
+  
+  if (plan.max_students) {
+    features.push(plan.max_students === -1 ? 'Unlimited students' : `Up to ${plan.max_students} students`)
+  }
+  
+  if (plan.max_instructors) {
+    features.push(plan.max_instructors === -1 ? 'Unlimited instructors' : `Up to ${plan.max_instructors} instructors`)
+  }
+  
+  if (plan.features && Array.isArray(plan.features)) {
+    features.push(...plan.features.slice(0, 4))
+  }
+  
+  return features.slice(0, 4)
 }
+
 </script>
 
 <template>
@@ -36,7 +49,7 @@ const getDisplayFeatures = (plan) => {
         </span>
         <h2 class="font-display text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-6">
           Choose Your
-          <span class="text-gradient-primary">Growth Path</span>
+          <span class="text-primary">Growth Path</span>
         </h2>
         <p class="text-lg text-muted-foreground">
           Start free, upgrade as you grow. All plans include our core features 
@@ -79,19 +92,19 @@ const getDisplayFeatures = (plan) => {
             <li class="flex items-start gap-2">
               <CheckIcon class="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
               <span class="text-sm text-muted-foreground">
-                Up to {{ plan.max_students === -1 ? 'unlimited' : plan.max_students }} students
+                Up to {{ plan.max_students === 0 ? 'unlimited' : plan.max_students }} students
               </span>
             </li>
             <li class="flex items-start gap-2">
               <CheckIcon class="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
               <span class="text-sm text-muted-foreground">
-                {{ plan.max_courses === -1 ? 'Unlimited' : plan.max_courses }} courses
+                {{ plan.max_courses === 0 ? 'Unlimited' : plan.max_courses }} courses
               </span>
             </li>
             <li class="flex items-start gap-2">
               <CheckIcon class="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
               <span class="text-sm text-muted-foreground">
-                {{ plan.max_instructors === -1 ? 'Unlimited' : `Up to ${plan.max_instructors}` }} instructors
+                {{ plan.max_instructors === 0 ? 'Unlimited' : `Up to ${plan.max_instructors}` }} instructors
               </span>
             </li>
             <li v-for="feature in getDisplayFeatures(plan)" :key="feature" class="flex items-start gap-2">

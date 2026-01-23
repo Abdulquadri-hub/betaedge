@@ -41,14 +41,14 @@ const navLinks = [
 
                 <!-- Desktop navigation -->
                 <div class="hidden md:flex items-center gap-8">
-                    <a v-for="link in navLinks" :key="link.label" :href="link.href"
+                    <Link v-for="link in navLinks" :key="link.label" :href="link.href"
                         class="text-muted-foreground hover:text-foreground font-medium transition-colors duration-200">
                         {{ link.label }}
-                    </a>
+                    </Link>
                 </div>
 
                 <div class="hidden md:flex items-center gap-3">
-                    <Link href="/login">
+                    <Link href="auth/login">
                         <button
                             class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 py-2 hover:bg-accent hover:text-accent-foreground">
                             Log In
@@ -82,7 +82,7 @@ const navLinks = [
                             {{ link.label }}
                         </a>
                         <div class="flex flex-col gap-2 pt-4 border-t border-border">
-                            <Link href="/login">
+                            <Link href="auth/login">
                                 <button
                                     class="w-full inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 py-2 hover:bg-accent hover:text-accent-foreground">
                                     Log In

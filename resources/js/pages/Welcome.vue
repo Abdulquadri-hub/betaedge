@@ -35,9 +35,9 @@ defineProps({
     <Navbar />
     <Hero />
     <Features />
-    <FeaturedSchools :schools="featuredSchools" />
-    <Pricing :plans="plans" />
     <Testimonials />
+    <Pricing :plans="plans" />
+    <FeaturedSchools :schools="featuredSchools" />
     <CTA />
     <Footer />
   </div>
