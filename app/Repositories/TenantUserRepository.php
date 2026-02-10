@@ -21,5 +21,24 @@ class TenantUserRepository implements TenantUserRepositoryInterface
         ]);
     }
 
+    public function isOwner(int $tenantId): ?bool {
+        $tenant = TenantUser::where('tenant_id', $tenantId)->where('role', 'owner')->exists();
+
+        if(!$tenant) {
+            return false;
+        }
+
+        return true;
+    }
+
+    public function getRole(int $tenantId, string $role): ?String {
+        if($this->isOwner($tenantId)) {
+            $data =  TenantUser::select('id', 'role')->where('role', $role)->firstOrFail();
+            return $data->role;
+        }
+
+        return '';
+    }
+
 
 }

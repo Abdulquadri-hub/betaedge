@@ -9,6 +9,7 @@ use Illuminate\Support\Str;
 use App\Models\OnboardingProcess;
 use Illuminate\Support\Facades\Hash;
 use App\Contracts\Repositories\TenantRepositoryInterface;
+use App\Models\TenantUser;
 
 class TenantRepository implements TenantRepositoryInterface
 {
@@ -71,6 +72,7 @@ class TenantRepository implements TenantRepositoryInterface
             ->where('status', 'active')
             ->first();
     }
+
 
     public function getUsageStats(Tenant $tenant): array
     {

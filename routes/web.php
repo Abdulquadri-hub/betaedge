@@ -8,9 +8,11 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\MarketPlaceController;
 use App\Http\Controllers\Auth\PasswordController;
-use App\Http\Controllers\TenantPublicPageController;
+use App\Http\Controllers\Tenant\PublicPageController;
 use App\Http\Controllers\Auth\SelectSchoolController;
 use App\Http\Controllers\EmailVerificationController;
+use App\Http\Controllers\Tenant\CourseController;
+use App\Http\Controllers\Tenant\EnrollmentController;
 
 /**
  * Main Domain (platform) Routes
@@ -75,13 +77,22 @@ Route::domain('{tenant}.' . config('app.main_domain'))->middleware(['web', 'tena
     /**
      * School Page Route
     */
-    Route::controller(TenantPublicPageController::class)->group(function () {
+    Route::controller(PublicPageController::class)->group(function () {
         Route::get('/',  'landing')->name('tenant.landing');
-        Route::get('/about',  'about')->name('tenant.about');
-        Route::get('/register/student',  'registerStudent')->name('tenant.register.student');
-        Route::post('/register/student',  'storeStudent')->name('tenant.register.student.store');
-        Route::get('/register/parent',  'registerParent')->name('tenant.register.parent');
-        Route::post('/register/parent',  'storeParent')->name('tenant.register.parent.store');
+
+        /**
+         * Course
+        */
+        Route::controller(CourseController::class)->group(function () {
+            Route::get('/course/{course}', 'show')->name('tenant.course');
+        });
+
+        /**
+         * Enrollment
+         */
+        Route::controller(EnrollmentController::class)->group(function () {
+            Route::get('/enroll', 'showEnroll')->name('tenant.enroll');
+        });
+        
     });
- 
 });

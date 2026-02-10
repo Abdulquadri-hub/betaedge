@@ -48,6 +48,8 @@ class TenantMiddleware
         
         $request->merge(['tenant' => $tenant]);
 
+        view()->share('tenant', $tenant);
+
         Log::withContext(['tenant_id' => $tenant->id]);
 
         if ($tenant->timezone) {
@@ -60,6 +62,7 @@ class TenantMiddleware
                 'id' => $tenant->id,
                 'name' => $tenant->name,
                 'logo' => $tenant->logo,
+                'slug' => $tenant->slug,
                 'primary_color' => $tenant->primary_color,
                 'secondary_color' => $tenant->secondary_color,
                 'subdomain' => $tenant->subdomain,

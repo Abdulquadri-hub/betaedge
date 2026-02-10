@@ -7,11 +7,13 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use App\Contracts\Services\TenantPageServiceInterface;
 use App\Contracts\Repositories\TenantPageRepositoryInterface;
+use App\Contracts\Repositories\TenantUserRepositoryInterface;
 
 class TenantPageService implements TenantPageServiceInterface
 {
     public function __construct(
         protected TenantPageRepositoryInterface $repo,
+        protected TenantUserRepositoryInterface $tenantUserRepo
     ) {}
 
     public function getLanding(Request $request): ?array
@@ -69,6 +71,7 @@ class TenantPageService implements TenantPageServiceInterface
                     'secondary_color' => $tenant->secondary_color ?? '#10B981',
                     'subdomain' => $tenant->subdomain,
                     'owner_email' => $tenant->owner_email,
+                    'owner_role' => $this->tenantUserRepo->getRole($tenant->id, 'owner')
                 ],
                 'pageContent' => $page?->content ?? $this->getDefaultLandingContent($tenant),
                 'stats' => $stats,

@@ -54,7 +54,7 @@ class TenantSubscriptionSevice implements TenantSubscriptionServiceInterface
             }
 
             if ($verification['data']['amount'] != $subscription->amount) {
-                throw new Exception('Payment amount mismatch');
+                throw new Exception('Payment amount mismatch '. $subscription->amount);
             }
 
             DB::transaction(function () use  ($tenant, $subscription, $verification, $paymentData) {

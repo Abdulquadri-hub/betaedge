@@ -82,7 +82,7 @@ class OnboardingProcessRepository implements OnboardingProcessRepositoryInterfac
 
     public function cleanupFailedOnboarding(OnboardingProcess $onboarding): void {
         if($onboarding->tenant_id) {
-            $tenant = Tenant::find($onboarding->tenant);
+            $tenant = Tenant::find($onboarding->tenant_id);
             if($tenant) {
                 if($tenant->owner_id) {
                     User::where('id', $tenant->owner_id)->delete();

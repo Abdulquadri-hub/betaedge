@@ -2,8 +2,8 @@
 import { ref } from 'vue';
 import { Copyright, GraduationCap } from 'lucide-vue-next';
 import { Link } from '@inertiajs/vue3';
-import RoleSelector from '@/components/auth/RoleSelector.vue';
-import LoginForm from '@/components/auth/LoginForm.vue';
+import RoleSelector from '@/components/Auth/RoleSelector.vue';
+import LoginForm from '@/components/Auth/LoginForm.vue';
 
 
 
