@@ -41,7 +41,7 @@ class TenantService implements TenantServiceInterface
                 return;
             } 
 
-            return DB::transaction(function () use ($onboarding){
+            // return DB::transaction(function () use ($onboarding){
                 
                 //step -> 1 Preparing workspace
                 $onboarding->updateProgress(10, 'Preparing your workspace...');
@@ -96,7 +96,7 @@ class TenantService implements TenantServiceInterface
                 $onboarding->markAsCompleted($tenant->id);
                 $this->tenantRepo->completeOnboarding($tenant);
 
-            });
+            // });
 
         } catch (\Throwable $th) {
             Log::error("Error creating tenant {$th->getMessage()}");

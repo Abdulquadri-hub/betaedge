@@ -100,7 +100,7 @@ export function useEnrollmentParams() {
         const currentPath = window.location.pathname
         const path =  currentPath.includes('/enroll') ? currentPath : `${currentPath}/enroll`
 
-        const url = `${baseUrl}${path}?course=${sanitizedCourse}`
+        let url = `${baseUrl}${path}?course=${sanitizedCourse}`
 
         if (batchId) {
             const sanitizeBatch = sanitizeBatchId(batchId)

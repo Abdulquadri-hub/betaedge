@@ -1,41 +1,40 @@
 <?php
 
-use Inertia\Inertia;
-use Illuminate\Auth\Events\Login;
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\PlatformController;
 use App\Http\Controllers\Auth\LoginController;
-use App\Http\Controllers\OnboardingController;
-use App\Http\Controllers\MarketPlaceController;
 use App\Http\Controllers\Auth\PasswordController;
-use App\Http\Controllers\Tenant\PublicPageController;
 use App\Http\Controllers\Auth\SelectSchoolController;
 use App\Http\Controllers\EmailVerificationController;
-use App\Http\Controllers\Tenant\CourseController;
-use App\Http\Controllers\Tenant\EnrollmentController;
+use App\Http\Controllers\MarketPlaceController;
+use App\Http\Controllers\OnboardingController;
+use App\Http\Controllers\PlatformController;
+use App\Http\Controllers\Tenant\Dashboard\CourseController;
+use App\Http\Controllers\Tenant\Dashboard\BatchController;
+use App\Http\Controllers\Tenant\Dashboard\CertificateController;
+use App\Http\Controllers\Tenant\Dashboard\ComplaintController;
+use App\Http\Controllers\Tenant\Dashboard\CourseMaterialController;
+use App\Http\Controllers\Tenant\Dashboard\HomeController;
+use App\Http\Controllers\Tenant\Dashboard\InstructorController;
+use App\Http\Controllers\Tenant\Dashboard\StudentController;
+use App\Http\Controllers\Tenant\Dashboard\EnrollmentController;
+use App\Http\Controllers\Tenant\Dashboard\FinancialController;
+use App\Http\Controllers\Tenant\Dashboard\LiveSessionController;
+use App\Http\Controllers\Tenant\Dashboard\ParentController;
+use App\Http\Controllers\Tenant\Dashboard\ReportController;
+use App\Http\Controllers\Tenant\Dashboard\SettingController;
+use App\Http\Controllers\Tenant\PublicPageController;
+use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
-/**
- * Main Domain (platform) Routes
- */
 Route::domain(config('app.main_domain'))->middleware(['web'])->group(function () {
 
-    /**
-     * Homepage Routes
-     */
     Route::controller(PlatformController::class)->group(function () {
         Route::get('/', 'landing')->name('home');
     });
 
-    /**
-     * Marketplace Routes
-     */
     Route::controller(MarketPlaceController::class)->group(function () {
         Route::get('/marketplace', 'lists');
     });
 
-    /**
-     * Authentication Routes
-     */
     Route::controller(LoginController::class)->group(function () {
         Route::get('/auth/login', 'index')->name('login.index');
         Route::post('auth/login', 'initiate')->name('login.initiate');
@@ -69,30 +68,101 @@ Route::domain(config('app.main_domain'))->middleware(['web'])->group(function ()
 });
 
 
-/**
- * Tenant / Schools Routes
- */
-
 Route::domain('{tenant}.' . config('app.main_domain'))->middleware(['web', 'tenant'])->group(function () {
-    /**
-     * School Page Route
-    */
     Route::controller(PublicPageController::class)->group(function () {
         Route::get('/',  'landing')->name('tenant.landing');
+    });
 
-        /**
-         * Course
-        */
-        Route::controller(CourseController::class)->group(function () {
-            Route::get('/course/{course}', 'show')->name('tenant.course');
+    Route::controller(CourseController::class)->group(function () {
+        Route::get('/course/{course}', 'show')->name('tenant.course');
+    });
+
+    Route::controller(EnrollmentController::class)->group(function () {
+        Route::get('/enroll', 'showEnroll')->name('tenant.enroll');
+    });
+
+
+    Route::prefix('dashboard')->group(function () {
+        Route::controller(HomeController::class)->group(function () {
+            Route::get('', 'index');
         });
 
-        /**
-         * Enrollment
-         */
-        Route::controller(EnrollmentController::class)->group(function () {
-            Route::get('/enroll', 'showEnroll')->name('tenant.enroll');
+        Route::prefix('batches')->controller(BatchController::class)->group(function () {
+            Route::get('', 'index');
+            Route::get('/{batchId}', 'single');
         });
-        
+
+        Route::prefix('courses')->controller(CourseController::class)->group(function () {
+            Route::get('', 'index');
+            Route::get('/{courseId}', 'single');
+            Route::get('/create', 'create');
+            Route::post('/create', 'save');
+            Route::get('/{courseId}/edit', 'edit');
+            Route::post('/{courseId}/edit', 'update');
+            Route::post('/{courseId}/publish', 'publish')->name('courses.publish');
+            Route::post('/{courseId}/archive', 'archive')->name('courses.archive');
+            Route::post('/{courseId}/duplicate', 'duplicate')->name('courses.duplicate');
+        });
+
+
+        Route::prefix('courses')->controller(CourseMaterialController::class)->group(function () {
+            Route::post('/{courseId}/materials', 'store')->name('courses.materials.store');
+            Route::delete('/{courseId}/materials/{material}', 'destroy')->name('courses.materials.destroy');
+        });
+
+        Route::prefix('students')->controller(StudentController::class)->group(function () {
+            Route::get('', 'index')->name('students.index');
+            Route::get('/{student}', 'single')->name('students.single');
+            Route::post('/{student}/suspend', 'suspend')->name('students.suspend');
+            Route::post('/{student}/activate', 'activate')->name('students.activate');
+        });
+
+        Route::prefix('instructors')->controller(InstructorController::class)->group(function () {
+            Route::get('', 'index')->name('instructors.index');
+            Route::get('/{instructorId}',   'single')->name('instructors.single');
+            Route::post('/invite', 'invite')->name('instructors.invite');
+            Route::post('/{instructorId}', 'update')->name('instructors.update');
+            Route::delete('/{instructorId}', 'destroy')->name('instructors.destroy');
+            Route::post('/{instructorId}/mark-paid',  'markPaid')->name('instructors.markPaid');
+        });
+
+        Route::prefix('enrollments')->controller(EnrollmentController::class)->group(function () {
+            Route::get('', 'index')->name('enrollments.index');
+            Route::patch('/{id}/approve', 'approve')->name('enrollments.approve');
+            Route::patch('/{id}/reject', 'reject')->name('enrollments.reject');
+        });
+
+        Route::prefix('live-sessions')->controller(LiveSessionController::class)->group(function () {
+            Route::get('', 'index');
+        });
+
+        Route::prefix('certificates')->controller(CertificateController::class)->group(function () {
+            Route::get('', 'index');
+        });
+
+        Route::prefix('complaints')->controller(ComplaintController::class)->group(function () {
+            Route::get('', 'index');
+        });
+
+        Route::prefix('settings')->controller(SettingController::class)->group(function () {
+            Route::get('', 'index');
+        });
+
+        Route::prefix('financials')->controller(FinancialController::class)->group(function () {
+            Route::get('', 'index');
+        });
+
+        Route::prefix('reports')->controller(ReportController::class)->group(function () {
+            Route::get('', 'index');
+        });
+
+        Route::prefix('parents')->controller(ParentController::class)->group(function () {
+            Route::get('', 'index');
+            Route::get('/{parentId}', 'single');
+            Route::post('/{parentId}/message', 'message');
+            Route::post('/{parentId}/thresholds', 'thresholds');
+        });
+
+
     });
 });

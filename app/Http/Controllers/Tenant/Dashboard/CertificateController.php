@@ -6,9 +6,9 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
-class HomeController extends Controller
+class CertificateController extends Controller
 {
-    public function index(Request $request) {
-        return Inertia::render('School/Dashboard/Home');
+    public function index() {
+        return Inertia::render('School/Dashboard/Certificates/Index');
     }
 }
