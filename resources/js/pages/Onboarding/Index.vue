@@ -162,7 +162,7 @@ const handleUpdate = (section, updates) => {
     errors.value = {}
     
     // Auto-save draft
-    saveDraft(section)
+    // saveDraft(section)
   }
 }
 

@@ -36,7 +36,7 @@ const isGoingLive    = ref(null)
 async function handleGoLive(session) {
   isGoingLive.value = session.id
   await goLive(session.id)
-  toast({ title: 'Session is LIVE!', description: 'Students can now join.' })
+  toast('Session is LIVE', { title: 'Session is LIVE!', description: 'Students can now join.' })
   isGoingLive.value = null
 }
 

@@ -21,6 +21,7 @@ use App\Http\Controllers\Tenant\Dashboard\ComplaintController;
 use App\Http\Controllers\Tenant\Dashboard\CourseController;
 use App\Http\Controllers\Tenant\Dashboard\CourseMaterialController;
 use App\Http\Controllers\Tenant\Dashboard\EnrollmentController;
+use App\Http\Controllers\Tenant\EnrollmentController as PublicEnrollmentController;
 use App\Http\Controllers\Tenant\Dashboard\FinancialController;
 use App\Http\Controllers\Tenant\Dashboard\HomeController;
 use App\Http\Controllers\Tenant\Dashboard\InstructorController;
@@ -128,7 +129,7 @@ Route::domain('{tenant}.' . config('app.main_domain'))->middleware(['web', 'tena
         Route::get('/course/{course}', 'show')->name('tenant.course');
     });
 
-    Route::controller(EnrollmentController::class)->group(function () {
+    Route::controller(PublicEnrollmentController::class)->group(function () {
         Route::get('/enroll', 'showEnroll')->name('tenant.enroll');
     });
 
