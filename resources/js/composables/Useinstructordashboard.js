@@ -1,3 +1,4 @@
+
 import { ref, computed } from 'vue'
 
 function sanitizeId(id) {
@@ -155,7 +156,7 @@ export const MOCK_JOB_LISTINGS = [
   {
     id:'job-001', school_name:'Future Leaders Academy', location:'Lagos',
     course:'Mathematics (JSS 1-3)', schedule:'Tuesdays & Thursdays, 5PM',
-    payment_model:'₦45,000 per batch', students_per_batch:25,
+    payment_model:'per_batch', students_per_batch:25, payment_amount: '35,000',
     requirements:'B.Sc Mathematics or Education. 2+ years teaching experience.',
     posted_at: new Date(Date.now()-3*86400000).toISOString(),
     status:'open', applied:false,
@@ -163,7 +164,7 @@ export const MOCK_JOB_LISTINGS = [
   {
     id:'job-002', school_name:'Greenfield Academy', location:'Abuja',
     course:'English Language (Primary 4-6)', schedule:'Saturdays, 9AM',
-    payment_model:'₦35,000 per batch', students_per_batch:20,
+    payment_model:'per_batch', students_per_batch:20, payment_amount: '45,000',
     requirements:'B.Sc English or Education.',
     posted_at: new Date(Date.now()-7*86400000).toISOString(),
     status:'open', applied:false,
@@ -171,7 +172,7 @@ export const MOCK_JOB_LISTINGS = [
   {
     id:'job-003', school_name:'CodeCraft Nigeria', location:'Lagos',
     course:'Web Development Bootcamp', schedule:'Mon/Wed/Fri, 6PM',
-    payment_model:'₦2,500 per student', students_per_batch:30,
+    payment_model:'per_student', students_per_batch:30, payment_amount: '15,000',
     requirements:'2+ years professional web dev. Portfolio required.',
     posted_at: new Date(Date.now()-1*86400000).toISOString(),
     status:'open', applied:true,
@@ -283,6 +284,8 @@ export function useInstructorDashboard() {
 
   // ── Apply to job ──────────────────────────────────────────────────────────
   async function applyToJob(jobId, message) {
+    console.log(message);
+    
     const safeId = sanitizeId(jobId)
     if (!safeId) return { success: false }
     await new Promise(r => setTimeout(r, 600))
@@ -294,6 +297,8 @@ export function useInstructorDashboard() {
 
   // ── Update profile ────────────────────────────────────────────────────────
   async function updateProfile(data) {
+    console.log(data);
+    
     isLoading.value = true
     try {
       await new Promise(r => setTimeout(r, 700))

@@ -4,13 +4,18 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\SelectSchoolController;
 use App\Http\Controllers\EmailVerificationController;
+use App\Http\Controllers\Instructors\Dashboard\BatchController as InstructorBatchController;
+use App\Http\Controllers\Instructors\Dashboard\EarningController as InstructorEarningsController;
+use App\Http\Controllers\Instructors\Dashboard\GradingController as InstructorGradingController;
+use App\Http\Controllers\Instructors\Dashboard\JobController as InstructorJobController;
 use App\Http\Controllers\Instructors\Dashboard\MainController;
 use App\Http\Controllers\Instructors\Dashboard\ProfileController;
+use App\Http\Controllers\Instructors\Dashboard\SessionController as InstructorSessionController;
+use App\Http\Controllers\Instructors\Dashboard\StudentController as InstructorStudentController;
 use App\Http\Controllers\MarketPlaceController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\PlatformController;
 use App\Http\Controllers\Tenant\Dashboard\BatchController;
-use App\Http\Controllers\Instructors\Dashboard\BatchController as InstructorBatchController;
 use App\Http\Controllers\Tenant\Dashboard\CertificateController;
 use App\Http\Controllers\Tenant\Dashboard\ComplaintController;
 use App\Http\Controllers\Tenant\Dashboard\CourseController;
@@ -83,32 +88,32 @@ Route::domain(config('app.main_domain'))->middleware(['web'])->group(function ()
                 Route::get('/{batch}', 'single')->name('instructor.batches.single');
             });
 
-            // Route::prefix('sessions')->controller(InstructorSessionController::class)->group(function () {
-            //     Route::get('', 'index')->name('instructor.sessions.index');
-            // });
+            Route::prefix('sessions')->controller(InstructorSessionController::class)->group(function () {
+                Route::get('', 'index')->name('instructor.sessions.index');
+            });
 
-            // Route::prefix('grading')->controller(InstructorGradingController::class)->group(function () {
-            //     Route::get('', 'index')->name('instructor.grading.index');
-            //     Route::post('/{submission}', 'grade')->name('instructor.grading.grade');
-            // });
+            Route::prefix('grading')->controller(InstructorGradingController::class)->group(function () {
+                Route::get('', 'index')->name('instructor.grading.index');
+                Route::post('/{submission}', 'grade')->name('instructor.grading.grade');
+            });
 
-            // Route::prefix('students')->controller(InstructorStudentController::class)->group(function () {
-            //     Route::get('', 'index')->name('instructor.students.index');
-            // });
+            Route::prefix('students')->controller(InstructorStudentController::class)->group(function () {
+                Route::get('', 'index')->name('instructor.students.index');
+            });
 
-            // Route::prefix('earnings')->controller(InstructorEarningsController::class)->group(function () {
-            //     Route::get('', 'index')->name('instructor.earnings.index');
-            // });
+            Route::prefix('earnings')->controller(InstructorEarningsController::class)->group(function () {
+                Route::get('', 'index')->name('instructor.earnings.index');
+            });
 
             Route::prefix('profile')->controller(ProfileController::class)->group(function () {
                 Route::get('', 'edit')->name('instructor.profile.edit');
                 Route::post('', 'update')->name('instructor.profile.update');
             });
 
-            // Route::prefix('applications')->controller(InstructorJobController::class)->group(function () {
-            //     Route::get('', 'index')->name('instructor.applications.index');
-            //     Route::post('/{job}', 'apply')->name('instructor.applications.apply');
-            // });
+            Route::prefix('applications')->controller(InstructorJobController::class)->group(function () {
+                Route::get('', 'index')->name('instructor.applications.index');
+                Route::post('/{job}', 'apply')->name('instructor.applications.apply');
+            });
             
         });
 });
