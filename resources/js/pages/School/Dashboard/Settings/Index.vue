@@ -1,16 +1,11 @@
 <script setup>
 
-import { ref,
-   // computed 
-} from 'vue'
+import { ref } from 'vue'
 // import { router } from '@inertiajs/vue3'
 import {
   School, BookOpen, CreditCard, Zap, Bell,
   Receipt, Save, RefreshCw, Plus, Trash2,
-  Eye, EyeOff,
-   //Upload, AlertCircle,
-   CheckCircle2, 
-   //Edit,
+  Eye, EyeOff,CheckCircle2,
 } from 'lucide-vue-next'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button }   from '@/components/ui/button'
@@ -99,7 +94,7 @@ const paystack = ref({
   account_name: 'Bright Stars Academy Ltd',
 })
 const showSecret    = ref(false)
-const showDeletePay = ref(false)
+// const showDeletePay = ref(false)
 
 async function savePaystack() {
   isSaving.value = true
@@ -110,11 +105,29 @@ async function savePaystack() {
 }
 
 // ── 4. Subscription ───────────────────────────────────────────────────────────
-const currentPlan = ref({ name: 'Growth', price: 20000, billing: 'monthly', students_limit: 200, active_batches_limit: 20 })
+// Billing is duration-based (not monthly). School pays once per period.
+// TODO: replace with Inertia prop — subscription: { plan, expires_at, status }
+const currentPlan = ref({
+  name: '6 Months', price: 25000, duration: '6months',
+  expires_at: '2026-09-10', status: 'active',
+})
+
 const plans = ref([
-  { name: 'Starter', price: 10000, billing: 'monthly', students_limit: 50,  active_batches_limit: 5,  current: false },
-  { name: 'Growth',  price: 20000, billing: 'monthly', students_limit: 200, active_batches_limit: 20, current: true  },
-  { name: 'Pro',     price: 40000, billing: 'monthly', students_limit: 1000,active_batches_limit: 100,current: false },
+  {
+    key: '3months', name: '3 Months', price: 15000, duration_label: '3 months',
+    saving: null, per_month: 5000, current: false,
+    features: ['Unlimited students', 'Unlimited batches', 'All dashboard features', 'Email support'],
+  },
+  {
+    key: '6months', name: '6 Months', price: 25000, duration_label: '6 months',
+    saving: '5,000', per_month: 4167, current: true, popular: true,
+    features: ['Unlimited students', 'Unlimited batches', 'All dashboard features', 'Priority support'],
+  },
+  {
+    key: '1year', name: '1 Year', price: 40000, duration_label: '12 months',
+    saving: '20,000', per_month: 3333, current: false,
+    features: ['Unlimited students', 'Unlimited batches', 'All dashboard features', 'Priority support', 'Dedicated onboarding'],
+  },
 ])
 
 // ── 5. Notifications ──────────────────────────────────────────────────────────
@@ -139,9 +152,9 @@ async function saveNotifications() {
 
 // ── 6. Billing History ────────────────────────────────────────────────────────
 const billingHistory = ref([
-  { id: 'inv-001', date: '2026-03-01', amount: 20000, plan: 'Growth', status: 'paid', invoice_url: '#' },
-  { id: 'inv-002', date: '2026-02-01', amount: 20000, plan: 'Growth', status: 'paid', invoice_url: '#' },
-  { id: 'inv-003', date: '2026-01-01', amount: 20000, plan: 'Growth', status: 'paid', invoice_url: '#' },
+  { id: 'inv-001', date: '2026-03-10', amount: 25000, plan: '6 Months', expires: '2026-09-10', status: 'paid', invoice_url: '#' },
+  { id: 'inv-002', date: '2025-09-10', amount: 15000, plan: '3 Months', expires: '2025-12-10', status: 'paid', invoice_url: '#' },
+  { id: 'inv-003', date: '2025-06-10', amount: 15000, plan: '3 Months', expires: '2025-09-10', status: 'paid', invoice_url: '#' },
 ])
 
 function fmt(v) { return '₦' + (v ?? 0).toLocaleString('en-NG') }
@@ -321,41 +334,87 @@ const tabs = [
 
       <!-- 4. Subscription -->
       <TabsContent value="subscription" class="space-y-4">
+
+        <!-- Current plan status -->
         <Card class="border-primary/30 bg-primary/5">
           <CardContent class="p-5">
-            <div class="flex items-center justify-between gap-3">
+            <div class="flex items-center justify-between gap-3 flex-wrap">
               <div>
                 <p class="text-xs text-muted-foreground font-medium">Current Plan</p>
                 <p class="text-xl font-black text-primary">{{ currentPlan.name }}</p>
-                <p class="text-sm text-muted-foreground mt-0.5">{{ fmt(currentPlan.price) }}/month · up to {{ currentPlan.students_limit }} students</p>
+                <p class="text-sm text-muted-foreground mt-0.5">
+                  Expires {{ fmtDate(currentPlan.expires_at) }} · {{ fmt(currentPlan.price) }} paid
+                </p>
               </div>
-              <Badge variant="default" class="shrink-0">Active</Badge>
+              <Badge variant="default" class="shrink-0 gap-1.5">
+                <CheckCircle2 class="h-3.5 w-3.5" />Active
+              </Badge>
             </div>
           </CardContent>
         </Card>
 
+        <!-- Plan cards -->
         <div class="grid sm:grid-cols-3 gap-4">
           <Card
-            v-for="plan in plans" :key="plan.name"
-            :class="['transition-all', plan.current ? 'border-primary shadow-sm' : 'hover:border-primary/40 cursor-pointer']"
+            v-for="plan in plans" :key="plan.key"
+            class="relative transition-all"
+            :class="plan.current
+              ? 'border-primary shadow-md'
+              : plan.popular
+                ? 'border-secondary/50 hover:border-secondary cursor-pointer'
+                : 'hover:border-primary/40 cursor-pointer'"
           >
-            <CardContent class="p-5 space-y-3">
-              <div class="flex items-center justify-between">
-                <p class="text-base font-bold text-foreground">{{ plan.name }}</p>
-                <Badge v-if="plan.current" variant="default" class="text-xs">Current</Badge>
+            <!-- Popular badge -->
+            <div
+              v-if="plan.popular"
+              class="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-secondary text-secondary-foreground text-xs font-bold shadow"
+            >
+              Most Popular
+            </div>
+
+            <CardContent class="p-5 space-y-4 pt-6">
+              <div class="flex items-start justify-between gap-2">
+                <div>
+                  <p class="text-base font-bold text-foreground">{{ plan.name }}</p>
+                  <p class="text-xs text-muted-foreground">{{ plan.duration_label }} access</p>
+                </div>
+                <Badge v-if="plan.current" variant="default" class="text-xs shrink-0">Current</Badge>
               </div>
-              <p class="text-2xl font-black text-primary">{{ fmt(plan.price) }}<span class="text-sm font-normal text-muted-foreground">/mo</span></p>
-              <div class="space-y-1 text-xs text-muted-foreground">
-                <p>✓ Up to {{ plan.students_limit === 1000 ? 'unlimited' : plan.students_limit }} students</p>
-                <p>✓ Up to {{ plan.active_batches_limit === 100 ? 'unlimited' : plan.active_batches_limit }} active batches</p>
-                <p>✓ All features included</p>
+
+              <div>
+                <p class="text-3xl font-black text-primary">{{ fmt(plan.price) }}</p>
+                <p class="text-xs text-muted-foreground mt-0.5">
+                  ≈ {{ fmt(plan.per_month) }}/month
+                  <span v-if="plan.saving" class="text-emerald-600 font-semibold ml-1">· save ₦{{ plan.saving }}</span>
+                </p>
               </div>
-              <Button v-if="!plan.current" variant="outline" class="w-full text-sm" @click="toast({ title: 'Plan change requested', description: 'Our team will contact you to process the change.' })">
-                Switch to {{ plan.name }}
+
+              <ul class="space-y-1.5">
+                <li v-for="feature in plan.features" :key="feature" class="flex items-start gap-2 text-xs text-muted-foreground">
+                  <CheckCircle2 class="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                  {{ feature }}
+                </li>
+              </ul>
+
+              <Button
+                v-if="!plan.current"
+                class="w-full text-sm"
+                :variant="plan.popular ? 'default' : 'outline'"
+                @click="toast({ title: 'Redirecting to payment', description: `Processing ${plan.name} plan via Paystack...` })"
+              >
+                Get {{ plan.name }}
+              </Button>
+              <Button v-else variant="ghost" class="w-full text-sm" disabled>
+                Current Plan
               </Button>
             </CardContent>
           </Card>
         </div>
+
+        <p class="text-xs text-muted-foreground text-center">
+          All plans include the full platform. Payments are processed securely via Paystack.
+          Your school data is never deleted — renew anytime to regain access.
+        </p>
       </TabsContent>
 
       <!-- 5. Notifications -->
@@ -410,7 +469,7 @@ const tabs = [
               >
                 <div>
                   <p class="text-sm font-medium text-foreground">{{ inv.plan }} Plan · {{ fmtDate(inv.date) }}</p>
-                  <p class="text-xs text-muted-foreground">Invoice #{{ inv.id }}</p>
+                  <p class="text-xs text-muted-foreground">Invoice #{{ inv.id }} · Valid until {{ fmtDate(inv.expires) }}</p>
                 </div>
                 <div class="flex items-center gap-3">
                   <p class="text-sm font-bold text-foreground">{{ fmt(inv.amount) }}</p>

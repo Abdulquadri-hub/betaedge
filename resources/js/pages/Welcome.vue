@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import CTA from '@/components/Landing/CTA.vue';
-import FeaturedSchools from '@/components/Landing/FeaturedSchools.vue';
+import FeaturedMarketplace from '@/components/Landing/FeaturedMarketplace.vue';
 import Features from '@/components/Landing/Features.vue';
 import Footer from '@/components/Landing/Footer.vue';
 import Hero from '@/components/Landing/Hero.vue';
@@ -37,7 +37,7 @@ defineProps({
     <Features />
     <Testimonials />
     <Pricing :plans="plans" />
-    <FeaturedSchools :schools="featuredSchools" />
+    <FeaturedMarketplace :schools="featuredSchools" />
     <CTA />
     <Footer />
   </div>

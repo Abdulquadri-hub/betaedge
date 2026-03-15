@@ -40,11 +40,11 @@ const formatNumber = (num) => {
         <div class="container mx-auto px-4 relative z-10">
             <div class="max-w-4xl mx-auto text-center">
                 <!-- Badge -->
-                <div
+                <!-- <div
                     class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent border border-accent-foreground/20 text-accent-foreground text-sm font-medium mb-8 animate-slide-up">
                     <span class="w-2 h-2 rounded-full bg-primary animate-pulse" />
                     The #1 Education Platform for Africa
-                </div>
+                </div> -->
 
                 <!-- Headline -->
                 <h1

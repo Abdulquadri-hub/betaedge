@@ -20,6 +20,7 @@ import {
 import InstructorSidebar from '../InstructorSidebar.vue'
 import { useUserContext } from '@/composables/useUserContext'
 import { useInstructorDashboard } from '@/composables/useInstructorDashboard'
+import { Toaster } from 'vue-sonner'
 
 const { user, userInitials, unreadCount } = useUserContext()
 const { schools, currentSchool, switchSchool } = useInstructorDashboard()
@@ -63,7 +64,7 @@ function handleLogout() {
           <div class="hidden sm:block h-5 w-px bg-border" />
 
           <!-- ── School switcher pill (topbar) ────────────────────────────── -->
-          <Popover :open="topbarSwitcherOpen" @update:open="topbarSwitcherOpen = $event">
+          <!-- <Popover :open="topbarSwitcherOpen" @update:open="topbarSwitcherOpen = $event">
             <PopoverTrigger as-child>
               <button
                 class="hidden sm:flex items-center gap-2 rounded-lg border border-border bg-muted/50 px-3 py-1.5 text-left transition-all hover:border-secondary/40 hover:bg-secondary/5 focus:outline-none"
@@ -136,7 +137,7 @@ function handleLogout() {
                 </p>
               </div>
             </PopoverContent>
-          </Popover>
+          </Popover> -->
 
           <!-- Breadcrumb slot -->
           <div class="flex-1 min-w-0 hidden md:block">
@@ -210,6 +211,7 @@ function handleLogout() {
 
         <!-- Page content -->
         <main class="flex-1 overflow-auto">
+          <Toaster position="top-right" />
           <slot />
         </main>
 

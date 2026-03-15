@@ -2,9 +2,9 @@
 
 import { ref, computed } from 'vue'
 import {
-  Briefcase, Search, Clock,
-  CheckCircle2, Send, RefreshCw,  Users,
-  Building2,
+  Briefcase, Search, DollarSign, Clock,
+  CheckCircle2, Send, RefreshCw, Users,
+  Building2
 } from 'lucide-vue-next'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button }   from '@/components/ui/button'
@@ -19,12 +19,39 @@ import {
 } from '@/components/ui/dialog'
 import { toast } from 'vue-sonner'
 import { useInstructorDashboard } from '@/composables/useInstructorDashboard'
+import MultiSchoolPaywall from '@/components/Dashboard/Instrutor/Job/MultiSchoolPaywall.vue'
 import InstructorLayout from '@/components/Dashboard/Instrutor/Layouts/InstructorLayout.vue'
 
-const { jobListings, applyToJob } = useInstructorDashboard()
+const { jobListings, applyToJob, schools, currentSchool } = useInstructorDashboard()
 
 const search      = ref('')
 const filterTab   = ref('open')
+
+// ── Multi-school paywall ──────────────────────────────────────────────────────
+// TODO: replace with Inertia prop — auth.instructor.multi_school_access: boolean
+const hasMultiSchoolAccess = ref(schools.value.length > 1)
+const showPaywall          = ref(false)
+const paywallJob           = ref(null)
+  
+function openApplyOrPaywall(job) {
+  const alreadyAtOneSchool = schools.value.length >= 1
+  
+  if (alreadyAtOneSchool && hasMultiSchoolAccess.value) {
+    paywallJob.value  = job
+    showPaywall.value = true
+    return
+  }
+  openApply(job)
+}
+
+function onPaywallSuccess() {
+  hasMultiSchoolAccess.value = true
+  showPaywall.value          = false
+  if (paywallJob.value) {
+    openApply(paywallJob.value)
+    paywallJob.value = null
+  }
+}
 
 const filtered = computed(() => {
   let list = filterTab.value === 'applied'
@@ -41,6 +68,7 @@ const filtered = computed(() => {
 const pendingCount = computed(() => jobListings.value.filter(j => j.status === 'open' && !j.applied).length)
 const appliedCount = computed(() => jobListings.value.filter(j => j.applied).length)
 
+// ── Apply dialog ──────────────────────────────────────────────────────────────
 const showApplyDialog = ref(false)
 const applyingJob     = ref(null)
 const coverMessage    = ref('')
@@ -60,8 +88,8 @@ async function submitApplication() {
   try {
     const result = await applyToJob(applyingJob.value.id, coverMessage.value)
     if (result.success) {
-      toast({
-        title: 'Application sent! 🎉',
+      toast.success('Application sent',{
+        title: 'Application sent!',
         description: `${applyingJob.value.school_name} will review your application and contact you via email.`,
       })
       showApplyDialog.value = false
@@ -71,6 +99,7 @@ async function submitApplication() {
   }
 }
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
 function timeAgo(iso) {
   const d = Math.floor((Date.now() - new Date(iso)) / 86400000)
   return d === 0 ? 'Today' : d === 1 ? 'Yesterday' : `${d} days ago`
@@ -178,7 +207,7 @@ const paymentLabel = {
 
                 <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
                   <span class="flex items-center gap-1"><Clock class="h-3 w-3" />{{ job.schedule }}</span>
-                  <span class="flex items-center gap-1">{{ paymentLabel[job.payment_model] }}: ₦{{ job.payment_amount.toLocaleString('en-NG') }}</span>
+                  <span class="flex items-center gap-1"><DollarSign class="h-3 w-3" />{{ paymentLabel[job.payment_model] }}: ₦{{ job.payment_amount.toLocaleString('en-NG') }}</span>
                   <span class="flex items-center gap-1"><Users class="h-3 w-3" />Up to {{ job.students_per_batch }} students/batch</span>
                 </div>
 
@@ -194,7 +223,7 @@ const paymentLabel = {
               <Button
                 v-if="!job.applied"
                 class="gap-2"
-                @click="openApply(job)"
+                @click="openApplyOrPaywall(job)"
               >
                 <Send class="h-4 w-4" />Apply
               </Button>
@@ -263,6 +292,16 @@ const paymentLabel = {
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    <!-- Multi-school paywall -->
+    <MultiSchoolPaywall
+      :open="showPaywall"
+      :current-school="currentSchool.name"
+      target-action="apply"
+      :target-label="paywallJob?.course ?? ''"
+      @close="showPaywall = false; paywallJob = null"
+      @payment-success="onPaywallSuccess"
+    />
 
   </div>
   </InstructorLayout>

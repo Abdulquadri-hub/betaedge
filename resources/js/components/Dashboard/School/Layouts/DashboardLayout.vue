@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/popover'
 import AppSidebar from '../AppSidebar.vue'
 import { useUserContext } from '@/composables/useUserContext'
+import { Toaster } from 'vue-sonner'
 
 // ─── Composable ───────────────────────────────────────────────
 const {
@@ -198,8 +199,9 @@ function handleMarkRead(id) {
         <!-- ── Page content ── -->
         <main class="flex-1 overflow-auto">
           <slot />
+          
         </main>
-
+<!-- <Toaster position="bottom-left" class="z-1000"/> -->
       </SidebarInset>
     </div>
   </SidebarProvider>
