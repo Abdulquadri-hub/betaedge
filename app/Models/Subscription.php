@@ -5,17 +5,16 @@ namespace App\Models;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
 use App\Traits\BelongsToTenant;
-use App\Events\SubscriptionCreated;
-use App\Events\SubscriptionExpired;
-use App\Events\SubscriptionExpiring;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Subscription extends Model
 {
-    // use SoftDeletes;
-    use BelongsToTenant;
+    // use SoftDeletes; 
+
+    use BelongsToTenant, HasFactory;
 
     protected $fillable = [
         'tenant_id',
@@ -47,7 +46,7 @@ class Subscription extends Model
         'deleted_at' => 'datetime',
     ];
 
-    // Boot method to generate subscription code
+    
     protected static function boot()
     {
         parent::boot();
@@ -69,7 +68,7 @@ class Subscription extends Model
         });
 
         static::created(function ($subscription) {
-            event(new SubscriptionCreated($subscription));
+            // event(new SubscriptionCreated($subscription));
         });
     }
 
@@ -159,7 +158,7 @@ class Subscription extends Model
     {
         if ($this->end_date->isPast() && $this->status === 'active') {
             $this->markAsExpired('Subscription period ended');
-            event(new SubscriptionExpired($this));
+            // event(new SubscriptionExpired($this));
         }
     }
 
@@ -167,7 +166,7 @@ class Subscription extends Model
     {
         if ($this->isExpiringSoon($daysWarning) && $this->status === 'active') {
             $daysRemaining = $this->end_date->diffInDays(now());
-            event(new SubscriptionExpiring($this, $daysRemaining));
+            // event(new SubscriptionExpiring($this, $daysRemaining));
         }
     }
 

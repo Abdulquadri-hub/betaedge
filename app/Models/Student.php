@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\StudentPromotion;
 use App\Traits\BelongsToTenant;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -14,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 class Student extends Model
 {
-    use BelongsToTenant;
+    use BelongsToTenant, HasFactory;
 
     protected $fillable = [
         'tenant_id','user_id', 'student_id', 'date_of_birth',

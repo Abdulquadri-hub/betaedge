@@ -41,4 +41,44 @@ class UserFactory extends Factory
             'email_verified_at' => null,
         ]);
     }
+
+    /**
+     * Create an admin user.
+     */
+    public function admin(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'user_type' => 'admin',
+        ]);
+    }
+
+    /**
+     * Create an instructor user.
+     */
+    public function instructor(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'user_type' => 'instructor',
+        ]);
+    }
+
+    /**
+     * Create a student user.
+     */
+    public function student(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'user_type' => 'student',
+        ]);
+    }
+
+    /**
+     * Create a parent user.
+     */
+    public function parent(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'user_type' => 'parent',
+        ]);
+    }
 }
