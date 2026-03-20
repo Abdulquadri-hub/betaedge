@@ -12,14 +12,12 @@ use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use App\Contracts\Services\TenantServiceInterface;
-use App\Models\Tenant;
-use App\Models\User;
 
 class ProcessTenantOnboardingJob implements ShouldQueue
 {
     use Queueable, Dispatchable, InteractsWithQueue, SerializesModels;
 
-    public int $tries = 3;
+    // public int $tries = 3;
     public int $timeout = 300;
     public int $backoff = 10;
 

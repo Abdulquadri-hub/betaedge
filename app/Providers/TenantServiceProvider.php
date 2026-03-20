@@ -28,17 +28,17 @@ class TenantServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Register global helper
-        if (!function_exists('tenant')) {
-            function tenant(): ?Tenant {
-                return app('tenant');
-            }
-        }
+        // // Register global helper
+        // if (!function_exists('tenant')) {
+        //     function tenant(): ?Tenant {
+        //         return app('tenant');
+        //     }
+        // }
 
-        if (!function_exists('tenantId')) {
-            function tenantId(): ?int {
-                return session('active_tenant_id');
-            }
-        }
+        // if (!function_exists('tenantId')) {
+        //     function tenantId(): ?int {
+        //         return session('active_tenant_id');
+        //     }
+        // }
     }
 }

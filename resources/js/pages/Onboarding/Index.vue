@@ -166,19 +166,19 @@ const handleUpdate = (section, updates) => {
   }
 }
 
-const saveDraft = (step) => {
-    router.post('/onboarding/save', {
-        step,
-        data: formData.value[step]
-    }, {
-        preserveState: true,
-        preserveScroll: true,
-        only: ['draft', 'errors'],
-        onError: (errs) => {
-            errors.value = errs
-        }
-    })
-}
+// const saveDraft = (step) => {
+//     router.post('/onboarding/save', {
+//         step,
+//         data: formData.value[step]
+//     }, {
+//         preserveState: true,
+//         preserveScroll: true,
+//         only: ['draft', 'errors'],
+//         onError: (errs) => {
+//             errors.value = errs
+//         }
+//     })
+// }
 
 const handleNext = () => {
   // Save current step before moving forward

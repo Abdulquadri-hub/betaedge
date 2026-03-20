@@ -15,7 +15,7 @@ class ActivityLog extends Model
 {
     use BelongsToTenant;
 
-    protected $table = 'activity_logs';
+    protected $table = 'activity_log';
 
     protected $fillable = [
         'tenant_id',

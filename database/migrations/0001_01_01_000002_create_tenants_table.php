@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('tenants', function (Blueprint $table) {
             $table->id();
-            $table->string('name')->index();
+            $table->string('name')->nullable()->index();
             $table->string('slug')->unique()->index();
             $table->unsignedBigInteger('owner_id');
             $table->string('owner_email');
@@ -38,7 +38,7 @@ return new class extends Migration
             $table->string('verification_token')->nullable();
             $table->timestamp('trial_ends_at')->nullable();
             $table->boolean('setup_completed')->default(false);
-            $table->integer('onboarding_step')->default(0);
+            $table->string('onboarding_step')->nullable();
             $table->json('settings')->nullable(); // Flexible settings storage
             $table->unsignedInteger('max_users')->default(100);
             $table->unsignedInteger('max_courses')->default(50);
@@ -58,7 +58,7 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('tenant_id');
             $table->unsignedBigInteger('user_id');
-            $table->enum('role', ['admin', 'manager', 'instructor', 'student', 'parent', 'staff'])->default('student');
+            $table->enum('role', ['admin', 'manager', 'instructor', 'student', 'parent', 'staff', 'owner'])->default('student');
             $table->json('permissions')->nullable(); // Custom permissions beyond role
             $table->enum('status', ['active', 'inactive', 'suspended'])->default('active');
             $table->timestamp('joined_at')->nullable();
@@ -114,18 +114,20 @@ return new class extends Migration
 
         Schema::create('tenant_pages', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('tenant_id');
-            $table->string('slug')->unique();
+            $table->foreignId('tenant_id')->constrained()->cascadeOnDelete();
+            $table->string('slug');
             $table->string('title');
-            $table->text('content');
-            $table->boolean('is_published')->default(false);
-            $table->string('meta_description')->nullable();
-            $table->json('metadata')->nullable();
+            $table->longText('content')->nullable();
+            $table->string('page_type', 50); 
+            $table->boolean('is_active')->default(true);
+            $table->string('meta_title')->nullable();
+            $table->text('meta_description')->nullable();
             $table->timestamps();
             
-            $table->foreign('tenant_id')->references('id')->on('tenants')->cascadeOnDelete();
             $table->unique(['tenant_id', 'slug']);
-            $table->index('is_published');
+            $table->index('tenant_id');
+            $table->index('page_type');
+            $table->index('is_active');
         });
 
         Schema::create('tenant_files', function (Blueprint $table) {
@@ -153,18 +155,19 @@ return new class extends Migration
 
         Schema::create('onboarding_processes', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('tenant_id');
-            $table->unsignedBigInteger('user_id');
-            $table->json('completed_steps')->nullable();
-            $table->json('step_data')->nullable();
-            $table->integer('current_step')->default(1);
-            $table->enum('status', ['in_progress', 'completed', 'abandoned'])->default('in_progress');
+            $table->foreignId('tenant_id')->nullable()->constrained()->cascadeOnDelete();
+            $table->json('profile')->nullable();
+            $table->json('plan')->nullable();
+            $table->json('payment')->nullable();
+            $table->enum('status', ['pending', 'failed', 'processing', 'completed', 'processed', 'error', 'draft'])->default('pending')->index();
+            $table->text('session_id')->nullable();
+            $table->string('current_step', 50)->default('profile');
+            $table->tinyInteger('progress_percentage')->default(0);
+            $table->string('progress_message')->nullable();
+            $table->string('job_id')->unique()->nullable()->index();
+            $table->text('error_message')->nullable();
             $table->timestamp('completed_at')->nullable();
             $table->timestamps();
-            
-            $table->foreign('tenant_id')->references('id')->on('tenants')->cascadeOnDelete();
-            $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
-            $table->index(['tenant_id', 'status']);
         });
     }
 

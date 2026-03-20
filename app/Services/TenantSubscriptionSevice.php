@@ -14,6 +14,9 @@ use App\Contracts\Services\TenantSubscriptionServiceInterface;
 use App\Contracts\Repositories\TenantPaymentRepositoryInterface;
 use App\Contracts\Repositories\SubscriptionPlanRepositoryInterface;
 use App\Contracts\Repositories\TenantSubscriptionRepositoryInterface;
+use Illuminate\Support\Facades\Log;
+
+use function Illuminate\Log\log;
 
 class TenantSubscriptionSevice implements TenantSubscriptionServiceInterface
 {
@@ -29,8 +32,15 @@ class TenantSubscriptionSevice implements TenantSubscriptionServiceInterface
     {
         try {
 
-            $paymentData = $onboarding->getPayment();
+            if ($this->tenantpayRepo->existsForSubscription($subscription->id)) {
+                Log::info('Duplicate payment attempt blocked', [
+                    'tenant_id'       => $tenant->id,
+                    'subscription_id' => $subscription->id,
+                ]);
+                return;
+            }
 
+            $paymentData = $onboarding->getPayment();
             $reference = $paymentData['paystack_reference'] ?? 'free';
 
             if($reference === 'free') {
@@ -41,6 +51,14 @@ class TenantSubscriptionSevice implements TenantSubscriptionServiceInterface
                 return;
             }
 
+            if ($this->tenantpayRepo->existsForReference($reference)) {
+                Log::warning('Paystack reference already used', [
+                    'tenant_id'  => $tenant->id,
+                    'reference'  => $reference,
+                ]);
+                throw new Exception('This payment reference has already been used.');
+            }
+    
             $verification =  $this->gateway->verify($reference);
 
             if (!$this->isSuccessfullyProcessed($verification)) {
@@ -53,7 +71,8 @@ class TenantSubscriptionSevice implements TenantSubscriptionServiceInterface
                 throw new Exception('Payment was not successful');
             }
 
-            if ($verification['data']['amount'] != $subscription->amount) {
+            $paidAmt = $verification['data']['amount'] / 100;
+            if ($paidAmt != $subscription->amount) {
                 throw new Exception('Payment amount mismatch '. $subscription->amount);
             }
 

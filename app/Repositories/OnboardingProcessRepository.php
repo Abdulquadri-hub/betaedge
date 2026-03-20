@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Models\Tenant;
 use App\Models\OnboardingProcess;
 use App\Contracts\Repositories\OnboardingProcessRepositoryInterface;
+use Illuminate\Support\Facades\Log;
 
 class OnboardingProcessRepository implements OnboardingProcessRepositoryInterface
 {
@@ -21,12 +22,12 @@ class OnboardingProcessRepository implements OnboardingProcessRepositoryInterfac
             'progress_percentage' => 0
         ]);
     }
-   
+
     public function update(string $sessionId, array $data): ?OnboardingProcess
     {
         $draft = $this->getBySessionId($sessionId);
 
-        if(!$draft) {
+        if (!$draft) {
             return $this->create($sessionId, $data);
         }
 
@@ -80,15 +81,37 @@ class OnboardingProcessRepository implements OnboardingProcessRepositoryInterfac
             ]);
     }
 
-    public function cleanupFailedOnboarding(OnboardingProcess $onboarding): void {
-        if($onboarding->tenant_id) {
+    public function cleanupFailedOnboarding(OnboardingProcess $onboarding): void
+    {
+        $profile = $onboarding->getProfile();
+        $ownerEmail = $profile['owner_email'] ?? null;
+
+        $tenant = null;
+
+        if ($onboarding->tenant_id) {
             $tenant = Tenant::find($onboarding->tenant_id);
-            if($tenant) {
-                if($tenant->owner_id) {
-                    User::where('id', $tenant->owner_id)->delete();
-                }
-                $tenant->delete();
+        }
+
+        if (!$tenant && $ownerEmail) {
+            $tenant = Tenant::where('owner_email', $ownerEmail)->first();
+        }
+
+        if ($tenant) {
+            $ownerId = $tenant->owner_id; 
+            $tenant->forceDelete();
+
+            if ($ownerId) {
+                User::where('id', $ownerId)->forceDelete();
+                return;
+            }
+        }
+
+        if ($ownerEmail) {
+            $user = User::where('email', $ownerEmail)->first();
+            if ($user) {
+                $user->forceDelete();
             }
         }
     }
+
 }

@@ -3,41 +3,41 @@
 namespace App\Models;
 
 use App\Traits\BelongsToTenant;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
-// Academic Structure
 class AcademicLevel extends Model
 {
-    use SoftDeletes, BelongsToTenant;
+    use BelongsToTenant, HasFactory;
 
     protected $fillable = [
         'tenant_id',
         'name',
-        'grade_number',
-        'level_type',
+        'code',
+        'level_number',
         'description',
-        'academic_year',
-        'term',
-        'levels',
-        'subject_count',
-        'sort_order',
-        'is_active'
+        'is_active',
     ];
 
     protected $casts = [
+        'level_number' => 'integer',
         'is_active' => 'boolean',
-        'sort_order' => 'integer',
         'created_at' => 'datetime',
-        'updated_at' => 'datetime,',
-        'deleted_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
-    // Relationships
     public function courses(): HasMany
     {
         return $this->hasMany(Course::class);
+    }
+
+    public function activeCourses(): HasMany
+    {
+        return $this->courses()->where('status', 'active');
     }
 
     public function students(): HasMany
@@ -45,80 +45,59 @@ class AcademicLevel extends Model
         return $this->hasMany(Student::class);
     }
 
-    // Scopes
+    public function activeStudents(): HasMany
+    {
+        return $this->students()->where('enrollment_status', 'active');
+    }
+
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
     }
 
-    public function scopeElementary($query)
+    public function scopeByCode($query, string $code)
     {
-        return $query->where('level_type', 'elementary');
-    }
-
-    public function scopeMiddle($query)
-    {
-        return $query->where('level_type', 'middle');
-    }
-
-    public function scopeHigh($query)
-    {
-        return $query->where('level_type', 'high');
-    }
-
-    public function scopeOrdered($query)
-    {
-        return $query->orderBy('sort_order')->orderBy('grade_number');
-    }
-
-    // Accessors
-    public function getDisplayNameAttribute(): string
-    {
-        return "{$this->name} (Grade {$this->grade_number})";
-    }
-
-    // Helper Methods
-    public function isElementary(): bool
-    {
-        return $this->level_type === 'elementary';
-    }
-
-    public function isMiddle(): bool
-    {
-        return $this->level_type === 'middle';
-    }
-
-    public function isHigh(): bool
-    {
-        return $this->level_type === 'high';
+        return $query->where('code', $code);
     }
 
     public function getNextLevel(): ?self
     {
-        return self::where('grade_number', $this->grade_number + 1)
-                   ->where('is_active', true)
-                   ->first();
+        return self::where('tenant_id', $this->tenant_id)
+            ->where('level_number', $this->level_number + 1)
+            ->where('is_active', true)
+            ->first();
     }
 
     public function getPreviousLevel(): ?self
     {
-        return self::where('grade_number', $this->grade_number - 1)
-                   ->where('is_active', true)
-                   ->first();
+        return self::where('tenant_id', $this->tenant_id)
+            ->where('level_number', $this->level_number - 1)
+            ->where('is_active', true)
+            ->first();
     }
 
-    public function getActiveStudentsCount(): int
+    public function getStudentCount(): int
     {
-        return $this->students()
-                    ->where('enrollment_status', 'active')
-                    ->count();
+        return $this->students()->count();
     }
 
-    public function getActiveCoursesCount(): int
+    public function getActiveStudentCount(): int
     {
-        return $this->courses()
-                    ->where('status', 'active')
-                    ->count();
+        return $this->activeStudents()->count();
     }
 
+    public function getCourseCount(): int
+    {
+        return $this->courses()->count();
+    }
+
+    public function isHighestLevel(): bool
+    {
+        return !$this->getNextLevel();
+    }
+
+    public function isLowestLevel(): bool
+    {
+        return !$this->getPreviousLevel();
+    }
 }

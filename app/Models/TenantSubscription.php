@@ -25,9 +25,11 @@ class TenantSubscription extends Model
         'cancelled_at',
         'cancellation_reason',
         'payment_method',
+        'next_billing_date',
         'payment_provider',
         'provider_subscription_id',
         'auto_renew',
+        'payment_provider',
     ];
 
     protected $casts = [

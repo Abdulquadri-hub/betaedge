@@ -26,8 +26,14 @@ class SubscriptionPlan extends Model
         'has_analytics',
         'has_api_access',
         'sort_order',
+        'display_order',
         'is_active',
         'is_popular',
+        'has_support_priority',
+        'activated_at',
+        'deactivated_at',
+        'has_advanced_analytics',
+        'discount_percentage',
     ];
 
     protected $casts = [

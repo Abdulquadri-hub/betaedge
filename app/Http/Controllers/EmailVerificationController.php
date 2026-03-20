@@ -114,13 +114,13 @@ class EmailVerificationController extends Controller
         session(['active_tenant_id' => $tenant->id]);
 
         // Log activity
-        activity()
-            ->causedBy($tenant->owner)
-            ->performedOn($tenant)
-            ->log('Email verified and password set');
+        // activity()
+        //     ->causedBy($tenant->owner)
+        //     ->performedOn($tenant)
+        //     ->log('Email verified and password set');
 
         // Redirect to tenant admin dashboard
-        $adminUrl = 'https://' . $tenant->subdomain . '/admin';
+        $adminUrl = 'https://' . $tenant->subdomain . '/dashboard';
         
         return Inertia::location($adminUrl);
     }

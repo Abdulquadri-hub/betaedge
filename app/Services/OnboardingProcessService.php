@@ -190,7 +190,7 @@ class OnboardingProcessService implements OnboardingProcessServiceInterface
             'profile' => [
                 'school_name' => 'required|string|max:255',
                 'owner_email' => 'required|email|max:255',
-                'school_type' => 'nullable|in:primary,secondary,tertiary,training,combined,vocational,university',
+                'school_type' => 'nullable|in:primary,secondary,tutoring,university', 'bootcamp', 'marketplace',
                 'country' => 'required|string',
                 'city' => 'nullable|string|max:255',
                 'address' => 'nullable|string|max:500',

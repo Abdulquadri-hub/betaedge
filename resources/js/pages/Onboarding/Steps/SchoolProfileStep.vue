@@ -120,11 +120,12 @@ watch(
           :class="['flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm', getError('school_type') ? 'border-destructive' : '']"
         >
           <option value="">Select school type</option>
-          <option value="primary">Primary School</option>
-          <option value="secondary">Secondary School</option>
-          <option value="combined">Combined (Primary & Secondary)</option>
-          <option value="vocational">Vocational/Technical</option>
-          <option value="university">University/College</option>
+          <option value="primary">Primary</option>
+          <option value="secondary">Secondary</option>
+          <option value="university">University</option>
+          <option value="bootcamp">Bootcamp</option>
+          <option value="tutoring">Tutoring</option>
+          <option value="marketplace">Marketplace</option>
         </select>
         <p v-if="getError('school_type')" class="text-sm text-destructive">
           {{ getError('school_type') }}

@@ -16,8 +16,9 @@ return new class extends Migration
             $table->string('name')->unique();
             $table->string('slug')->unique();
             $table->text('description')->nullable();
-            $table->decimal('price', 12, 2)->unsigned();
-            $table->string('currency')->default('USD');
+            $table->decimal('price_monthly', 12, 2)->unsigned();
+            $table->decimal('price_yearly', 12, 2)->unsigned();
+            $table->string('currency')->default('NGN');
             $table->enum('billing_cycle', ['monthly', 'quarterly', 'semi_annual', 'annual'])->default('monthly');
             $table->unsignedInteger('max_courses')->default(10);
             $table->unsignedInteger('max_students')->default(100);
@@ -30,8 +31,9 @@ return new class extends Migration
             $table->json('features')->nullable();
             $table->decimal('discount_percentage', 5, 2)->unsigned()->default(0);
             $table->boolean('is_active')->default(true)->index();
+            $table->boolean('is_popular')->default(false)->index();
             $table->boolean('is_featured')->default(false);
-            $table->integer('display_order')->default(0);
+            $table->integer('sort_order')->default(0);
             $table->timestamp('activated_at')->nullable();
             $table->timestamp('deactivated_at')->nullable();
             $table->timestamps();
@@ -39,14 +41,14 @@ return new class extends Migration
             $table->index('billing_cycle');
         });
 
-        Schema::create('subscriptions', function (Blueprint $table) {
+        Schema::create('tenant_subscriptions', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('tenant_id');
-            $table->unsignedBigInteger('subscription_plan_id');
+            $table->unsignedBigInteger('plan_id');
             $table->string('subscription_code')->unique();
             $table->enum('status', ['active', 'past_due', 'cancelled', 'suspended'])->default('active')->index();
             $table->decimal('amount', 12, 2)->unsigned();
-            $table->string('currency')->default('USD');
+            $table->string('currency')->default('NGN');
             $table->enum('billing_cycle', ['monthly', 'quarterly', 'semi_annual', 'annual'])->default('monthly');
             $table->timestamp('started_at')->nullable();
             $table->timestamp('current_period_start')->nullable();
@@ -55,13 +57,14 @@ return new class extends Migration
             $table->timestamp('cancelled_at')->nullable();
             $table->string('cancellation_reason')->nullable();
             $table->boolean('auto_renew')->default(true);
-            $table->enum('payment_provider', ['stripe', 'paystack', 'manual'])->default('manual');
+            $table->enum('payment_provider', ['stripe', 'paystack', 'manual'])->default('paystack');
+            $table->string('payment_method')->nullable(); 
             $table->string('provider_subscription_id')->nullable();
             $table->softDeletes();
             $table->timestamps();
             
             $table->foreign('tenant_id')->references('id')->on('tenants')->cascadeOnDelete();
-            $table->foreign('subscription_plan_id')->references('id')->on('subscription_plans')->restrictOnDelete();
+            $table->foreign('plan_id')->references('id')->on('subscription_plans')->restrictOnDelete();
             $table->index(['tenant_id', 'status']);
             $table->index('next_billing_date');
         });
@@ -72,8 +75,8 @@ return new class extends Migration
             $table->unsignedBigInteger('subscription_id');
             $table->string('invoice_number')->unique();
             $table->decimal('amount', 12, 2)->unsigned();
-            $table->string('currency')->default('USD');
-            $table->enum('payment_method', ['credit_card', 'bank_transfer', 'paystack', 'stripe', 'manual_payment'])->default('manual_payment');
+            $table->string('currency')->default('NGN');
+            $table->enum('payment_method', ['credit_card', 'bank_transfer', 'paystack', 'stripe', 'manual_payment'])->nullable();
             $table->enum('status', ['pending', 'processing', 'completed', 'failed', 'refunded'])->default('pending')->index();
             $table->string('transaction_reference')->nullable();
             $table->string('payment_gateway_id')->nullable();
@@ -88,7 +91,7 @@ return new class extends Migration
             $table->timestamps();
             
             $table->foreign('tenant_id')->references('id')->on('tenants')->cascadeOnDelete();
-            $table->foreign('subscription_id')->references('id')->on('subscriptions')->cascadeOnDelete();
+            $table->foreign('subscription_id')->references('id')->on('tenant_subscriptions')->cascadeOnDelete();
             $table->foreign('verified_by')->references('id')->on('users')->nullOnDelete();
             $table->index(['tenant_id', 'status']);
             $table->index(['subscription_id', 'status']);
@@ -125,7 +128,7 @@ return new class extends Migration
             $table->unsignedBigInteger('course_id')->nullable();
             $table->string('payment_reference')->unique();
             $table->decimal('amount', 12, 2)->unsigned();
-            $table->string('currency')->default('USD');
+            $table->string('currency')->default('NGN');
             $table->enum('payment_method', ['manually_paid', 'paystack', 'stripe'])->default('manually_paid');
             $table->string('receipt_path')->nullable();
             $table->string('receipt_filename')->nullable();
@@ -151,7 +154,7 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('subscription_payment_id')->nullable();
             $table->decimal('amount', 12, 2)->unsigned();
-            $table->string('currency')->default('USD');
+            $table->string('currency')->default('NGN');
             $table->enum('revenue_type', ['subscription', 'commission', 'extra_charge', 'refund'])->default('subscription');
             $table->date('revenue_date');
             $table->json('breakdown')->nullable();

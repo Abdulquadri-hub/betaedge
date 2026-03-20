@@ -23,18 +23,18 @@ const getDisplayFeatures = (plan) => {
   const features = []
   
   if (plan.max_students) {
-    features.push(plan.max_students === -1 ? 'Unlimited students' : `Up to ${plan.max_students} students`)
+    features.push(plan.max_students === 0 ? 'Unlimited students' : `${plan.max_students} students`)
   }
   
   if (plan.max_instructors) {
-    features.push(plan.max_instructors === -1 ? 'Unlimited instructors' : `Up to ${plan.max_instructors} instructors`)
+    features.push(plan.max_instructors === 0 ? 'Unlimited instructors' : `${plan.max_instructors} instructors`)
   }
   
   if (plan.features && Array.isArray(plan.features)) {
     features.push(...plan.features.slice(0, 4))
   }
   
-  return features.slice(0, 4)
+  return features.slice(0, 6)
 }
 
 </script>
@@ -89,10 +89,10 @@ const getDisplayFeatures = (plan) => {
           </div>
 
           <ul class="space-y-3 mb-6">
-            <li class="flex items-start gap-2">
+            <!-- <li class="flex items-start gap-2">
               <CheckIcon class="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
               <span class="text-sm text-muted-foreground">
-                Up to {{ plan.max_students === 0 ? 'unlimited' : plan.max_students }} students
+                {{ plan.max_students === 0 ? 'unlimited' : plan.max_students }} students
               </span>
             </li>
             <li class="flex items-start gap-2">
@@ -106,7 +106,7 @@ const getDisplayFeatures = (plan) => {
               <span class="text-sm text-muted-foreground">
                 {{ plan.max_instructors === 0 ? 'Unlimited' : `Up to ${plan.max_instructors}` }} instructors
               </span>
-            </li>
+            </li> -->
             <li v-for="feature in getDisplayFeatures(plan)" :key="feature" class="flex items-start gap-2">
               <CheckIcon class="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
               <span class="text-sm text-muted-foreground">
@@ -117,7 +117,7 @@ const getDisplayFeatures = (plan) => {
 
           <Link href="/onboarding">
             <button :class="['w-full inline-flex items-center justify-center rounded-md text-sm font-medium h-10 px-4 py-2', plan.is_popular ? 'gradient-hero text-primary-foreground' : 'border border-input bg-background hover:bg-accent hover:text-accent-foreground']">
-              {{ plan.price_monthly === 0 ? 'Get Started' : 'Start Free Trial' }}
+              Get Started
             </button>
           </Link>
         </div>
