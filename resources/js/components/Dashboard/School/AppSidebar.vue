@@ -53,7 +53,7 @@ const mainMenu = [
   { title: 'Courses',       href: '/dashboard/courses',       icon: BookOpen },
   { title: 'Batches',       href: '/dashboard/batches',       icon: UsersRound },
   { title: 'Students',      href: '/dashboard/students',      icon: Users },
-  { title: 'Parents',       href: '/dashboard/parents',       icon: Baby },
+  // { title: 'Parents',       href: '/dashboard/parents',       icon: Baby },
   { title: 'Instructors',   href: '/dashboard/instructors',   icon: GraduationCap },
   { title: 'Live Sessions', href: '/dashboard/live-sessions', icon: Video },
   // { title: 'Enrollments',   href: '/dashboard/enrollments',   icon: ClipboardList },
@@ -77,8 +77,6 @@ function isActive(href, exact = false) {
 
 <template>
   <Sidebar collapsible="icon">
-
-    <!-- Header: School identity -->
     <SidebarHeader class="p-3">
       <Link
         href="/dashboard"

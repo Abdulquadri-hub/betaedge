@@ -17,15 +17,11 @@ class CourseController extends Controller
     }
 
     public function create() {
-        return Inertia::render('School/Dashboard/Courses/Builder', [
-            'course'    => null,
-            'materials' => [],
-            'batches'   => [],
-        ]);
+        return Inertia::render('School/Dashboard/Courses/Builder');
     }
 
     public function save(Request $request) {
-        // return Inertia::render('School/Dashboard/Courses/Builder');
+        return Inertia::render('School/Dashboard/Courses/Builder');
     }
 
     public function edit(Request $request, $courseId) {

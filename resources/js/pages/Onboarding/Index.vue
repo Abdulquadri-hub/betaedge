@@ -1,16 +1,16 @@
 <script setup>
-import {ref, computed, defineAsyncComponent, watch } from 'vue';
+import { ref, computed, defineAsyncComponent, watch } from 'vue';
 import { router, Link } from '@inertiajs/vue3';
 
-import { 
-    Check, 
-    School, 
-    CreditCard, 
-    ArrowRight, 
-    ArrowLeft, 
-    Crown, 
-    ClipboardCheck, 
-    Rocket
+import {
+  Check,
+  School,
+  CreditCard,
+  ArrowRight,
+  ArrowLeft,
+  Crown,
+  ClipboardCheck,
+  Rocket
 } from 'lucide-vue-next';
 
 // Async load step components
@@ -26,35 +26,35 @@ const ArrowRightIcon = ArrowRight
 
 // define props
 const props = defineProps({
-    draft: {
-        type: Object,
-        default: () => null
-    },
-    plans: {
-        type: Array,
-        required: true
-    },
-    paystackPublicKey: {
-        type: String,
-        default: ''
-    },
-    job_id: {
-      type: String,
-      default: ''
-    },
-    name: {
-        type: String,
-        default: "BetaEdge"
-    }
+  draft: {
+    type: Object,
+    default: () => null
+  },
+  plans: {
+    type: Array,
+    required: true
+  },
+  paystackPublicKey: {
+    type: String,
+    default: ''
+  },
+  job_id: {
+    type: String,
+    default: ''
+  },
+  name: {
+    type: String,
+    default: "BetaEdge"
+  }
 })
 
 //steps
 const steps = [
-    {id: 1, title: 'School Profile', icon: School, description: 'Basic information about your school'},
-    {id: 2, title: 'Select Plan', icon: Crown, description: 'Choose the right plan for your school'},
-    {id: 3, title: 'Payment', icon: CreditCard, description: 'Set up your payment method'},
-    {id: 4, title: 'Review', icon: ClipboardCheck, description: 'Review and confirm your information'},
-    {id: 5, title: 'Setup', icon: Rocket, description: 'Creating your school platfom'}
+  { id: 1, title: 'School Profile', icon: School, description: 'Basic information about your school' },
+  { id: 2, title: 'Select Plan', icon: Crown, description: 'Choose the right plan for your school' },
+  { id: 3, title: 'Payment', icon: CreditCard, description: 'Set up your payment method' },
+  { id: 4, title: 'Review', icon: ClipboardCheck, description: 'Review and confirm your information' },
+  { id: 5, title: 'Setup', icon: Rocket, description: 'Creating your school platfom' }
 ]
 
 //state
@@ -65,31 +65,31 @@ const processing = ref(false)
 
 //initialzing data from draft if avialable
 const formData = ref({
-    profile: props.draft?.profile || {
-        school_name: '',
-        owner_email: '',
-        phone: '',
-        address: '',
-        city: '',
-        country: '',
-        description: '',
-        logo: null,
-        website: '',
-        year_established: '',
-        school_type: '',
-    },
-    jobId: props.job_id || '',
-    plan: props.draft?.plan || {
-        plan_id: '',
-        billing_cycle: 'monthly',
-    },
-    payment: props.draft?.payment || {
-        paystack_reference: '',
-    },
+  profile: props.draft?.profile || {
+    school_name: '',
+    owner_email: '',
+    phone: '',
+    address: '',
+    city: '',
+    country: '',
+    description: '',
+    logo: null,
+    website: '',
+    year_established: '',
+    school_type: '',
+  },
+  jobId: props.job_id || '',
+  plan: props.draft?.plan || {
+    plan_id: '',
+    billing_cycle: 'monthly',
+  },
+  payment: props.draft?.payment || {
+    paystack_reference: '',
+  },
 })
 
 //computed 
-const progress = computed(() => (currentStep.value / steps.length) * 100) 
+const progress = computed(() => (currentStep.value / steps.length) * 100)
 
 const isFreeplan = computed(() => {
   const selectedPlan = props.plans.find(p => p.id === formData.value.plan.plan_id)
@@ -100,47 +100,47 @@ const showNavigation = computed(() => currentStep.value < 5)
 
 // display component based on step value
 const currentStepComponent = computed(() => {
-    switch (currentStep.value) {
-        case 1: return SchoolProfileStep
-        case 2: return SubscriptionPlanStep
-        case 3: return PaymentSetupStep
-        case 4: return ReviewStep
-        case 5: return ProcessingStep
-        default: return null
-    }
+  switch (currentStep.value) {
+    case 1: return SchoolProfileStep
+    case 2: return SubscriptionPlanStep
+    case 3: return PaymentSetupStep
+    case 4: return ReviewStep
+    case 5: return ProcessingStep
+    default: return null
+  }
 })
 
 //get step data based on step value
 const currentStepData = computed(() => {
-    switch (currentStep.value) {
-        case 1: return formData.value.profile
-        case 2: return { ...formData.value.plan, plans: props.plans }
-        case 3: return {
-          ...formData.value.payment, 
-          planInfo: formData.value.plan, 
-          plans: props.plans,
-          ownerEmail: formData.value.profile.owner_email,
-          schoolName: formData.value.profile.school_name
-        }
-        case 4: return formData.value
-        case 5: return { schoolName: formData.value.profile.school_name, ownerEmail: formData.value.profile.owner_email, JobId: formData.value.jobId}
-        default: return {}
+  switch (currentStep.value) {
+    case 1: return formData.value.profile
+    case 2: return { ...formData.value.plan, plans: props.plans }
+    case 3: return {
+      ...formData.value.payment,
+      planInfo: formData.value.plan,
+      plans: props.plans,
+      ownerEmail: formData.value.profile.owner_email,
+      schoolName: formData.value.profile.school_name
     }
+    case 4: return formData.value
+    case 5: return { schoolName: formData.value.profile.school_name, ownerEmail: formData.value.profile.owner_email, JobId: formData.value.jobId }
+    default: return {}
+  }
 })
 
 //methods
 const isStepCompleted = (stepId) => {
-    return completedSteps.value.includes(stepId) || currentStep.value > stepId
+  return completedSteps.value.includes(stepId) || currentStep.value > stepId
 }
 
-const isStepClickable = (stepId) => { 
-    return completedSteps.value.includes(stepId) && stepId < currentStep.value
+const isStepClickable = (stepId) => {
+  return completedSteps.value.includes(stepId) && stepId < currentStep.value
 }
 
 const getStepClasses = (stepId) => {
   const isCompleted = isStepCompleted(stepId)
   const isCurrent = currentStep.value === stepId
-  
+
   if (isCompleted) {
     return 'bg-primary border-primary text-primary-foreground'
   } else if (isCurrent) {
@@ -160,7 +160,7 @@ const handleUpdate = (section, updates) => {
   if (section === 'profile' || section === 'plan' || section === 'payment') {
     formData.value[section] = { ...formData.value[section], ...updates }
     errors.value = {}
-    
+
     // Auto-save draft
     // saveDraft(section)
   }
@@ -184,45 +184,45 @@ const handleNext = () => {
   // Save current step before moving forward
   const stepMap = { 1: 'profile', 2: 'plan', 3: 'payment' }
   const section = stepMap[currentStep.value]
-  
+
   if (section) {
     router.post('/onboarding/save', {
       step: section,
       data: formData.value[section],
-    }, 
-    {
-      preserveState: true,
-      preserveScroll: true,
-      only: ['draft', 'errors', 'job_id'],
-      onSuccess: (page) => {
-        errors.value = {}
+    },
+      {
+        preserveState: true,
+        preserveScroll: true,
+        only: ['draft', 'errors', 'job_id'],
+        onSuccess: (page) => {
+          errors.value = {}
 
-        if (page.props.draft) {
-          formData.value.profile = page.props.draft.profile || formData.value.profile
-          formData.value.plan = page.props.draft.plan || formData.value.plan
-          formData.value.payment = page.props.draft.payment || formData.value.payment
-        }
-        
-        // Mark current step as completed
-        if (!completedSteps.value.includes(currentStep.value)) {
-          completedSteps.value.push(currentStep.value)
-        }
+          if (page.props.draft) {
+            formData.value.profile = page.props.draft.profile || formData.value.profile
+            formData.value.plan = page.props.draft.plan || formData.value.plan
+            formData.value.payment = page.props.draft.payment || formData.value.payment
+          }
 
-        // Skip payment step for free plan
-        if (currentStep.value === 2 && isFreeplan.value) {
-          formData.value.payment.paystack_reference = 'free'
-          currentStep.value = 4
-          return
-        }
+          // Mark current step as completed
+          if (!completedSteps.value.includes(currentStep.value)) {
+            completedSteps.value.push(currentStep.value)
+          }
 
-        if (currentStep.value < steps.length) {
-          currentStep.value++
+          // Skip payment step for free plan
+          if (currentStep.value === 2 && isFreeplan.value) {
+            formData.value.payment.paystack_reference = 'free'
+            currentStep.value = 4
+            return
+          }
+
+          if (currentStep.value < steps.length) {
+            currentStep.value++
+          }
+        },
+        onError: (errs) => {
+          errors.value = errs
         }
-      },
-      onError: (errs) => {
-        errors.value = errs
-      }
-    })
+      })
   } else {
     if (currentStep.value < steps.length) {
       currentStep.value++
@@ -257,7 +257,7 @@ const handleEditStep = (stepId) => {
 
 const handleCompleteSetup = () => {
   processing.value = true
-  
+
   router.post('/onboarding/submit', formData.value, {
     preserveState: true,
     preserveScroll: true,
@@ -281,12 +281,20 @@ const handleRetry = () => {
 
 <template>
   <div class="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
+
+    <div class="bg-muted border-b sticky top-0 z-10">
+      <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <Link :href="('/')">
+          <button
+            class="inline-flex items-center text-muted-foreground text-sm hover:text-foreground transition-colors cursor-pointer">
+            <ArrowLeft class="w-4 h-4 mr-2" />
+            Back to {{ name }}
+          </button>
+        </Link>
+      </div>
+    </div>
+
     <div class="container mx-auto px-4 py-8">
-       <!-- Back Button -->
-      <Link :href="('/')" class="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary mb-6">
-        <ArrowLeftIcon class="w-4 h-4" />
-        Back to Home
-      </Link>
       <!-- Header -->
       <div class="text-center mb-8">
         <h1 class="text-3xl md:text-4xl font-bold text-foreground mb-2">
@@ -298,39 +306,24 @@ const handleRetry = () => {
       </div>
 
       <!-- Progress -->
-      <div class="max-w-5xl mx-auto mb-8">
+      <div class="max-w-5xl mx-auto mb-8 px-2 py-2 rounded-2xl border sticky top-14 z-5">
         <div class="w-full bg-secondary rounded-full h-2 mb-6">
-          <div 
-            class="bg-primary h-2 rounded-full transition-all duration-300"
-            :style="{ width: `${progress}%` }"
-          ></div>
+          <div class="bg-primary h-2 rounded-full transition-all duration-300" :style="{ width: `${progress}%` }"></div>
         </div>
-        
+
         <div class="flex justify-between">
-          <div
-            v-for="step in steps"
-            :key="step.id"
-            class="flex flex-col items-center gap-2 transition-all"
-            :class="{
-              'scale-105': currentStep === step.id,
-              'cursor-pointer': isStepClickable(step.id)
-            }"
-            @click="handleStepClick(step.id)"
-          >
-            <div
-              class="w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center border-2 transition-all"
-              :class="getStepClasses(step.id)"
-            >
-              <component
-                :is="isStepCompleted(step.id) && currentStep !== step.id ? CheckIcon : step.icon"
-                class="w-4 h-4 md:w-5 md:h-5"
-              />
+          <div v-for="step in steps" :key="step.id" class="flex flex-col items-center gap-2 transition-all" :class="{
+            'scale-105': currentStep === step.id,
+            'cursor-pointer': isStepClickable(step.id)
+          }" @click="handleStepClick(step.id)">
+            <div class="w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center border-2 transition-all"
+              :class="getStepClasses(step.id)">
+              <component :is="isStepCompleted(step.id) && currentStep !== step.id ? CheckIcon : step.icon"
+                class="w-4 h-4 md:w-5 md:h-5" />
             </div>
             <div class="hidden md:block text-center">
-              <p
-                class="text-xs font-medium"
-                :class="currentStep === step.id ? 'text-primary' : 'text-muted-foreground'"
-              >
+              <p class="text-xs font-medium"
+                :class="currentStep === step.id ? 'text-primary' : 'text-muted-foreground'">
                 {{ step.title }}
               </p>
             </div>
@@ -350,58 +343,32 @@ const handleRetry = () => {
             </p>
           </div>
 
-          <transition
-            mode="out-in"
-            enter-active-class="transition duration-300 ease-out"
-            enter-from-class="opacity-0 translate-x-5"
-            enter-to-class="opacity-100 translate-x-0"
-            leave-active-class="transition duration-300 ease-in"
-            leave-from-class="opacity-100 translate-x-0"
-            leave-to-class="opacity-0 -translate-x-5"
-          >
-            <component
-              :is="currentStepComponent"
-              :key="currentStep"
-              :data="currentStepData"
-              :errors="errors"
-              :draft="draft"
-              :plans="plans"
-              :paystack-public-key="paystackPublicKey"
-              @update="handleUpdate"
-              @edit-step="handleEditStep"
-              @complete="handleCompleteSetup"
-              @retry="handleRetry"
-            />
+          <transition mode="out-in" enter-active-class="transition duration-300 ease-out"
+            enter-from-class="opacity-0 translate-x-5" enter-to-class="opacity-100 translate-x-0"
+            leave-active-class="transition duration-300 ease-in" leave-from-class="opacity-100 translate-x-0"
+            leave-to-class="opacity-0 -translate-x-5">
+            <component :is="currentStepComponent" :key="currentStep" :data="currentStepData" :errors="errors"
+              :draft="draft" :plans="plans" :paystack-public-key="paystackPublicKey" @update="handleUpdate"
+              @edit-step="handleEditStep" @complete="handleCompleteSetup" @retry="handleRetry" />
           </transition>
 
           <!-- Navigation -->
           <div v-if="showNavigation" class="flex justify-between mt-8 pt-6 border-t">
-            <button
-              @click="handlePrevious"
-              :disabled="currentStep === 1"
-              class="inline-flex items-center gap-2 px-4 py-2 rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed"
-            >
+            <button @click="handlePrevious" :disabled="currentStep === 1"
+              class="inline-flex items-center gap-2 px-4 py-2 rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed">
               <ArrowLeftIcon class="w-4 h-4" />
               Previous
             </button>
 
-            <button
-              v-if="currentStep === 4"
-              @click="handleCompleteSetup"
-              :disabled="processing"
-              class="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-            >
+            <button v-if="currentStep === 4" @click="handleCompleteSetup" :disabled="processing"
+              class="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
               <span v-if="processing">Processing...</span>
               <span v-else>Complete Setup</span>
               <CheckIcon class="w-4 h-4" />
             </button>
-            
-            <button
-              v-else
-              @click="handleNext"
-              :disabled="processing"
-              class="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
-            >
+
+            <button v-else @click="handleNext" :disabled="processing"
+              class="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90">
               Next Step
               <ArrowRightIcon class="w-4 h-4" />
             </button>

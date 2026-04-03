@@ -407,8 +407,7 @@ const firstName = computed(() => user.value.name.split(' ')[0])
                         </CardContent>
                     </Card>
 
-                    <!-- School health indicator -->
-                    <Card class="border-dashed">
+                    <!-- <Card class="border-dashed">
                         <CardContent class="p-4">
                             <p class="text-xs font-semibold text-foreground mb-3">School Health</p>
                             <div class="space-y-2.5">
@@ -434,7 +433,7 @@ const firstName = computed(() => user.value.name.split(' ')[0])
                                 </div>
                             </div>
                         </CardContent>
-                    </Card>
+                    </Card> -->
 
                 </div>
             </div>

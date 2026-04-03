@@ -21,7 +21,7 @@ const props = defineProps({
 
 const emit = defineEmits(['update'])
 
-const percentage = '17%'
+// const percentage = '17%'
 
 const isYearly = computed(() => props.data.billing_cycle === 'yearly')
 
@@ -61,17 +61,17 @@ const selectPlan = (planId) => {
 }
 
 
-const toggleBillingCycle = () => {
-  const newCycle = isYearly.value ? 'monthly' : 'yearly'
-  updateField('billing_cycle', newCycle)
-}
+// const toggleBillingCycle = () => {
+//   const newCycle = isYearly.value ? 'monthly' : 'yearly'
+//   updateField('billing_cycle', newCycle)
+// }
 
-const updateField = (field, value) => {
-  emit('update', 'plan', { 
-    ...props.data,  
-    [field]: value 
-  })
-}
+// const updateField = (field, value) => {
+//   emit('update', 'plan', { 
+//     ...props.data,  
+//     [field]: value 
+//   })
+// }
 
 const formatPrice = (plan) => {
   if (!plan) return '₦0'
@@ -106,7 +106,7 @@ const getDisplayFeatures = (plan) => {
 <template>
   <div class="space-y-6">
     <!-- Billing Toggle -->
-    <div class="flex items-center justify-center gap-4 p-4 bg-muted/30 rounded-lg">
+    <!-- <div class="flex items-center justify-center gap-4 p-4 bg-muted/30 rounded-lg">
       <label
         :class="['cursor-pointer text-sm font-medium', !isYearly ? 'text-foreground' : 'text-muted-foreground']"
         @click="updateField('billing_cycle', 'monthly')"
@@ -132,7 +132,7 @@ const getDisplayFeatures = (plan) => {
           Save {{ percentage}}%
         </span>
       </div>
-    </div>
+    </div> -->
 
     <!-- Plan Cards -->
     <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-4">

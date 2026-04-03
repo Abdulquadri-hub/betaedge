@@ -132,6 +132,18 @@ class TenantService implements TenantServiceInterface
         ]));
 
         throw_if(
+            empty($profile['school_type']), 
+            ValidationException::withMessages([
+            'school_type' => 'School type is required'
+        ]));
+
+        throw_if(
+            empty($profile['year_established']), 
+            ValidationException::withMessages([
+            'year_established' => 'Year established is required'
+        ]));
+
+        throw_if(
             empty($profile['owner_email']) || 
             !filter_var($profile['owner_email'], FILTER_VALIDATE_EMAIL), 
             ValidationException::withMessages([

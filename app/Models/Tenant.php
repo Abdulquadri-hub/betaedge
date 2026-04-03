@@ -276,13 +276,11 @@ class Tenant extends Model
         return !is_null($this->email_verified_at);
     }
 
-    // Slug Generation with Blacklist
     public static function generateUniqueSlug(string $name): string
     {
         $slug = Str::slug($name);
         
-        // Check reserved slugs
-        if (in_array($slug, self::$reservedSlugs)) {
+        if (self::isSlugReserved($slug)) {
             $slug .= '-school';
         }
 
@@ -311,6 +309,7 @@ class Tenant extends Model
         'localhost', 'staging', 'dev', 'test', 'beta', 'demo',
         'help', 'support', 'blog', 'forum', 'shop', 'store',
         'cdn', 'static', 'assets', 'files', 'downloads',
-        'dashboard', 'panel', 'console', 'portal'
+        'dashboard', 'panel', 'console', 'portal', 'gov', 
+        'php', 'png'
     ];
 }
