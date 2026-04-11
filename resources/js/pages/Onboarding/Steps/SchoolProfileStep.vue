@@ -321,7 +321,7 @@ watch(
             {{ slugValidationError }}
           </p>
           <p v-if="slugValidationState === 'truncated'" class="text-sm text-yellow-600">
-            ⚠️ School name is long - slug truncated to 7 characters
+            School name is long - slug truncated to 7 characters
           </p>
           <p v-if="!slugValidationError && slugValidationState === 'valid'" class="text-sm text-green-600">
             ✓ Slug is available
