@@ -142,8 +142,8 @@ const handleSlugGeneration = async () => {
  * Handle manual slug editing
  */
 const handleSlugChange = async (newSlug) => {
-  // Enforce max 7 characters
-  const truncatedSlug = newSlug.substring(0, 7)
+  // Enforce max 10 characters
+  const truncatedSlug = newSlug.substring(0, 10)
   emit('update', 'profile', { slug: truncatedSlug })
 
   // Validate the slug
@@ -297,7 +297,7 @@ watch(
               id="slug" 
               type="text" 
               placeholder="e.g., harvard" 
-              maxlength="7"
+              maxlength="10"
               :value="data.slug"
               :disabled="!isEditingSlug"
               @input="handleSlugChange($event.target.value)"
@@ -324,7 +324,7 @@ watch(
             School name is long - slug truncated to 7 characters
           </p>
           <p v-if="!slugValidationError && slugValidationState === 'valid'" class="text-sm text-green-600">
-            ✓ Slug is available
+            Slug is available
           </p>
           <p class="text-xs text-muted-foreground">
             This becomes your school's subdomain (e.g., harvard.betaedge.com)
@@ -337,10 +337,10 @@ watch(
           type="button"
           @click="toggleEditSlug"
           :class="[
-            'inline-flex items-center gap-2 px-3 py-1 text-sm rounded-md border transition-colors',
+            'inline-flex items-center gap-2 px-3 py-1 text-sm rounded-md border transition-colors cursor-pointer',
             isEditingSlug
               ? 'bg-blue-50 border-blue-300 text-blue-700 hover:bg-blue-100'
-              : 'bg-muted border-input text-muted-foreground hover:bg-muted/80'
+              : 'bg-primary/50 border-input text-primary-foreground hover:bg-primary/80'
           ]"
         >
           <LockIcon v-if="!isEditingSlug" class="w-4 h-4" />

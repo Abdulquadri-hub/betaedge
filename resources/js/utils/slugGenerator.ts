@@ -1,6 +1,6 @@
 /**
  * Slug Generator - Creates a URL-safe slug from a school name
- * Strategy: Take first word of school name, convert to lowercase, max 7 characters
+ * Strategy: Take first word of school name, convert to lowercase, max 10 characters
  * 
  * Examples:
  * - "Harvard University" → "harvard"
@@ -37,8 +37,8 @@ export function generateSlugFromSchoolName(schoolName: string): string {
     return ''
   }
 
-  // Truncate to max 7 characters
-  slug = slug.substring(0, 7)
+  // Truncate to max 10 characters
+  slug = slug.substring(0, 10)
 
   return slug
 }
@@ -57,5 +57,5 @@ export function isSlugTruncated(schoolName: string, generatedSlug: string): bool
     .toLowerCase()
     .replace(/[^a-z0-9-]/g, '')
 
-  return cleanedWord.length > 7
+  return cleanedWord.length > 10
 }

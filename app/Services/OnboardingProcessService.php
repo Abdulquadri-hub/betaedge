@@ -197,7 +197,7 @@ class OnboardingProcessService implements OnboardingProcessServiceInterface
                 'address' => 'required|string|max:500',
                 'description' => 'nullable|string|max:1000',
                 'logo' => 'required|url', // Logo is uploaded separately via /api/onboarding/upload-logo and is now a URL string
-                'slug' => 'required|string|max:7|regex:/^[a-z0-9-]+$/', // Slug for subdomain
+                'slug' => 'required|string|max:10|regex:/^[a-z0-9-]+$/', // Slug for subdomain
                 'primary_color' => 'nullable|regex:/^#[0-9A-F]{6}$/i',
                 'secondary_color' => 'nullable|regex:/^#[0-9A-F]{6}$/i',
             ],
