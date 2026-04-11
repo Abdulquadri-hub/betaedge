@@ -14,7 +14,7 @@ class CurrencyService
     /**
      * Detect user's country from IP and return currency info
      */
-    public static function detectCurrencyFromIP(string $ip = null): array
+    public static function detectCurrencyFromIP(?string $ip = null): array
     {
         try {
             $ip = $ip ?? request()->ip() ?? request()->getClientIp();
