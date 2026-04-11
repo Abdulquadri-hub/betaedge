@@ -1,8 +1,15 @@
 <script setup>
-import { ref, watch } from 'vue'
-import { Upload } from 'lucide-vue-next'
+import { ref, watch, computed } from 'vue'
+import { Upload, Edit2, Lock, CheckCircle, AlertCircle, XCircle } from 'lucide-vue-next'
+import { generateSlugFromSchoolName, isSlugTruncated } from '@/utils/slugGenerator'
+import { validateSlug } from '@/utils/slugValidator'
 
 const UploadIcon = Upload
+const EditIcon = Edit2
+const LockIcon = Lock
+const CheckIcon = CheckCircle
+const WarningIcon = AlertCircle
+const ErrorIcon = XCircle
 
 const props = defineProps({
   data: {
@@ -18,45 +25,190 @@ const props = defineProps({
 const emit = defineEmits(['update'])
 
 const logoPreview = ref(null)
+const isEditingSlug = ref(false)
+const slugValidationError = ref('')
+const slugValidationChecking = ref(false)
+const slugValidationState = ref('') // 'valid', 'reserved', 'taken', 'truncated'
 
 const updateField = (field, value) => {
   emit('update', 'profile', { [field]: value })
 }
 
-const handleLogoChange = (event) => {
-  const file = event.target.files?.[0]
-  if (file) {
-    emit('update', 'profile', { logo: file })
+/**
+ * Upload logo to backend and get URL back
+ */
+const uploadLogoAndReturnUrl = async (file) => {
+  try {
+    const formData = new FormData()
+    formData.append('logo', file)
 
-    // Create preview
+    const response = await fetch('/api/onboarding/upload-logo', {
+      method: 'POST',
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest'
+      },
+      body: formData
+    })
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.message || 'Failed to upload logo')
+    }
+
+    const data = await response.json()
+    return data.url // Return the public URL
+  } catch (error) {
+    console.error('Logo upload error:', error)
+    throw error
+  }
+}
+
+/**
+ * Handle logo file selection and upload
+ */
+const handleLogoChange = async (event) => {
+  const file = event.target.files?.[0]
+  if (!file) return
+
+  try {
+    // Show preview immediately
     const reader = new FileReader()
     reader.onload = (e) => {
       logoPreview.value = e.target.result
     }
     reader.readAsDataURL(file)
+
+    // Upload to backend
+    const logoUrl = await uploadLogoAndReturnUrl(file)
+
+    // Emit the URL to parent form (not the file)
+    emit('update', 'profile', { logo: logoUrl })
+  } catch (error) {
+    console.error('Error handling logo:', error)
+    // Reset preview on error
+    logoPreview.value = null
   }
+}
+
+/**
+ * Handle slug generation and validation
+ */
+const handleSlugGeneration = async () => {
+  if (!props.data.school_name) {
+    emit('update', 'profile', { slug: '' })
+    slugValidationError.value = ''
+    slugValidationState.value = ''
+    return
+  }
+
+  const generatedSlug = generateSlugFromSchoolName(props.data.school_name)
+
+  if (!generatedSlug) {
+    emit('update', 'profile', { slug: '' })
+    slugValidationError.value = ''
+    slugValidationState.value = ''
+    return
+  }
+
+  // Check if truncated
+  const truncated = isSlugTruncated(props.data.school_name, generatedSlug)
+
+  // Validate slug
+  slugValidationChecking.value = true
+  try {
+    const result = await validateSlug(generatedSlug)
+
+    if (result.valid) {
+      emit('update', 'profile', { slug: generatedSlug })
+      slugValidationError.value = ''
+      slugValidationState.value = truncated ? 'truncated' : 'valid'
+    } else {
+      // Keep generated slug but show error
+      emit('update', 'profile', { slug: generatedSlug })
+      slugValidationError.value = result.errors[0] || 'Slug validation failed'
+      slugValidationState.value = result.errors.some(e => e.toLowerCase().includes('reserved'))
+        ? 'reserved'
+        : 'taken'
+    }
+  } catch (error) {
+    console.error('Slug validation error:', error)
+    slugValidationState.value = 'valid' // Allow to proceed on error
+  } finally {
+    slugValidationChecking.value = false
+  }
+}
+
+/**
+ * Handle manual slug editing
+ */
+const handleSlugChange = async (newSlug) => {
+  // Enforce max 7 characters
+  const truncatedSlug = newSlug.substring(0, 7)
+  emit('update', 'profile', { slug: truncatedSlug })
+
+  // Validate the slug
+  slugValidationChecking.value = true
+  try {
+    const result = await validateSlug(truncatedSlug)
+
+    if (result.valid) {
+      slugValidationError.value = ''
+      slugValidationState.value = 'valid'
+    } else {
+      slugValidationError.value = result.errors[0] || 'Slug validation failed'
+      slugValidationState.value = result.errors.some(e => e.toLowerCase().includes('reserved'))
+        ? 'reserved'
+        : 'taken'
+    }
+  } catch (error) {
+    console.error('Slug validation error:', error)
+    slugValidationState.value = 'valid'
+  } finally {
+    slugValidationChecking.value = false
+  }
+}
+
+const toggleEditSlug = () => {
+  isEditingSlug.value = !isEditingSlug.value
 }
 
 const getError = (field) => {
   return props.errors[`profile.${field}`] || props.errors[field]
 }
 
+// Watch for school name changes to auto-generate slug
+watch(
+  () => props.data.school_name,
+  (newName) => {
+    // Only auto-generate if not currently editing the slug
+    if (!isEditingSlug.value) {
+      handleSlugGeneration()
+    }
+  }
+)
+
+// Watch for logo changes (from parent update)
 watch(
   () => props.data.logo,
-  (file) => {
-    if (!file) {
+  (logo) => {
+    if (!logo) {
       logoPreview.value = null
       return
     }
 
-    if (file instanceof File) {
+    // If it's already a URL string, don't try to read it as a File
+    if (typeof logo === 'string') {
+      logoPreview.value = logo
+      return
+    }
+
+    // If it's a File object, create preview
+    if (logo instanceof File) {
       const reader = new FileReader()
       reader.onload = (e) => {
         logoPreview.value = e.target.result
-        console.log(props.data.logo);
-
       }
-      reader.readAsDataURL(file)
+      reader.readAsDataURL(logo)
     }
   },
   { immediate: true }
@@ -132,6 +284,69 @@ watch(
         <p v-if="getError('year_established')" class="text-sm text-destructive">
           {{ getError('year_established') }}
         </p>
+      </div>
+    </div>
+
+    <!-- School Slug / Subdomain -->
+    <div class="space-y-2">
+      <label for="slug" class="text-sm font-medium">School Slug (Subdomain) *</label>
+      <div class="flex gap-2 items-end">
+        <div class="flex-1 space-y-1">
+          <div class="flex items-center gap-2">
+            <input 
+              id="slug" 
+              type="text" 
+              placeholder="e.g., harvard" 
+              maxlength="7"
+              :value="data.slug"
+              :disabled="!isEditingSlug"
+              @input="handleSlugChange($event.target.value)"
+              :class="[
+                'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm',
+                !isEditingSlug ? 'bg-muted cursor-not-allowed' : '',
+                slugValidationState === 'valid' ? 'border-green-500' : '',
+                slugValidationState === 'reserved' || slugValidationState === 'taken' ? 'border-destructive' : '',
+                slugValidationState === 'truncated' ? 'border-yellow-500' : ''
+              ]" 
+            />
+            <!-- Validation Icons -->
+            <div v-if="!slugValidationChecking && data.slug" class="flex-shrink-0">
+              <CheckIcon v-if="slugValidationState === 'valid'" class="w-5 h-5 text-green-500" />
+              <WarningIcon v-else-if="slugValidationState === 'truncated'" class="w-5 h-5 text-yellow-500" />
+              <ErrorIcon v-else-if="slugValidationState === 'reserved' || slugValidationState === 'taken'" class="w-5 h-5 text-destructive" />
+            </div>
+          </div>
+          <!-- Slug validation errors -->
+          <p v-if="slugValidationError" class="text-sm text-destructive">
+            {{ slugValidationError }}
+          </p>
+          <p v-if="slugValidationState === 'truncated'" class="text-sm text-yellow-600">
+            ⚠️ School name is long - slug truncated to 7 characters
+          </p>
+          <p v-if="!slugValidationError && slugValidationState === 'valid'" class="text-sm text-green-600">
+            ✓ Slug is available
+          </p>
+          <p class="text-xs text-muted-foreground">
+            This becomes your school's subdomain (e.g., harvard.betaedge.com)
+          </p>
+        </div>
+      </div>
+      <!-- Edit / Lock toggle -->
+      <div class="flex gap-2">
+        <button
+          type="button"
+          @click="toggleEditSlug"
+          :class="[
+            'inline-flex items-center gap-2 px-3 py-1 text-sm rounded-md border transition-colors',
+            isEditingSlug
+              ? 'bg-blue-50 border-blue-300 text-blue-700 hover:bg-blue-100'
+              : 'bg-muted border-input text-muted-foreground hover:bg-muted/80'
+          ]"
+        >
+          <LockIcon v-if="!isEditingSlug" class="w-4 h-4" />
+          <EditIcon v-else class="w-4 h-4" />
+          {{ isEditingSlug ? 'Lock Slug' : 'Edit Slug' }}
+        </button>
       </div>
     </div>
 
