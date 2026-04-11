@@ -50,14 +50,20 @@ const navLinks = [
                 <div class="hidden md:flex items-center gap-3">
                     <Link href="auth/login">
                         <button
-                            class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 py-2 hover:bg-accent hover:text-accent-foreground">
+                            class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 py-2 hover:bg-accent cursor-pointer hover:text-accent-foreground">
                             Log In
                         </button>
                     </Link>
                     <Link href="/onboarding">
                         <button
-                            class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90">
+                            class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 py-2 bg-primary cursor-pointer text-primary-foreground hover:bg-primary/90">
                             Start Your School
+                        </button>
+                    </Link>
+                    <Link href="/onboarding/instructor">
+                        <button
+                            class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 py-2 border-2 border-secondary cursor-pointer text-secondary hover:bg-secondary/90 hover:text-white">
+                            Become a Tutor
                         </button>
                     </Link>
                 </div>
