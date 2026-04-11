@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, computed } from 'vue'
+import { ref, watch } from 'vue'
 import { Upload, Edit2, Lock, CheckCircle, AlertCircle, XCircle } from 'lucide-vue-next'
 import { generateSlugFromSchoolName, isSlugTruncated } from '@/utils/slugGenerator'
 import { validateSlug } from '@/utils/slugValidator'
@@ -179,7 +179,7 @@ const getError = (field) => {
 // Watch for school name changes to auto-generate slug
 watch(
   () => props.data.school_name,
-  (newName) => {
+  () => {
     // Only auto-generate if not currently editing the slug
     if (!isEditingSlug.value) {
       handleSlugGeneration()
