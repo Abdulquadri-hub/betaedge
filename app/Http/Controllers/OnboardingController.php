@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Inertia\Inertia;
 use App\Enums\Status;
+use App\Models\Tenant;
 use App\GateWays\Paystack;
 use Illuminate\Http\Request;
 use App\Models\OnboardingProcess;
@@ -106,6 +107,72 @@ class OnboardingController extends Controller
         $progress = $this->service->getProgress($jobId);
 
         return response()->json($progress);
+    }
+
+    /**
+     * Validate school slug against reserved keywords and uniqueness
+     */
+    public function validateSlug(Request $request)
+    {
+        $validated = $request->validate([
+            'slug' => ['required', 'string', 'max:7', 'regex:/^[a-z0-9-]+$/']
+        ]);
+
+        $slug = $validated['slug'];
+        $errors = [];
+
+        // Check if slug is reserved
+        if (Tenant::isSlugReserved($slug)) {
+            $errors[] = 'This slug is reserved and cannot be used. Please choose another.';
+        }
+
+        // Check if slug already exists in database
+        if (Tenant::where('slug', $slug)->exists()) {
+            $errors[] = 'This slug is already taken. Please choose another.';
+        }
+
+        return response()->json([
+            'valid' => empty($errors),
+            'errors' => $errors
+        ]);
+    }
+
+    /**
+     * Upload school logo and return URL
+     */
+    public function uploadLogo(Request $request)
+    {
+        $validated = $request->validate([
+            'logo' => ['required', 'image', 'mimes:jpg,jpeg,png', 'max:2048']
+        ], [
+            'logo.required' => 'Logo file is required',
+            'logo.image' => 'Uploaded file must be an image',
+            'logo.mimes' => 'Logo must be a JPG or PNG file',
+            'logo.max' => 'Logo must not exceed 2MB'
+        ]);
+
+        try {
+            $file = $validated['logo'];
+            
+            // Generate unique filename
+            $filename = 'logo-' . uniqid() . '.' . $file->getClientOriginalExtension();
+            
+            // Store file in public storage
+            $path = $file->storeAs('onboarding/logos', $filename, 'public');
+            
+            // Generate public URL
+            $url = asset('storage/' . $path);
+
+            return response()->json([
+                'success' => true,
+                'url' => $url
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to upload logo: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     private function canAccessJob(string $jobId, string $sessionId): bool

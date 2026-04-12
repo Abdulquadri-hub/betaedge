@@ -1,6 +1,7 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { School, Crown, CreditCard, Edit2, MapPin, Mail, Phone, Building, CheckCircle } from 'lucide-vue-next'
+import { useCurrency } from '@/composables/useCurrency'
 
 const SchoolIcon = School
 const CrownIcon = Crown
@@ -11,6 +12,8 @@ const MailIcon = Mail
 const PhoneIcon = Phone
 const BuildingIcon = Building
 const CheckCircleIcon = CheckCircle
+
+const { formatAmount, detectCurrency } = useCurrency()
 
 const props = defineProps({
   data: {
@@ -27,6 +30,10 @@ defineEmits(['edit-step'])
 
 const selectedPlan = computed(() => {
   return props.plans?.find(p => p.id === props.data.plan?.plan_id)
+})
+
+onMounted(() => {
+  detectCurrency()
 })
 
 const isYearly = computed(() => props.data.plan?.billing_cycle === 'yearly')
@@ -131,7 +138,7 @@ const isFree = computed(() => selectedPlan.value?.slug === 'free')
           </p>
         </div>
         <div class="text-right">
-          <p class="text-2xl font-bold">${{ price }}</p>
+          <p class="text-2xl font-bold">{{ formatAmount(price) }}</p>
           <p class="text-sm text-muted-foreground">
             {{ isFree ? 'forever' : isYearly ? 'per year' : 'per month' }}
           </p>

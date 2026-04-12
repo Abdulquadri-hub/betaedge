@@ -1,11 +1,14 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { Check, CreditCard, Lock, CheckCircle } from 'lucide-vue-next'
+import { useCurrency } from '@/composables/useCurrency'
 
 const CheckIcon = Check
 const CreditCardIcon = CreditCard
 const LockIcon = Lock
 const CheckCircleIcon = CheckCircle
+
+const { formatAmount, detectCurrency, getExchangeRate } = useCurrency()
 
 const props = defineProps({
   data: {
@@ -87,11 +90,15 @@ const initializePayment = () => {
 }
 
 onMounted(() => {
+  // Load Paystack script
   if (!window.PaystackPop) {
     const script = document.createElement('script')
     script.src = 'https://js.paystack.co/v1/inline.js'
     document.head.appendChild(script)
   }
+
+  // Detect currency from IP
+  detectCurrency()
 })
 </script>
 
@@ -107,7 +114,7 @@ onMounted(() => {
           </p>
         </div>
         <div class="text-right">
-          <p class="text-2xl font-bold">₦{{ price }}</p>
+          <p class="text-2xl font-bold">{{ formatAmount(price) }}</p>
           <p class="text-sm text-muted-foreground">
             {{ isYearly ? 'per year' : 'per month' }}
           </p>
@@ -145,7 +152,7 @@ onMounted(() => {
       >
         <CreditCardIcon class="w-5 h-5" />
         <span v-if="processing">Processing...</span>
-        <span v-else>Pay ₦{{ price }} with Paystack</span>
+        <span v-else>Pay {{ formatAmount(price) }} with Paystack</span>
       </button>
 
       <!-- Payment completed indicator -->
