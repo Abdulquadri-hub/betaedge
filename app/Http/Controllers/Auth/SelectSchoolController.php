@@ -17,9 +17,6 @@ class SelectSchoolController extends Controller
         protected AuthenticationRepositoryInterface $authRepo,
     ) {}
 
-    /**
-     * Show school/tenant selector
-     */
     public function showSelectSchool()
     {
         $user = Auth::user();
@@ -28,10 +25,8 @@ class SelectSchoolController extends Controller
             return redirect()->route('login.index');
         }
 
-        // Get all accessible tenants
         $tenants = $this->authRepo->getUserTenants($user);
 
-        // If user only has 1 tenant, redirect directly to dashboard
         if (count($tenants) === 1) {
             $tenant = $tenants[0];
             session(['active_tenant_id' => $tenant->id]);
@@ -40,7 +35,6 @@ class SelectSchoolController extends Controller
             return redirect()->to('https://' . $subdomain . '/dashboard');
         }
 
-        // If no tenants, logout and show error
         if (count($tenants) === 0) {
             Auth::logout();
             return redirect()
@@ -53,9 +47,6 @@ class SelectSchoolController extends Controller
         ]);
     }
 
-    /**
-     * Handle school/tenant selection
-     */
     public function selectSchool(Request $request)
     {
         $user = $request->user();
@@ -74,7 +65,9 @@ class SelectSchoolController extends Controller
             ]);
         }
 
+        // Set active tenant and save session explicitly
         session(['active_tenant_id' => $validated['tenant_id']]);
+        session()->save(); // Explicitly save before cross-subdomain redirect
 
         $tenant = $user->tenants()
             ->where('id', $validated['tenant_id'])

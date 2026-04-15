@@ -32,7 +32,6 @@ class LoginController extends Controller
             'password' => 'required|string|min:6',
         ]);
 
-        // Attempt authentication
         $result = $this->authService->authenticate(
             $validated['email'],
             $validated['password'],
@@ -47,11 +46,9 @@ class LoginController extends Controller
 
         $user = $result['user'];
 
-        // Get all accessible tenants for the user
         $tenants = $this->authRepo->getUserTenants($user);
         $tenantCount = count($tenants);
 
-        // Check if user has access to any tenant
         if ($tenantCount === 0) {
             $this->authService->logout();
             throw ValidationException::withMessages([
@@ -59,28 +56,18 @@ class LoginController extends Controller
             ]);
         }
 
-        // Set active tenant (first one or selected one)
-        $tenantResult = $this->authService->setActiveTenant($user);
+        // Get first tenant and set it as active in session
+        $tenant = $tenants[0];
+        session(['active_tenant_id' => $tenant->id]);
+        session()->save(); // Explicitly save session before cross-subdomain redirect
 
-        if (!$tenantResult['success']) {
-            $this->authService->logout();
-            throw ValidationException::withMessages([
-                'email' => $tenantResult['message'],
-            ]);
-        }
-
-        $tenant = $tenantResult['tenant'];
         $subdomain = $tenant->custom_domain ?? $tenant->subdomain;
-        $userRole = $user->user_type;
 
         // If user has only 1 tenant, auto-select and redirect to dashboard
         if ($tenantCount === 1) {
-            // TODO: Implement role-based dashboards at /{role}/dashboard
-            // For now, redirect to /dashboard which renders role-based content
             return redirect()->to('https://' . $subdomain . '/dashboard');
         }
 
-        // If user has multiple tenants, redirect to school selector
         return redirect()->to('https://' . $subdomain . '/auth/select-school');
     }
 
