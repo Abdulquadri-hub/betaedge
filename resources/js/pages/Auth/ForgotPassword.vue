@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue';
 import { GraduationCap, Mail, Loader2, ArrowLeft, Copyright } from 'lucide-vue-next';
-import { Link } from '@inertiajs/vue3';
+import { Link, useForm } from '@inertiajs/vue3';
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -19,62 +19,30 @@ defineProps({
     }
 })
 
-// reactive variables
-const formData = ref({
+// Form state using Inertia
+const form = useForm({
     email: ''
 })
-const isLoading = ref(false)
+
+// UI state
 const emailSent = ref(false)
-const errors  = ref({})
-
-// validation
-const validateForm = () => {
-    const newErrors = {}
-
-    if(!formData.value.email) {
-        newErrors.email = 'Email is required'
-    } else if (!/\S+@\S+\.\S+/.test(formData.value.email)) {
-        newErrors.email = 'Please enter a valid email'
-    }
-
-    errors.value = newErrors
-    return Object.keys(newErrors).length === 0
-}
 
 // methods
-const handleSubmit = async () => {
-
-    if (!validateForm()) return
-
-    isLoading.value = true
-    errors.value = {}
-
-    try {
-        // make api call to the backend
-        console.log('Forgot password payload:', formData.value);
-
-        await new Promise(resolve => setTimeout(resolve, 1500))
-
-        emailSent.value = true
-
-        toast.success('Success', {
-            description: 'Password reset link sent to your email'
-        })
-        
-    } catch(error) {
-        console.log(error);
-        
-        errors.value.general = 'Failed to send reset link. Please try again.'
-
-        toast.error('Error', {
-            description: 'Failed to send reset link',
-            variant: 'destructive'
-        })
-    } finally {
-        isLoading.value = false
-    }
+const handleSubmit = () => {
+    form.post(route('password.email'), {
+        onSuccess: () => {
+            emailSent.value = true
+            toast.success('Success', {
+                description: 'Password reset link sent to your email'
+            })
+        },
+        onError: () => {
+            toast.error('Error', {
+                description: form.errors.email || 'Failed to send reset link'
+            })
+        }
+    })
 }
-
 
 </script>
 
@@ -133,9 +101,9 @@ const handleSubmit = async () => {
 
                     <form @submit.prevent="handleSubmit" class="space-y-6">
                         <!-- General Error -->
-                        <div v-if="errors.general"
+                        <div v-if="form.errors.general"
                             class="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
-                            {{ errors.general }}
+                            {{ form.errors.general }}
                         </div>
 
                         <!-- Email Field -->
@@ -143,15 +111,15 @@ const handleSubmit = async () => {
                             <Label for="email">Email address</Label>
                             <div class="relative">
                                 <Mail class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                <Input id="email" type="email" placeholder="you@example.com" v-model="formData.email"
-                                    :class="['pl-10', errors.email ? 'border-destructive' : '']" />
+                                <Input id="email" type="email" placeholder="you@example.com" v-model="form.email"
+                                    :class="['pl-10', form.errors.email ? 'border-destructive' : '']" />
                             </div>
-                            <p v-if="errors.email" class="text-sm text-destructive">{{ errors.email }}</p>
+                            <p v-if="form.errors.email" class="text-sm text-destructive">{{ form.errors.email }}</p>
                         </div>
 
                         <!-- Submit Button -->
-                        <Button type="submit" class="w-full" size="lg" :disabled="isLoading">
-                            <template v-if="isLoading">
+                        <Button type="submit" class="w-full" size="lg" :disabled="form.processing">
+                            <template v-if="form.processing">
                                 <Loader2 class="mr-2 h-4 w-4 animate-spin" />
                                 Sending...
                             </template>
@@ -161,11 +129,11 @@ const handleSubmit = async () => {
                         </Button>
 
                         <!-- Back to Login -->
-                        <a href="/auth/login"
+                        <Link href="/auth/login"
                             class="flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-foreground">
                             <ArrowLeft class="h-4 w-4" />
                             Back to login
-                        </a>
+                        </Link>
                     </form>
                 </div>
 
@@ -179,7 +147,7 @@ const handleSubmit = async () => {
                         <h2 class="text-2xl font-bold">Check your email</h2>
                         <p class="text-muted-foreground">
                             We've sent a password reset link to<br />
-                            <span class="font-medium text-foreground">{{ formData.email }}</span>
+                            <span class="font-medium text-foreground">{{ form.email }}</span>
                         </p>
                     </div>
 
@@ -196,7 +164,7 @@ const handleSubmit = async () => {
                         class="flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-foreground">
                         <ArrowLeft class="h-4 w-4" />
                         Back to login
-                </Link>
+                    </Link>
                 </div>
             </div>
         </div>

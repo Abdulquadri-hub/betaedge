@@ -6,36 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { toast } from 'vue-sonner'
-
-
-// Laravel Inertia.js Integration:
-// import { useForm, router } from '@inertiajs/vue3'
-// 
-// const form = useForm({
-//   email: '',
-//   password: '',
-//   remember: false,
-//   role: props.selectedRole.value
-// })
-// 
-// const submit = () => {
-//   form.post('/login', {
-//     onSuccess: (response) => {
-//       // Check role and redirect accordingly
-//       if (form.role === 'instructor' && response.props.user.schools.length > 1) {
-//         router.visit('/auth/select-school')
-//       } else {
-//         const dashboardRoutes = {
-//           student: '/student/dashboard',
-//           parent: '/parent/dashboard',
-//           instructor: '/instructor/dashboard',
-//           school_owner: '/school/dashboard'
-//         }
-//         router.visit(dashboardRoutes[form.role])
-//       }
-//     }
-//   })
-// }
+import { useForm } from '@inertiajs/vue3'
 
 const props = defineProps({
   selectedRole: {
@@ -50,107 +21,32 @@ const props = defineProps({
 
 const emit = defineEmits(['changeRole'])
 
-const formData = ref({
+// Form state using Inertia
+const form = useForm({
   email: '',
   password: '',
   remember: false,
 })
 
 const showPassword = ref(false)
-const isLoading = ref(false)
-const errors = ref({})
 
-const validateForm = () => {
-  const newErrors = {}
-  
-  if (!formData.value.email) {
-    newErrors.email = 'Email is required'
-  } else if (!/\S+@\S+\.\S+/.test(formData.value.email)) {
-    newErrors.email = 'Please enter a valid email'
-  }
-  
-  if (!formData.value.password) {
-    newErrors.password = 'Password is required'
-  } else if (formData.value.password.length < 6) {
-    newErrors.password = 'Password must be at least 6 characters'
-  }
-  
-  errors.value = newErrors
-  return Object.keys(newErrors).length === 0
-}
-
-
-const handleSubmit = async () => {
-  if (!validateForm()) return
-
-  isLoading.value = true
-  errors.value = {}
-
-  try {
-    // Mock API call - Replace with actual backend call
-    // Laravel Inertia.js: Use form.post('/login', data) instead
-    
-    const loginPayload = {
-      email: formData.value.email,
-      password: formData.value.password,
-      remember: formData.value.remember,
-      role: props.selectedRole.value
+const handleSubmit = () => {
+  form.post(route('login.store'), {
+    onSuccess: (response) => {
+      toast.success('Welcome back!', {
+        description: 'You have successfully logged in.'
+      })
+      
+      // Redirect to dashboard - the server handles the redirect
+      // based on user role and tenant assignment
+      window.location.href = '/dashboard'
+    },
+    onError: () => {
+      toast.error('Error', {
+        description: form.errors.email || form.errors.password || 'Login failed. Please try again.'
+      })
     }
-
-      toast('Welcome back!', {
-    description: 'You have successfully logged in.',
   })
-
-    console.log('Login payload:', loginPayload)
-
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500))
-
-    // Mock response
-    const mockResponse = {
-      user: {
-        id: 1,
-        name: 'John Doe',
-        email: formData.value.email,
-        role: props.selectedRole.value,
-        schools: props.selectedRole.value === 'instructor' 
-          ? [
-              { id: 1, name: 'Elevate Academy', subdomain: 'elevate.betaedge.test' },
-              { id: 2, name: 'Beta School', subdomain: 'beta.betaedge.test' }
-            ]
-          : []
-      },
-      subdomain: 'elevate.betaedge.test',
-      token: 'mock-jwt-token'
-    }
-
-    // Role-based routing
-    if (props.selectedRole.value === 'instructor' && mockResponse.user.schools.length > 1) {
-      // Redirect to school selector for instructors with multiple schools
-      console.log('Redirecting to: /auth/select-school')
-      window.location.href = '/auth/select-school'
-    } else {
-      const dashboardRoutes = {
-        student: '/student/dashboard',
-        parent: '/parent/dashboard',
-        instructor: '/instructor/dashboard',
-        school_owner: '/school/dashboard'
-      }
-      console.log('Redirecting to:', dashboardRoutes[props.selectedRole.value])
-      window.location.href = dashboardRoutes[props.selectedRole.value]
-    }
-
-  } catch (error) {
-    console.log(error); 
-    errors.value.general = 'Invalid credentials. Please try again.'
-    toast.error('Error',{
-      title: 'Error',
-      description: 'Login failed',
-      variant: 'destructive',
-    })
-  } finally {
-    isLoading.value = false
-  }
 }
 </script>
 
@@ -175,8 +71,8 @@ const handleSubmit = async () => {
     </div>
 
     <!-- General Error -->
-    <div v-if="errors.general" class="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
-      {{ errors.general }}
+    <div v-if="form.errors.general" class="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
+      {{ form.errors.general }}
     </div>
 
     <!-- Email Field -->
@@ -188,11 +84,11 @@ const handleSubmit = async () => {
           id="email"
           type="email"
           placeholder="you@example.com"
-          v-model="formData.email"
-          :class="['pl-10', errors.email ? 'border-destructive' : '']"
+          v-model="form.email"
+          :class="['pl-10', form.errors.email ? 'border-destructive' : '']"
         />
       </div>
-      <p v-if="errors.email" class="text-sm text-destructive">{{ errors.email }}</p>
+      <p v-if="form.errors.email" class="text-sm text-destructive">{{ form.errors.email }}</p>
     </div>
 
     <!-- Password Field -->
@@ -212,8 +108,8 @@ const handleSubmit = async () => {
           id="password"
           :type="showPassword ? 'text' : 'password'"
           placeholder="••••••••"
-          v-model="formData.password"
-          :class="['pl-10 pr-10', errors.password ? 'border-destructive' : '']"
+          v-model="form.password"
+          :class="['pl-10 pr-10', form.errors.password ? 'border-destructive' : '']"
         />
         <button
           type="button"
@@ -224,14 +120,14 @@ const handleSubmit = async () => {
           <Eye v-else class="h-4 w-4" />
         </button>
       </div>
-      <p v-if="errors.password" class="text-sm text-destructive">{{ errors.password }}</p>
+      <p v-if="form.errors.password" class="text-sm text-destructive">{{ form.errors.password }}</p>
     </div>
 
     <!-- Remember Me -->
     <div class="flex items-center space-x-2">
       <Checkbox
         id="remember"
-        v-model:checked="formData.remember"
+        v-model:checked="form.remember"
       />
       <Label for="remember" class="text-sm font-normal cursor-pointer">
         Remember me for 30 days
@@ -239,8 +135,8 @@ const handleSubmit = async () => {
     </div>
 
     <!-- Submit Button -->
-    <Button type="submit" class="w-full" size="lg" :disabled="isLoading">
-      <template v-if="isLoading">
+    <Button type="submit" class="w-full" size="lg" :disabled="form.processing">
+      <template v-if="form.processing">
         <Loader2 class="mr-2 h-4 w-4 animate-spin" />
         Signing in...
       </template>

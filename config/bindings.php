@@ -43,6 +43,10 @@ use App\Repositories\School\CourseRepository;
 use App\Services\School\DashboardService;
 use App\Repositories\Auth\AuthenticationRepository;
 use App\Services\Auth\AuthenticationService;
+use App\Contracts\Repositories\PasswordReset\PasswordResetRepositoryInterface;
+use App\Contracts\Services\PasswordReset\PasswordResetServiceInterface;
+use App\Repositories\PasswordReset\PasswordResetRepository;
+use App\Services\PasswordReset\PasswordResetService;
 
 return [
 
@@ -58,6 +62,9 @@ return [
         
         // Authentication Module
         AuthenticationRepositoryInterface::class => AuthenticationRepository::class,
+        
+        // Password Reset Module
+        PasswordResetRepositoryInterface::class => PasswordResetRepository::class,
         
         // School Dashboard Module
         BatchRepositoryInterface::class => BatchRepository::class,
@@ -76,6 +83,9 @@ return [
         
         // Authentication Module
         AuthenticationServiceInterface::class => AuthenticationService::class,
+        
+        // Password Reset Module
+        PasswordResetServiceInterface::class => PasswordResetService::class,
         
         // School Dashboard Module
         DashboardServiceInterface::class => DashboardService::class,

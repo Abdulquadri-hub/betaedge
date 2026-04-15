@@ -59,10 +59,10 @@ Route::domain(config('app.main_domain'))->middleware(['web'])->group(function ()
     });
 
     Route::controller(PasswordController::class)->group(function () {
-        Route::get('/auth/forgot-password', 'showforgot');
-        Route::post('/auth/forgot-password', 'forgot');
-        Route::get('/auth/reset-password', 'showReset');
-        Route::post('/auth/reset-password', 'reset');
+        Route::get('/auth/forgot-password', 'showForgot')->name('password.request');
+        Route::post('/auth/forgot-password', 'forgot')->name('password.email');
+        Route::get('/auth/reset-password', 'showReset')->name('password.reset');
+        Route::post('/auth/reset-password', 'reset')->name('password.update');
     });
 
     Route::controller(SelectSchoolController::class)->group(function () {
