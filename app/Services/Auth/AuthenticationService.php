@@ -40,7 +40,7 @@ class AuthenticationService implements AuthenticationServiceInterface
         }
 
         // Check if user is active
-        if (!$user->is_active) {
+        if ($user->status !== 'active') {
             return [
                 'success' => false,
                 'user' => null,

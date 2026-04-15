@@ -76,9 +76,9 @@ class SelectSchoolController extends Controller
         // Store active tenant in session
         session(['active_tenant_id' => $validated['tenant_id']]);
 
-        // Get the selected tenant
+        // Get the selected tenant using the relationship
         $tenant = $user->tenants()
-            ->where('tenant_id', $validated['tenant_id'])
+            ->where('id', $validated['tenant_id'])
             ->first();
 
         if (!$tenant) {

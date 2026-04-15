@@ -38,7 +38,7 @@ class AuthenticationRepository implements AuthenticationRepositoryInterface
     public function getUserTenants(User $user)
     {
         return $user->tenants()
-            ->where('status', 'active')
+            ->wherePivot('status', 'active')
             ->get();
     }
 
