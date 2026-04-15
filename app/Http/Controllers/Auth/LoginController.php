@@ -21,16 +21,13 @@ class LoginController extends Controller
         return Inertia::render('Auth/Login');
     }
 
-    /**
-     * Handle login request with multi-tenant and role support
-     */
     public function login(Request $request)
     {
-        // Validate input
         $validated = $request->validate([
             'email' => 'required|email',
             'password' => 'required|string|min:6',
         ]);
+
 
         $result = $this->authService->authenticate(
             $validated['email'],
@@ -56,14 +53,19 @@ class LoginController extends Controller
             ]);
         }
 
-        // Get first tenant and set it as active in session
-        $tenant = $tenants[0];
-        session(['active_tenant_id' => $tenant->id]);
-        session()->save(); // Explicitly save session before cross-subdomain redirect
+        $tenantResult = $this->authService->setActiveTenant($user);
 
+        if (!$tenantResult['success']) {
+            $this->authService->logout();
+            throw ValidationException::withMessages([
+                'email' => $tenantResult['message'],
+            ]);
+        }
+
+        $tenant = $tenantResult['tenant'];
         $subdomain = $tenant->custom_domain ?? $tenant->subdomain;
+        $userRole = $user->user_type;
 
-        // If user has only 1 tenant, auto-select and redirect to dashboard
         if ($tenantCount === 1) {
             return redirect()->to('https://' . $subdomain . '/dashboard');
         }

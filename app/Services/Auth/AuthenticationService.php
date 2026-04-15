@@ -18,7 +18,6 @@ class AuthenticationService implements AuthenticationServiceInterface
      */
     public function authenticate(string $email, string $password, bool $remember = false): array
     {
-        // Find user by email
         $user = $this->authRepo->findByEmail($email);
 
         if (!$user) {
@@ -29,7 +28,6 @@ class AuthenticationService implements AuthenticationServiceInterface
             ];
         }
 
-        // Verify password
         if (!$this->authRepo->verifyPassword($user, $password)) {
             return [
                 'success' => false,
@@ -38,7 +36,6 @@ class AuthenticationService implements AuthenticationServiceInterface
             ];
         }
 
-        // Check if user is active
         if (!$user->is_active) {
             return [
                 'success' => false,
@@ -55,7 +52,6 @@ class AuthenticationService implements AuthenticationServiceInterface
             ];
         }
 
-        // Regenerate session
         session()->regenerate();
 
         return [
@@ -65,9 +61,6 @@ class AuthenticationService implements AuthenticationServiceInterface
         ];
     }
 
-    /**
-     * Logout the currently authenticated user
-     */
     public function logout(): bool
     {
         Auth::logout();
@@ -82,21 +75,14 @@ class AuthenticationService implements AuthenticationServiceInterface
         return Auth::user();
     }
 
-    /**
-     * Get all accessible tenants for a user
-     */
     public function getUserTenants(User $user): array
     {
         $tenants = $this->authRepo->getUserTenants($user);
         return $tenants ? $tenants->all() : [];
     }
 
-    /**
-     * Set active tenant and return full tenant data
-     */
     public function setActiveTenant(User $user): array
     {
-        // Get user's first accessible tenant
         $tenant = $this->authRepo->getUserFirstTenant($user);
 
         if (!$tenant) {
@@ -107,7 +93,6 @@ class AuthenticationService implements AuthenticationServiceInterface
             ];
         }
 
-        // Store tenant_id in session
         session(['active_tenant_id' => $tenant->id]);
 
         return [
@@ -117,20 +102,13 @@ class AuthenticationService implements AuthenticationServiceInterface
         ];
     }
 
-    /**
-     * Validate user has access to a tenant
-     */
     public function validateTenantAccess(User $user, int $tenantId): bool
     {
         return $this->authRepo->canAccessTenant($user, $tenantId);
     }
 
-    /**
-     * Validate user's selected role matches their actual user_type
-     */
     public function validateUserRole(User $user, string $selectedRole): bool
     {
-        // Map role values: student, parent, instructor, school_owner
         return $user->user_type === $selectedRole;
     }
 }
