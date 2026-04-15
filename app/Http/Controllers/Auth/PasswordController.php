@@ -2,9 +2,10 @@
 
 namespace App\Http\Controllers\Auth;
 
-use App\Http\Controllers\Controller;
 use App\Contracts\Services\PasswordReset\PasswordResetServiceInterface;
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
 class PasswordController extends Controller
@@ -13,17 +14,11 @@ class PasswordController extends Controller
         private PasswordResetServiceInterface $passwordResetService
     ) {}
 
-    /**
-     * Show the forgot password form
-     */
     public function showForgot()
     {
         return Inertia::render('Auth/ForgotPassword');
     }
 
-    /**
-     * Send password reset email
-     */
     public function forgot(Request $request)
     {
         $request->validate([
@@ -37,7 +32,7 @@ class PasswordController extends Controller
 
             return back()->with('status', 'We have emailed your password reset link!');
         } catch (\Exception $e) {
-            \Log::error('Password reset email failed', [
+            Log::error('Password reset email failed', [
                 'email' => $request->email,
                 'error' => $e->getMessage(),
             ]);
@@ -46,9 +41,6 @@ class PasswordController extends Controller
         }
     }
 
-    /**
-     * Show the reset password form
-     */
     public function showReset(Request $request)
     {
         return Inertia::render('Auth/ResetPassword', [
@@ -57,9 +49,6 @@ class PasswordController extends Controller
         ]);
     }
 
-    /**
-     * Reset the user password
-     */
     public function reset(Request $request)
     {
         $validated = $request->validate([

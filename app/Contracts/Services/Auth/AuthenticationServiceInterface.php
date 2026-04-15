@@ -3,7 +3,7 @@
 namespace App\Contracts\Services\Auth;
 
 use App\Models\User;
-use Illuminate\Http\Request;
+// use Illuminate\Http\Request;
 
 interface AuthenticationServiceInterface
 {
