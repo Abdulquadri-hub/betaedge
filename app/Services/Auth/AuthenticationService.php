@@ -1,0 +1,123 @@
+<?php
+
+namespace App\Services\Auth;
+
+use App\Models\User;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Session;
+use App\Contracts\Services\Auth\AuthenticationServiceInterface;
+use App\Contracts\Repositories\Auth\AuthenticationRepositoryInterface;
+
+class AuthenticationService implements AuthenticationServiceInterface
+{
+    public function __construct(
+        protected AuthenticationRepositoryInterface $authRepo
+    ) {}
+
+    /**
+     * Authenticate user with email and password
+     */
+    public function authenticate(string $email, string $password, bool $remember = false): array
+    {
+        // Find user by email
+        $user = $this->authRepo->findByEmail($email);
+
+        if (!$user) {
+            return [
+                'success' => false,
+                'user' => null,
+                'message' => 'Invalid credentials.',
+            ];
+        }
+
+        // Verify password
+        if (!$this->authRepo->verifyPassword($user, $password)) {
+            return [
+                'success' => false,
+                'user' => null,
+                'message' => 'Invalid credentials.',
+            ];
+        }
+
+        // Check if user is active
+        if ($user->status !== 'active') {
+            return [
+                'success' => false,
+                'user' => null,
+                'message' => 'Your account is inactive. Please contact support.',
+            ];
+        }
+
+        // Attempt login with Laravel Auth
+        if (!Auth::attempt(['email' => $email, 'password' => $password], $remember)) {
+            return [
+                'success' => false,
+                'user' => null,
+                'message' => 'Authentication failed. Please try again.',
+            ];
+        }
+
+        // Regenerate session
+        session()->regenerate();
+
+        return [
+            'success' => true,
+            'user' => Auth::user(),
+            'message' => 'Login successful.',
+        ];
+    }
+
+    /**
+     * Logout the currently authenticated user
+     */
+    public function logout(): bool
+    {
+        Auth::logout();
+        session()->invalidate();
+        session()->regenerateToken();
+
+        return true;
+    }
+
+    /**
+     * Get current authenticated user
+     */
+    public function getAuthenticatedUser(): ?User
+    {
+        return Auth::user();
+    }
+
+    /**
+     * Set active tenant for authenticated user
+     */
+    public function setActiveTenant(User $user): array
+    {
+        // Get user's first accessible tenant
+        $tenant = $this->authRepo->getUserFirstTenant($user);
+
+        if (!$tenant) {
+            return [
+                'success' => false,
+                'tenant_id' => null,
+                'message' => 'You do not have access to any school.',
+            ];
+        }
+
+        // Store tenant_id in session
+        session(['active_tenant_id' => $tenant->id]);
+
+        return [
+            'success' => true,
+            'tenant_id' => $tenant->id,
+            'message' => 'Tenant activated.',
+        ];
+    }
+
+    /**
+     * Validate user has access to a tenant
+     */
+    public function validateTenantAccess(User $user, int $tenantId): bool
+    {
+        return $this->authRepo->canAccessTenant($user, $tenantId);
+    }
+}

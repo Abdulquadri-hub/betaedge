@@ -4,13 +4,18 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
+use App\Contracts\Services\Auth\AuthenticationServiceInterface;
 
 class LoginController extends Controller
 {
-    public function index() {
+    public function __construct(
+        protected AuthenticationServiceInterface $authService
+    ) {}
+
+    public function index()
+    {
         return Inertia::render('Auth/Login');
     }
 
@@ -26,37 +31,39 @@ class LoginController extends Controller
         ]);
 
         // Attempt authentication
-        if (!Auth::attempt(['email' => $validated['email'], 'password' => $validated['password']], $request->boolean('remember'))) {
+        $result = $this->authService->authenticate(
+            $validated['email'],
+            $validated['password'],
+            $request->boolean('remember')
+        );
+
+        if (!$result['success']) {
             throw ValidationException::withMessages([
-                'email' => __('auth.failed'),
+                'email' => $result['message'],
             ]);
         }
 
-        $request->session()->regenerate();
+        // Set active tenant for the user
+        $tenantResult = $this->authService->setActiveTenant($result['user']);
 
-        $user = Auth::user();
-
-        // If the user has tenants (schools), store the tenant_id in session
-        // For now, get the first tenant they have access to
-        $tenant = $user->tenants()->first();
-
-        if ($tenant) {
-            session(['active_tenant_id' => $tenant->id]);
-            return redirect()->intended(route('dashboard') ?? '/dashboard');
-        } else {
-            // User has no tenant access - this shouldn't happen in normal flow
-            Auth::logout();
-            return redirect()->route('login.index')->withErrors(['email' => 'You do not have access to any school.']);
+        if (!$tenantResult['success']) {
+            $this->authService->logout();
+            throw ValidationException::withMessages([
+                'email' => $tenantResult['message'],
+            ]);
         }
+
+        // Redirect to dashboard
+        return redirect()->intended('/dashboard');
     }
 
     /**
-     * Initialize login (for two-factor auth flow if needed)
+     * Initialize login (POST handler)
      */
     public function initiate(Request $request)
     {
-        // This can be used for role selection or two-factor auth
         return $this->login($request);
     }
 }
+
 

@@ -3,7 +3,9 @@
 use App\Contracts\Repositories\MarketPlaceListingRepositoryInterface;
 use App\Contracts\Repositories\School\BatchRepositoryInterface;
 use App\Contracts\Repositories\School\CourseRepositoryInterface;
+use App\Contracts\Repositories\Auth\AuthenticationRepositoryInterface;
 use App\Contracts\Services\School\DashboardServiceInterface;
+use App\Contracts\Services\Auth\AuthenticationServiceInterface;
 use App\Services\TenantService;
 use App\Services\TenantPageService;
 use App\Services\TenantUserService;
@@ -39,6 +41,8 @@ use App\Services\MarketPlaceListingService;
 use App\Repositories\School\BatchRepository;
 use App\Repositories\School\CourseRepository;
 use App\Services\School\DashboardService;
+use App\Repositories\Auth\AuthenticationRepository;
+use App\Services\Auth\AuthenticationService;
 
 return [
 
@@ -51,6 +55,9 @@ return [
         TenantSubscriptionRepositoryInterface::class => TenantSubscriptionRepository::class,
         TenantUserRepositoryInterface::class => TenantUserRepository::class,
         MarketPlaceListingRepositoryInterface::class => MarketPlaceListingRepository::class,
+        
+        // Authentication Module
+        AuthenticationRepositoryInterface::class => AuthenticationRepository::class,
         
         // School Dashboard Module
         BatchRepositoryInterface::class => BatchRepository::class,
@@ -66,6 +73,9 @@ return [
         TenantSubscriptionServiceInterface::class => TenantSubscriptionSevice::class,
         TenantUserServiceInterface::class => TenantUserService::class,
         MarketPlaceListingServiceInterface::class => MarketPlaceListingService::class,
+        
+        // Authentication Module
+        AuthenticationServiceInterface::class => AuthenticationService::class,
         
         // School Dashboard Module
         DashboardServiceInterface::class => DashboardService::class,

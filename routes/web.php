@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\LogoutController;
 use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\SelectSchoolController;
 use App\Http\Controllers\EmailVerificationController;
@@ -51,6 +52,10 @@ Route::domain(config('app.main_domain'))->middleware(['web'])->group(function ()
     Route::controller(LoginController::class)->group(function () {
         Route::get('/auth/login', 'index')->name('login.index');
         Route::post('auth/login', 'initiate')->name('login.initiate');
+    });
+
+    Route::controller(LogoutController::class)->group(function () {
+        Route::post('/auth/logout', 'logout')->name('logout')->middleware('auth');
     });
 
     Route::controller(PasswordController::class)->group(function () {
