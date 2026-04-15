@@ -6,6 +6,7 @@ use App\Contracts\Repositories\PasswordReset\PasswordResetRepositoryInterface;
 use App\Contracts\Services\PasswordReset\PasswordResetServiceInterface;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
 class PasswordResetService implements PasswordResetServiceInterface
@@ -47,14 +48,14 @@ class PasswordResetService implements PasswordResetServiceInterface
             // });
 
             // For development, log the reset URL
-            \Log::info('Password reset token created', [
+            Log::info('Password reset token created', [
                 'email' => $email,
                 'reset_url' => $resetUrl,
             ]);
 
             return true;
         } catch (\Exception $e) {
-            \Log::error('Failed to send password reset email', [
+            Log::error('Failed to send password reset email', [
                 'email' => $email,
                 'error' => $e->getMessage(),
             ]);
@@ -62,26 +63,12 @@ class PasswordResetService implements PasswordResetServiceInterface
         }
     }
 
-    /**
-     * Validate password reset token
-     *
-     * @param string $email User email address
-     * @param string $token Reset token
-     * @return bool Token is valid
-     */
     public function validateResetToken(string $email, string $token): bool
     {
         return $this->resetRepository->verifyToken($email, $token);
     }
 
-    /**
-     * Reset user password with valid token
-     *
-     * @param string $email User email address
-     * @param string $token Reset token
-     * @param string $password New password
-     * @return bool Success status
-     */
+    
     public function resetPassword(string $email, string $token, string $password): bool
     {
         // Validate token first
@@ -106,7 +93,7 @@ class PasswordResetService implements PasswordResetServiceInterface
 
             return true;
         } catch (\Exception $e) {
-            \Log::error('Failed to reset password', [
+            Log::error('Failed to reset password', [
                 'email' => $email,
                 'error' => $e->getMessage(),
             ]);

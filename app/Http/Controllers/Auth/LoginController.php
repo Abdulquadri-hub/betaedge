@@ -20,7 +20,7 @@ class LoginController extends Controller
     }
 
     /**
-     * Handle login request
+     * Handle login request with multi-tenant support
      */
     public function login(Request $request)
     {
@@ -43,8 +43,38 @@ class LoginController extends Controller
             ]);
         }
 
-        // Set active tenant for the user
-        $tenantResult = $this->authService->setActiveTenant($result['user']);
+        // Get all accessible tenants for the user
+        $user = $result['user'];
+        $tenants = $this->authService->getUserTenants($user);
+        $tenantCount = count($tenants);
+
+        // Check if user has access to any tenant
+        if ($tenantCount === 0) {
+            $this->authService->logout();
+            throw ValidationException::withMessages([
+                'email' => 'You do not have access to any school.',
+            ]);
+        }
+
+        // If user has only 1 tenant, auto-select and redirect to tenant subdomain
+        if ($tenantCount === 1) {
+            $tenantResult = $this->authService->setActiveTenant($user);
+
+            if (!$tenantResult['success']) {
+                $this->authService->logout();
+                throw ValidationException::withMessages([
+                    'email' => $tenantResult['message'],
+                ]);
+            }
+
+            $tenant = $tenantResult['tenant'];
+            $subdomain = $tenant->custom_domain ?? $tenant->subdomain;
+            
+            return redirect()->to('https://' . $subdomain . '/dashboard');
+        }
+
+        // If user has multiple tenants, set first as active and redirect to school selector
+        $tenantResult = $this->authService->setActiveTenant($user);
 
         if (!$tenantResult['success']) {
             $this->authService->logout();
@@ -53,13 +83,9 @@ class LoginController extends Controller
             ]);
         }
 
-        // Redirect to dashboard
-        return redirect()->intended('/dashboard');
+        return redirect()->to('https://' . ($tenantResult['tenant']->custom_domain ?? $tenantResult['tenant']->subdomain) . '/auth/select-school');
     }
 
-    /**
-     * Initialize login (POST handler)
-     */
     public function initiate(Request $request)
     {
         return $this->login($request);

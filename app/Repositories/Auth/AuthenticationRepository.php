@@ -48,7 +48,7 @@ class AuthenticationRepository implements AuthenticationRepositoryInterface
     public function getUserFirstTenant(User $user)
     {
         return $user->tenants()
-            ->where('status', 'active')
+            ->wherePivot('status', 'active')
             ->first();
     }
 

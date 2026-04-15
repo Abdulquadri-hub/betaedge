@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from 'vue'
-import { Eye, EyeOff, Loader2, Mail, Lock, ArrowLeft } from 'lucide-vue-next'
+import { Eye, EyeOff, Loader2, Mail, Lock } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -8,18 +8,12 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { toast } from 'vue-sonner'
 import { useForm } from '@inertiajs/vue3'
 
-const props = defineProps({
-  selectedRole: {
-    type: Object,
-    required: true
-  },
+defineProps({
   name: {
     type: String,
     default: 'BetaEdge'
   }
 })
-
-const emit = defineEmits(['changeRole'])
 
 // Form state using Inertia
 const form = useForm({
@@ -31,15 +25,14 @@ const form = useForm({
 const showPassword = ref(false)
 
 const handleSubmit = () => {
-  form.post(route('login.store'), {
+  form.post(route('login.initiate'), {
     onSuccess: (response) => {
+      console.log(response);
       toast.success('Welcome back!', {
         description: 'You have successfully logged in.'
       })
-      
-      // Redirect to dashboard - the server handles the redirect
-      // based on user role and tenant assignment
-      window.location.href = '/dashboard'
+      // Backend handles redirect based on tenant count
+      // Either to tenant subdomain or school selector
     },
     onError: () => {
       toast.error('Error', {
@@ -52,29 +45,6 @@ const handleSubmit = () => {
 
 <template>
   <form @submit.prevent="handleSubmit" class="space-y-6">
-    <!-- Change Role Button -->
-    <button
-      type="button"
-      @click="emit('changeRole')"
-      class="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1 hover:cursor-pointer"
-    >
-      <ArrowLeft class="w-4 h-4" /> Change role
-    </button>
-
-    <!-- Selected Role Display -->
-    <div class="flex items-center gap-3 p-3 rounded-lg bg-primary/5 border border-primary/20">
-      <component :is="selectedRole.icon" class="h-5 w-5 text-primary" />
-      <div>
-        <p class="font-medium text-sm">{{ selectedRole.label }}</p>
-        <p class="text-xs text-muted-foreground">{{ selectedRole.description }}</p>
-      </div>
-    </div>
-
-    <!-- General Error -->
-    <div v-if="form.errors.general" class="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
-      {{ form.errors.general }}
-    </div>
-
     <!-- Email Field -->
     <div class="space-y-2">
       <Label for="email">Email address</Label>

@@ -40,7 +40,7 @@ class AuthenticationService implements AuthenticationServiceInterface
         }
 
         // Check if user is active
-        if ($user->status !== 'active') {
+        if (!$user->is_active) {
             return [
                 'success' => false,
                 'user' => null,
@@ -48,7 +48,6 @@ class AuthenticationService implements AuthenticationServiceInterface
             ];
         }
 
-        // Attempt login with Laravel Auth
         if (!Auth::attempt(['email' => $email, 'password' => $password], $remember)) {
             return [
                 'success' => false,
@@ -79,16 +78,22 @@ class AuthenticationService implements AuthenticationServiceInterface
         return true;
     }
 
-    /**
-     * Get current authenticated user
-     */
     public function getAuthenticatedUser(): ?User
     {
         return Auth::user();
     }
 
     /**
-     * Set active tenant for authenticated user
+     * Get all accessible tenants for a user
+     */
+    public function getUserTenants(User $user): array
+    {
+        $tenants = $this->authRepo->getUserTenants($user);
+        return $tenants ? $tenants->all() : [];
+    }
+
+    /**
+     * Set active tenant and return full tenant data
      */
     public function setActiveTenant(User $user): array
     {
@@ -98,7 +103,7 @@ class AuthenticationService implements AuthenticationServiceInterface
         if (!$tenant) {
             return [
                 'success' => false,
-                'tenant_id' => null,
+                'tenant' => null,
                 'message' => 'You do not have access to any school.',
             ];
         }
@@ -108,7 +113,7 @@ class AuthenticationService implements AuthenticationServiceInterface
 
         return [
             'success' => true,
-            'tenant_id' => $tenant->id,
+            'tenant' => $tenant,
             'message' => 'Tenant activated.',
         ];
     }

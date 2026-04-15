@@ -66,8 +66,8 @@ Route::domain(config('app.main_domain'))->middleware(['web'])->group(function ()
     });
 
     Route::controller(SelectSchoolController::class)->group(function () {
-        Route::get('/auth/select-school', 'showSelectSchool');
-        Route::post('/auth/select-school', 'selectSchool');
+        Route::get('/auth/select-school', 'showSelectSchool')->name('school.show');
+        Route::post('/auth/select-school', 'selectSchool')->name('school.select');
     });
 
     Route::controller(EmailVerificationController::class)->group(function () {
