@@ -1,7 +1,12 @@
 <script setup>
+import { ref } from 'vue';
 import { Copyright, GraduationCap } from 'lucide-vue-next';
 import { Link } from '@inertiajs/vue3';
+import RoleSelector from '@/components/Auth/RoleSelector.vue';
 import LoginForm from '@/components/Auth/LoginForm.vue';
+
+const step = ref('role');
+const selectedRole = ref(null);
 
 defineProps({
     name: {
@@ -12,7 +17,17 @@ defineProps({
         type: String,
         default: '2026 BetaEdge Platform. All rights reserved'
     }
-})
+});
+
+const handleRoleSelect = (role) => {
+    selectedRole.value = role;
+    step.value = 'login';
+};
+
+const handleChangeRole = () => {
+    step.value = 'role';
+    selectedRole.value = null;
+};
 
 </script>
 
@@ -81,11 +96,24 @@ defineProps({
                 </div>
 
                 <div class="text-center space-y-2">
-                    <h2 class="text-2xl font-bold">Sign in to your account</h2>
-                    <p class="text-muted-foreground">Access your school dashboard</p>
+                    <h2 class="text-2xl font-bold">
+                        {{ step === 'role' ? 'Sign in to your account' : 'Enter your credentials' }}
+                    </h2>
+                    <p class="text-muted-foreground">
+                        {{ step === 'role' ? 'Choose your role to continue' : 'Access your dashboard' }}
+                    </p>
                 </div>
 
-                <LoginForm />
+                <RoleSelector 
+                    v-if="step === 'role'" 
+                    @role-selected="handleRoleSelect" 
+                />
+
+                <LoginForm 
+                    v-else 
+                    :selected-role="selectedRole" 
+                    @change-role="handleChangeRole" 
+                />
 
             </div>
         </div>

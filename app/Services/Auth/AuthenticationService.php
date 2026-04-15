@@ -4,7 +4,6 @@ namespace App\Services\Auth;
 
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Session;
 use App\Contracts\Services\Auth\AuthenticationServiceInterface;
 use App\Contracts\Repositories\Auth\AuthenticationRepositoryInterface;
 
@@ -40,7 +39,7 @@ class AuthenticationService implements AuthenticationServiceInterface
         }
 
         // Check if user is active
-        if ($user->status !== 'active') {
+        if (!$user->is_active) {
             return [
                 'success' => false,
                 'user' => null,
@@ -124,5 +123,14 @@ class AuthenticationService implements AuthenticationServiceInterface
     public function validateTenantAccess(User $user, int $tenantId): bool
     {
         return $this->authRepo->canAccessTenant($user, $tenantId);
+    }
+
+    /**
+     * Validate user's selected role matches their actual user_type
+     */
+    public function validateUserRole(User $user, string $selectedRole): bool
+    {
+        // Map role values: student, parent, instructor, school_owner
+        return $user->user_type === $selectedRole;
     }
 }

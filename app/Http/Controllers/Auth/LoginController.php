@@ -2,16 +2,18 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Contracts\Repositories\Auth\AuthenticationRepositoryInterface;
+use App\Contracts\Services\Auth\AuthenticationServiceInterface;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
-use App\Contracts\Services\Auth\AuthenticationServiceInterface;
 
 class LoginController extends Controller
 {
     public function __construct(
-        protected AuthenticationServiceInterface $authService
+        protected AuthenticationServiceInterface $authService,
+        protected AuthenticationRepositoryInterface $authRepo,
     ) {}
 
     public function index()
@@ -20,7 +22,7 @@ class LoginController extends Controller
     }
 
     /**
-     * Handle login request with multi-tenant support
+     * Handle login request with multi-tenant and role support
      */
     public function login(Request $request)
     {
@@ -43,9 +45,10 @@ class LoginController extends Controller
             ]);
         }
 
-        // Get all accessible tenants for the user
         $user = $result['user'];
-        $tenants = $this->authService->getUserTenants($user);
+
+        // Get all accessible tenants for the user
+        $tenants = $this->authRepo->getUserTenants($user);
         $tenantCount = count($tenants);
 
         // Check if user has access to any tenant
@@ -56,24 +59,7 @@ class LoginController extends Controller
             ]);
         }
 
-        // If user has only 1 tenant, auto-select and redirect to tenant subdomain
-        if ($tenantCount === 1) {
-            $tenantResult = $this->authService->setActiveTenant($user);
-
-            if (!$tenantResult['success']) {
-                $this->authService->logout();
-                throw ValidationException::withMessages([
-                    'email' => $tenantResult['message'],
-                ]);
-            }
-
-            $tenant = $tenantResult['tenant'];
-            $subdomain = $tenant->custom_domain ?? $tenant->subdomain;
-            
-            return redirect()->to('https://' . $subdomain . '/dashboard');
-        }
-
-        // If user has multiple tenants, set first as active and redirect to school selector
+        // Set active tenant (first one or selected one)
         $tenantResult = $this->authService->setActiveTenant($user);
 
         if (!$tenantResult['success']) {
@@ -83,7 +69,17 @@ class LoginController extends Controller
             ]);
         }
 
-        return redirect()->to('https://' . ($tenantResult['tenant']->custom_domain ?? $tenantResult['tenant']->subdomain) . '/auth/select-school');
+        $tenant = $tenantResult['tenant'];
+        $subdomain = $tenant->custom_domain ?? $tenant->subdomain;
+        $userRole = $user->user_type;
+
+        // If user has only 1 tenant, auto-select and redirect to role-based dashboard
+        if ($tenantCount === 1) {
+            return redirect()->to('https://' . $subdomain . '/dashboard');
+        }
+
+        // If user has multiple tenants, redirect to school selector
+        return redirect()->to('https://' . $subdomain . '/auth/select-school');
     }
 
     public function initiate(Request $request)

@@ -2,16 +2,19 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Contracts\Repositories\Auth\AuthenticationRepositoryInterface;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use App\Contracts\Services\Auth\AuthenticationServiceInterface;
+use Illuminate\Support\Facades\Auth;
 
 class SelectSchoolController extends Controller
 {
     public function __construct(
-        protected AuthenticationServiceInterface $authService
+        protected AuthenticationServiceInterface $authService,
+        protected AuthenticationRepositoryInterface $authRepo,
     ) {}
 
     /**
@@ -19,14 +22,14 @@ class SelectSchoolController extends Controller
      */
     public function showSelectSchool()
     {
-        $user = auth()->user();
+        $user = Auth::user();
         
         if (!$user) {
             return redirect()->route('login.index');
         }
 
         // Get all accessible tenants
-        $tenants = $this->authService->getUserTenants($user);
+        $tenants = $this->authRepo->getUserTenants($user);
 
         // If user only has 1 tenant, redirect directly to dashboard
         if (count($tenants) === 1) {
@@ -39,7 +42,7 @@ class SelectSchoolController extends Controller
 
         // If no tenants, logout and show error
         if (count($tenants) === 0) {
-            auth()->logout();
+            Auth::logout();
             return redirect()
                 ->route('login.index')
                 ->withErrors(['email' => 'You do not have access to any school.']);
@@ -55,7 +58,7 @@ class SelectSchoolController extends Controller
      */
     public function selectSchool(Request $request)
     {
-        $user = auth()->user();
+        $user = $request->user();
         
         if (!$user) {
             return redirect()->route('login.index');
@@ -87,9 +90,10 @@ class SelectSchoolController extends Controller
             ]);
         }
 
-        // Redirect to tenant subdomain dashboard
+        // Redirect to tenant subdomain dashboard with role-based path
         $subdomain = $tenant->custom_domain ?? $tenant->subdomain;
+        $userRole = $user->user_type;
         
-        return redirect()->to('https://' . $subdomain . '/dashboard');
+        return redirect()->to('https://' . $subdomain . '/' . $userRole . '/dashboard');
     }
 }
