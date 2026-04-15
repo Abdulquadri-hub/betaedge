@@ -73,8 +73,10 @@ class LoginController extends Controller
         $subdomain = $tenant->custom_domain ?? $tenant->subdomain;
         $userRole = $user->user_type;
 
-        // If user has only 1 tenant, auto-select and redirect to role-based dashboard
+        // If user has only 1 tenant, auto-select and redirect to dashboard
         if ($tenantCount === 1) {
+            // TODO: Implement role-based dashboards at /{role}/dashboard
+            // For now, redirect to /dashboard which renders role-based content
             return redirect()->to('https://' . $subdomain . '/dashboard');
         }
 

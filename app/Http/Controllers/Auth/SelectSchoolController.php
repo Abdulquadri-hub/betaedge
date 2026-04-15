@@ -64,22 +64,18 @@ class SelectSchoolController extends Controller
             return redirect()->route('login.index');
         }
 
-        // Validate the selected tenant ID
         $validated = $request->validate([
             'tenant_id' => 'required|integer|exists:tenants,id',
         ]);
 
-        // Verify user has access to this tenant
         if (!$this->authService->validateTenantAccess($user, $validated['tenant_id'])) {
             throw ValidationException::withMessages([
                 'tenant_id' => 'You do not have access to this school.',
             ]);
         }
 
-        // Store active tenant in session
         session(['active_tenant_id' => $validated['tenant_id']]);
 
-        // Get the selected tenant using the relationship
         $tenant = $user->tenants()
             ->where('id', $validated['tenant_id'])
             ->first();
@@ -90,10 +86,8 @@ class SelectSchoolController extends Controller
             ]);
         }
 
-        // Redirect to tenant subdomain dashboard with role-based path
         $subdomain = $tenant->custom_domain ?? $tenant->subdomain;
-        $userRole = $user->user_type;
-        
-        return redirect()->to('https://' . $subdomain . '/' . $userRole . '/dashboard');
+    
+        return redirect()->to('https://' . $subdomain . '/dashboard');
     }
 }
