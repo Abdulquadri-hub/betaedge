@@ -1,6 +1,9 @@
 <?php
 
 use App\Contracts\Repositories\MarketPlaceListingRepositoryInterface;
+use App\Contracts\Repositories\School\BatchRepositoryInterface;
+use App\Contracts\Repositories\School\CourseRepositoryInterface;
+use App\Contracts\Services\School\DashboardServiceInterface;
 use App\Services\TenantService;
 use App\Services\TenantPageService;
 use App\Services\TenantUserService;
@@ -33,6 +36,9 @@ use App\Contracts\Repositories\TenantSubscriptionRepositoryInterface;
 use App\Contracts\Services\MarketPlaceListingServiceInterface;
 use App\Repositories\MarketPlaceListingRepository;
 use App\Services\MarketPlaceListingService;
+use App\Repositories\School\BatchRepository;
+use App\Repositories\School\CourseRepository;
+use App\Services\School\DashboardService;
 
 return [
 
@@ -45,6 +51,10 @@ return [
         TenantSubscriptionRepositoryInterface::class => TenantSubscriptionRepository::class,
         TenantUserRepositoryInterface::class => TenantUserRepository::class,
         MarketPlaceListingRepositoryInterface::class => MarketPlaceListingRepository::class,
+        
+        // School Dashboard Module
+        BatchRepositoryInterface::class => BatchRepository::class,
+        CourseRepositoryInterface::class => CourseRepository::class,
     ],
 
     'services' => [
@@ -56,5 +66,8 @@ return [
         TenantSubscriptionServiceInterface::class => TenantSubscriptionSevice::class,
         TenantUserServiceInterface::class => TenantUserService::class,
         MarketPlaceListingServiceInterface::class => MarketPlaceListingService::class,
+        
+        // School Dashboard Module
+        DashboardServiceInterface::class => DashboardService::class,
     ]
 ];
