@@ -152,7 +152,7 @@ Route::domain('{tenant}.' . config('app.main_domain'))->middleware(['web', 'tena
     });
 
 
-    Route::prefix('dashboard')->middleware(['auth', 'verified', 'tenant.access'])->group(function () {
+    Route::prefix('dashboard')->middleware(['tenant.access'])->group(function () {
         Route::controller(HomeController::class)->group(function () {
             Route::get('', 'index');
         });
