@@ -1,9 +1,8 @@
 import { ref, computed } from 'vue'
 
 import { usePage } from '@inertiajs/vue3'
-const { auth } = usePage().props
-// const user   = computed(() => auth.user)
-// const tenant = computed(() => auth.tenant)
+console.log(usePage);
+
 
 
 const MOCK_USER = {
