@@ -17,7 +17,7 @@ import { toast } from 'vue-sonner'
 import DashboardLayout from '@/components/Dashboard/School/Layouts/DashboardLayout.vue'
 import { Link } from '@inertiajs/vue3'
 
-defineProps({
+const props = defineProps({
   verificationStatus: Object,
   user: Object,
   isRequired: Boolean,
@@ -33,31 +33,31 @@ const form = useForm({
 const isSubmitting = computed(() => form.processing)
 
 const showForm = computed(() => {
-  if (!verificationStatus) return true
-  return verificationStatus.status !== 'verified'
+  if (!props.verificationStatus) return true
+  return props.verificationStatus.status !== 'verified'
 })
 
 const statusBgColor = computed(() => {
-  if (!verificationStatus) return 'bg-gray-100 dark:bg-gray-950'
-  if (verificationStatus.status === 'verified') return 'bg-emerald-100 dark:bg-emerald-950'
-  if (verificationStatus.status === 'pending') return 'bg-amber-100 dark:bg-amber-950'
-  if (verificationStatus.status === 'rejected') return 'bg-red-100 dark:bg-red-950'
+  if (!props.verificationStatus) return 'bg-gray-100 dark:bg-gray-950'
+  if (props.verificationStatus.status === 'verified') return 'bg-emerald-100 dark:bg-emerald-950'
+  if (props.verificationStatus.status === 'pending') return 'bg-amber-100 dark:bg-amber-950'
+  if (props.verificationStatus.status === 'rejected') return 'bg-red-100 dark:bg-red-950'
   return 'bg-gray-100 dark:bg-gray-950'
 })
 
 const statusTextColor = computed(() => {
-  if (!verificationStatus) return 'text-gray-600'
-  if (verificationStatus.status === 'verified') return 'text-emerald-600'
-  if (verificationStatus.status === 'pending') return 'text-amber-600'
-  if (verificationStatus.status === 'rejected') return 'text-red-600'
+  if (!props.verificationStatus) return 'text-gray-600'
+  if (props.verificationStatus.status === 'verified') return 'text-emerald-600'
+  if (props.verificationStatus.status === 'pending') return 'text-amber-600'
+  if (props.verificationStatus.status === 'rejected') return 'text-red-600'
   return 'text-gray-600'
 })
 
 const statusIcon = computed(() => {
-  if (!verificationStatus) return AlertCircle
-  if (verificationStatus.status === 'verified') return CheckCircle2
-  if (verificationStatus.status === 'pending') return Clock
-  if (verificationStatus.status === 'rejected') return AlertCircle
+  if (!props.verificationStatus) return AlertCircle
+  if (props.verificationStatus.status === 'verified') return CheckCircle2
+  if (props.verificationStatus.status === 'pending') return Clock
+  if (props.verificationStatus.status === 'rejected') return AlertCircle
   return AlertCircle
 })
 
@@ -91,21 +91,21 @@ async function handleSubmit() {
         </p>
       </div>
 
-      <Card v-if="verificationStatus">
+      <Card v-if="props.verificationStatus">
         <CardContent class="pt-6">
           <div :class="['flex items-center gap-4 p-4 rounded-lg', statusBgColor]">
             <component :is="statusIcon" :class="['h-8 w-8 shrink-0', statusTextColor]" />
             <div>
               <p :class="['font-bold text-lg capitalize', statusTextColor]">
-                {{ verificationStatus.status }}
+                {{ props.verificationStatus.status }}
               </p>
-              <p v-if="verificationStatus.status === 'pending'" class="text-sm opacity-90 mt-1">
+              <p v-if="props.verificationStatus.status === 'pending'" class="text-sm opacity-90 mt-1">
                 Your verification is under review. We'll notify you within 24 hours.
               </p>
-              <p v-else-if="verificationStatus.status === 'rejected'" class="text-sm opacity-90 mt-1">
-                {{ verificationStatus.rejection_reason || 'Please try again with correct information.' }}
+              <p v-else-if="props.verificationStatus.status === 'rejected'" class="text-sm opacity-90 mt-1">
+                {{ props.verificationStatus.rejection_reason || 'Please try again with correct information.' }}
               </p>
-              <p v-else-if="verificationStatus.status === 'verified'" class="text-sm opacity-90 mt-1">
+              <p v-else-if="props.verificationStatus.status === 'verified'" class="text-sm opacity-90 mt-1">
                 You are verified and can process payments
               </p>
             </div>
