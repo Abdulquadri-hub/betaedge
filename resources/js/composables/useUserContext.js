@@ -1,26 +1,10 @@
 import { ref, computed } from 'vue'
-// TODO (Laravel): import { usePage } from '@inertiajs/vue3'
 
-/**
- * useUserContext
- * ─────────────────────────────────────────────────────────────
- * Single source of truth for the authenticated user, their role,
- * and the current tenant (school).
- *
- * Laravel Integration (when ready):
- *   const { auth } = usePage().props
- *   Replace mock refs below with:
- *     const user   = computed(() => auth.user)
- *     const tenant = computed(() => auth.tenant)
- *
- *   Backend shares data via HandleInertiaRequests middleware:
- *     'auth' => [
- *       'user'   => auth()->user(),
- *       'tenant' => currentTenant(),
- *     ]
- */
+import { usePage } from '@inertiajs/vue3'
+console.log(usePage);
 
-// ─── Mock Data ────────────────────────────────────────────────
+
+
 const MOCK_USER = {
   id:     'user-001',
   name:   'Tunde Adeyemi',
@@ -36,7 +20,7 @@ const MOCK_TENANT = {
   name:      'Bright Stars Academy',
   subdomain: 'brightstars',
   logo:      null,
-  plan:      'pro',          // 'starter' | 'pro' | 'enterprise'
+  plan:      'pro',          
   currency:  '₦',
 }
 
@@ -50,6 +34,7 @@ const MOCK_NOTIFICATIONS = [
 
 export function useUserContext() {
   // TODO (Laravel): replace with usePage().props.auth.user
+  console.log()
   const user   = ref(MOCK_USER)
   const tenant = ref(MOCK_TENANT)
   const notifications = ref(MOCK_NOTIFICATIONS)
@@ -59,8 +44,6 @@ export function useUserContext() {
   const isInstructor = computed(() => user.value?.role === 'instructor')
   const isStudent    = computed(() => user.value?.role === 'student')
 
-  // ── Display helpers ───────────────────────────────────────
-  /** "Tunde Adeyemi" → "TA" */
   const userInitials = computed(() => {
     if (!user.value?.name) return 'U'
     return user.value.name
@@ -71,7 +54,6 @@ export function useUserContext() {
       .slice(0, 2)
   })
 
-  /** "Bright Stars Academy" → "BS" */
   const tenantInitials = computed(() => {
     if (!tenant.value?.name) return 'T'
     return tenant.value.name
@@ -82,7 +64,6 @@ export function useUserContext() {
       .slice(0, 2)
   })
 
-  // ── Notification helpers ──────────────────────────────────
   const unreadCount = computed(
     () => notifications.value.filter(n => !n.read).length
   )

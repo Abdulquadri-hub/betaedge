@@ -1,11 +1,15 @@
-<script setup >
+<script setup>
 import { ref } from 'vue';
 import { GraduationCap, ArrowRight, Loader2, Copyright } from 'lucide-vue-next'
 import { toast } from 'vue-sonner';
-import { Link } from '@inertiajs/vue3';
+import { Link, useForm } from '@inertiajs/vue3';
 
 // props
-defineProps({
+const props = defineProps({
+    tenants: {
+        type: Array,
+        required: true
+    },
     name: {
         type: String,
         default: 'BetaEdge'
@@ -16,72 +20,33 @@ defineProps({
     }
 })
 
-// reactive variables
-const isLoading = ref(false)
+// Form state using Inertia
+const form = useForm({
+    tenant_id: null
+})
+
+// UI state
 const selectedSchool = ref(null)
-// Mock schools data - Replace with props from backend
-const schools = ref([
-  {
-    id: 1,
-    name: 'Elevate Academy',
-    subdomain: 'elevate.betaedge.test',
-    logo: null,
-    studentCount: 1250,
-    courseCount: 45
-  },
-  {
-    id: 2,
-    name: 'Beta Learning School',
-    subdomain: 'beta.betaedge.test',
-    logo: null,
-    studentCount: 850,
-    courseCount: 32
-  },
-  {
-    id: 3,
-    name: 'Tech Institute',
-    subdomain: 'tech.betaedge.test',
-    logo: null,
-    studentCount: 2100,
-    courseCount: 67
-  }
-])
 
 // methods
-const handleSchoolSelect = async (school) => {
-  if (isLoading.value) return
+const handleSchoolSelect = (tenant) => {
+    selectedSchool.value = tenant.id
+    form.tenant_id = tenant.id
 
-  selectedSchool.value = school.id
-  isLoading.value = true
-
-  try {
-    // Mock API call - Replace with actual backend call
-    // Laravel Inertia.js: Use router.post('/auth/select-school', { school_id: school.id })
-    
-    console.log('Selected school:', school)
-
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000))
-
-    toast.success('Success', {
-      description: `Switched to ${school.name}`,
+    form.post(route('school.select'), {
+        onSuccess: () => {
+            toast.success('Success', {
+                description: `Switched to ${tenant.name}`
+            })
+            // Backend handles redirect to tenant subdomain
+        },
+        onError: () => {
+            toast.error('Error', {
+                description: form.errors.tenant_id || 'Failed to select school'
+            })
+            selectedSchool.value = null
+        }
     })
-
-    // Redirect to instructor dashboard with selected school context
-    console.log('Redirecting to: /instructor/dashboard')
-    // window.location.href = `/instructor/dashboard?school=${school.subdomain}`
-
-  } catch (error) {
-    console.log(error);
-    
-    toast.error('Error',{
-      description: 'Failed to select school',
-      variant: 'destructive',
-    })
-    selectedSchool.value = null
-  } finally {
-    isLoading.value = false
-  }
 }
 
 const getSchoolInitials = (name) => {
@@ -92,8 +57,6 @@ const getSchoolInitials = (name) => {
     .toUpperCase()
     .slice(0, 2)
 }
-
-// lifecycle hooks
 
 </script>
 
@@ -141,44 +104,36 @@ const getSchoolInitials = (name) => {
         <div class="text-center space-y-2">
           <h2 class="text-2xl font-bold">Select a school</h2>
           <p class="text-muted-foreground">
-            You teach at {{ schools.length }} schools
+            You have access to {{ tenants.length }} {{ tenants.length === 1 ? 'school' : 'schools' }}
           </p>
         </div>
 
         <div class="space-y-3">
           <button
-            v-for="school in schools"
-            :key="school.id"
-            @click="handleSchoolSelect(school)"
-            :disabled="isLoading"
+            v-for="tenant in tenants"
+            :key="tenant.id"
+            @click="handleSchoolSelect(tenant)"
+            :disabled="form.processing"
             class="w-full flex items-center gap-4 p-4 rounded-lg border-2 text-left transition-all hover:border-primary hover:bg-primary/5 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <!-- School Logo/Avatar -->
             <div class="h-14 w-14 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-              <span v-if="!school.logo" class="text-lg font-bold text-primary">
-                {{ getSchoolInitials(school.name) }}
+              <span v-if="!tenant.logo" class="text-lg font-bold text-primary">
+                {{ getSchoolInitials(tenant.name) }}
               </span>
-              <img v-else :src="school.logo" :alt="school.name" class="h-full w-full object-cover rounded-lg" />
+              <img v-else :src="tenant.logo" :alt="tenant.name" class="h-full w-full object-cover rounded-lg" />
             </div>
 
             <!-- School Info -->
             <div class="flex-1 min-w-0">
-              <p class="font-semibold text-base truncate">{{ school.name }}</p>
-              <p class="text-sm text-muted-foreground truncate">{{ school.subdomain }}</p>
-              <div class="flex items-center gap-4 mt-1">
-                <span class="text-xs text-muted-foreground">
-                  {{ school.studentCount }} students
-                </span>
-                <span class="text-xs text-muted-foreground">
-                  {{ school.courseCount }} courses
-                </span>
-              </div>
+              <p class="font-semibold text-base truncate">{{ tenant.name }}</p>
+              <p class="text-sm text-muted-foreground truncate">{{ tenant.custom_domain || tenant.subdomain }}</p>
             </div>
 
             <!-- Loading/Arrow Icon -->
             <div class="flex-shrink-0">
               <Loader2 
-                v-if="isLoading && selectedSchool === school.id" 
+                v-if="form.processing && selectedSchool === tenant.id" 
                 class="h-5 w-5 animate-spin text-primary" 
               />
               <ArrowRight 

@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use Inertia\Inertia;
-use App\Enums\Status;
 use App\Models\Tenant;
 use App\GateWays\Paystack;
 use Illuminate\Http\Request;
@@ -109,9 +108,6 @@ class OnboardingController extends Controller
         return response()->json($progress);
     }
 
-    /**
-     * Validate school slug against reserved keywords and uniqueness
-     */
     public function validateSlug(Request $request)
     {
         $validated = $request->validate([
@@ -121,12 +117,10 @@ class OnboardingController extends Controller
         $slug = $validated['slug'];
         $errors = [];
 
-        // Check if slug is reserved
         if (Tenant::isSlugReserved($slug)) {
             $errors[] = 'This slug is reserved and cannot be used. Please choose another.';
         }
 
-        // Check if slug already exists in database
         if (Tenant::where('slug', $slug)->exists()) {
             $errors[] = 'This slug is already taken. Please choose another.';
         }

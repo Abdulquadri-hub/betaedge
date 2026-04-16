@@ -5,7 +5,7 @@ import {
     Users, BookOpen, UsersRound, Video, Wallet,
     TrendingUp, TrendingDown, Minus, ArrowRight,
     Clock, RefreshCw, ClipboardList, AlertCircle,
-    CheckCircle2, MessageSquareWarning, Calendar,
+    MessageSquareWarning, Calendar,
 } from 'lucide-vue-next'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -31,7 +31,6 @@ const {
     refresh,
 } = useDashboardStats()
 
-// ─── Stat cards config ────────────────────────────────────────────────────────
 const statCards = computed(() => [
     {
         title: 'Total Students',
@@ -80,7 +79,6 @@ const statCards = computed(() => [
     },
 ])
 
-// ─── Quick actions ────────────────────────────────────────────────────────────
 const quickActions = [
     { label: 'New Batch', href: '/dashboard/batches', icon: UsersRound, color: 'text-primary' },
     { label: 'New Course', href: '/dashboard/courses', icon: BookOpen, color: 'text-secondary' },
@@ -88,7 +86,6 @@ const quickActions = [
     { label: 'View Reports', href: '/dashboard/reports', icon: TrendingUp, color: 'text-amber-600' },
 ]
 
-// ─── Activity type config ────────────────────────────────────────────────────
 const activityConfig = {
     enrollment: { icon: Users, bg: 'bg-primary/10', color: 'text-primary' },
     payment: { icon: Wallet, bg: 'bg-emerald-100 dark:bg-emerald-950', color: 'text-emerald-600' },
@@ -96,12 +93,11 @@ const activityConfig = {
     complaint: { icon: MessageSquareWarning, bg: 'bg-red-100 dark:bg-red-950', color: 'text-red-600' },
 }
 
-// ─── Platform label ───────────────────────────────────────────────────────────
+
 function platformLabel(platform) {
     return { jitsi: 'Jitsi Meet', zoom: 'Zoom', custom: 'Custom' }[platform] ?? platform
 }
 
-// ─── Time until session ───────────────────────────────────────────────────────
 function timeUntil(isoDate) {
     const diff = new Date(isoDate) - Date.now()
     if (diff < 0) return 'Now'
@@ -113,7 +109,6 @@ function timeUntil(isoDate) {
     return `in ${hrs}h ${rem}m`
 }
 
-// ─── Revenue chart bar heights ────────────────────────────────────────────────
 const maxRevenue = computed(() =>
     Math.max(...revenueChart.value.map(d => d.revenue))
 )
@@ -128,7 +123,7 @@ function formatRevenue(amount) {
     return '₦' + amount
 }
 
-// ─── Greeting ─────────────────────────────────────────────────────────────────
+
 const greeting = computed(() => {
     const hour = new Date().getHours()
     if (hour < 12) return 'Good morning'
@@ -406,34 +401,6 @@ const firstName = computed(() => user.value.name.split(' ')[0])
                             </div>
                         </CardContent>
                     </Card>
-
-                    <!-- <Card class="border-dashed">
-                        <CardContent class="p-4">
-                            <p class="text-xs font-semibold text-foreground mb-3">School Health</p>
-                            <div class="space-y-2.5">
-                                <div class="flex items-center gap-2">
-                                    <CheckCircle2 class="h-3.5 w-3.5 text-emerald-600 shrink-0" />
-                                    <span class="text-xs text-muted-foreground">Payments up to date</span>
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <CheckCircle2 class="h-3.5 w-3.5 text-emerald-600 shrink-0" />
-                                    <span class="text-xs text-muted-foreground">{{ stats.activeBatches.value }} active
-                                        batches
-                                        running</span>
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <AlertCircle
-                                        :class="['h-3.5 w-3.5 shrink-0', stats.pendingEnrollments.value > 0 ? 'text-amber-500' : 'text-emerald-600']" />
-                                    <span class="text-xs text-muted-foreground">
-                                        {{ stats.pendingEnrollments.value > 0
-                                            ? `${stats.pendingEnrollments.value} enrollment requests pending`
-                                            : 'No pending enrollments'
-                                        }}
-                                    </span>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card> -->
 
                 </div>
             </div>

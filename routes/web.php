@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\LogoutController;
 use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\SelectSchoolController;
 use App\Http\Controllers\EmailVerificationController;
@@ -53,16 +54,20 @@ Route::domain(config('app.main_domain'))->middleware(['web'])->group(function ()
         Route::post('auth/login', 'initiate')->name('login.initiate');
     });
 
+    Route::controller(LogoutController::class)->group(function () {
+        Route::post('/auth/logout', 'logout')->name('logout')->middleware('auth');
+    });
+
     Route::controller(PasswordController::class)->group(function () {
-        Route::get('/auth/forgot-password', 'showforgot');
-        Route::post('/auth/forgot-password', 'forgot');
-        Route::get('/auth/reset-password', 'showReset');
-        Route::post('/auth/reset-password', 'reset');
+        Route::get('/auth/forgot-password', 'showForgot')->name('password.request');
+        Route::post('/auth/forgot-password', 'forgot')->name('password.email');
+        Route::get('/auth/reset-password', 'showReset')->name('password.reset');
+        Route::post('/auth/reset-password', 'reset')->name('password.update');
     });
 
     Route::controller(SelectSchoolController::class)->group(function () {
-        Route::get('/auth/select-school', 'showSelectSchool');
-        Route::post('/auth/select-school', 'selectSchool');
+        Route::get('/auth/select-school', 'showSelectSchool')->name('school.show');
+        Route::post('/auth/select-school', 'selectSchool')->name('school.select');
     });
 
     Route::controller(EmailVerificationController::class)->group(function () {
@@ -147,7 +152,7 @@ Route::domain('{tenant}.' . config('app.main_domain'))->middleware(['web', 'tena
     });
 
 
-    Route::prefix('dashboard')->group(function () {
+    Route::prefix('dashboard')->middleware(['tenant.access'])->group(function () {
         Route::controller(HomeController::class)->group(function () {
             Route::get('', 'index');
         });

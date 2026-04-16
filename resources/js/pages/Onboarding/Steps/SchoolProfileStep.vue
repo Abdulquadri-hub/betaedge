@@ -34,9 +34,7 @@ const updateField = (field, value) => {
   emit('update', 'profile', { [field]: value })
 }
 
-/**
- * Upload logo to backend and get URL back
- */
+
 const uploadLogoAndReturnUrl = async (file) => {
   try {
     const formData = new FormData()
@@ -56,16 +54,14 @@ const uploadLogoAndReturnUrl = async (file) => {
     }
 
     const data = await response.json()
-    return data.url // Return the public URL
+    return data.url 
   } catch (error) {
     console.error('Logo upload error:', error)
     throw error
   }
 }
 
-/**
- * Handle logo file selection and upload
- */
+
 const handleLogoChange = async (event) => {
   const file = event.target.files?.[0]
   if (!file) return
@@ -78,14 +74,11 @@ const handleLogoChange = async (event) => {
     }
     reader.readAsDataURL(file)
 
-    // Upload to backend
     const logoUrl = await uploadLogoAndReturnUrl(file)
 
-    // Emit the URL to parent form (not the file)
     emit('update', 'profile', { logo: logoUrl })
   } catch (error) {
     console.error('Error handling logo:', error)
-    // Reset preview on error
     logoPreview.value = null
   }
 }
@@ -180,14 +173,12 @@ const getError = (field) => {
 watch(
   () => props.data.school_name,
   () => {
-    // Only auto-generate if not currently editing the slug
     if (!isEditingSlug.value) {
       handleSlugGeneration()
     }
   }
 )
 
-// Watch for logo changes (from parent update)
 watch(
   () => props.data.logo,
   (logo) => {
@@ -196,13 +187,11 @@ watch(
       return
     }
 
-    // If it's already a URL string, don't try to read it as a File
     if (typeof logo === 'string') {
       logoPreview.value = logo
       return
     }
 
-    // If it's a File object, create preview
     if (logo instanceof File) {
       const reader = new FileReader()
       reader.onload = (e) => {

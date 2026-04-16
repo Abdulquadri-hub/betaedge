@@ -13,7 +13,7 @@ class EnsureTenantAccess
     public function handle(Request $request, Closure $next): Response
     {
         if(!Auth::check()) {
-            return redirect()->route('login');
+            return redirect()->route('login.index');
         }
 
         $tenantId = session('active_tenant_id');
