@@ -5,10 +5,8 @@ import { Link } from '@inertiajs/vue3';
 import RoleSelector from '@/components/Auth/RoleSelector.vue';
 import LoginForm from '@/components/Auth/LoginForm.vue';
 
-
-
-const step = ref('role')
-const selectedRole = ref(null)
+const step = ref('role');
+const selectedRole = ref(null);
 
 defineProps({
     name: {
@@ -19,17 +17,17 @@ defineProps({
         type: String,
         default: '2026 BetaEdge Platform. All rights reserved'
     }
-})
+});
 
 const handleRoleSelect = (role) => {
-    selectedRole.value = role
-    step.value = 'login'
-}
+    selectedRole.value = role;
+    step.value = 'login';
+};
 
 const handleChangeRole = () => {
-    step.value = 'role'
-    selectedRole.value = null
-}
+    step.value = 'role';
+    selectedRole.value = null;
+};
 
 </script>
 

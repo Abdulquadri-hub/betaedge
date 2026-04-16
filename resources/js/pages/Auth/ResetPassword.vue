@@ -1,6 +1,6 @@
 <script setup>
-import { ref, onMounted } from 'vue';
-import { Link } from '@inertiajs/vue3';
+import { ref } from 'vue';
+import { Link, useForm } from '@inertiajs/vue3';
 import { GraduationCap, Lock, Eye, EyeOff, Loader2, CheckCircle, Copyright } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -8,7 +8,15 @@ import { Label } from '@/components/ui/label'
 import { toast } from 'vue-sonner';
 
 // props
-defineProps({
+const props = defineProps({
+    email: {
+        type: String,
+        required: true
+    },
+    token: {
+        type: String,
+        required: true
+    },
     name: {
         type: String,
         default: 'BetaEdge'
@@ -19,87 +27,38 @@ defineProps({
     }
 })
 
-// reative variables
-const formData = ref({
+// Form state using Inertia
+const form = useForm({
+    email: props.email,
+    token: props.token,
     password: '',
-    confirmPassword: ''
+    password_confirmation: ''
 })
-const isLoading = ref(false)
-const token = ref('')
-const email = ref('')
+
+// UI state
 const showPassword = ref(false)
 const showConfirmPassword = ref(false)
 const resetSuccess = ref(false)
-const errors = ref({})
 
 // methods
-
-const validateForm = () => {
-    const newErrors = {}
-
-    if (!formData.value.password) {
-        newErrors.password = 'Password is required'
-    } else if (formData.value.password.length < 8) {
-        newErrors.password = 'Password must be at least 8 characters'
-    }
-
-    if (formData.value.password !== formData.value.confirmPassword) {
-        newErrors.confirmPassword = 'Passwords do not match'
-    }
-
-    errors.value = newErrors
-    return Object.keys(newErrors).length === 0
-
-}
-
-const handleSubmit = async () => {
-    if (!validateForm()) return
-
-    isLoading.value = true
-    errors.value = {}
-
-    try {
-        const resetPayload = {
-            token: token.value,
-            email: email.value,
-            password: formData.value.password,
-            confirmPassword: formData.value.confirmPassword
+const handleSubmit = () => {
+    form.post(route('password.update'), {
+        onSuccess: () => {
+            resetSuccess.value = true
+            toast.success('Success', {
+                description: 'Your password has been reset successfully'
+            })
+            setTimeout(() => {
+                window.location.href = route('login.index')
+            }, 2000)
+        },
+        onError: () => {
+            toast.error('Error', {
+                description: form.errors.token || 'Failed to reset password'
+            })
         }
-
-        console.log('Reset password payload:', resetPayload)
-
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1500))
-
-        resetSuccess.value = true
-
-        toast({
-            title: 'Success',
-            description: 'Your password has been reset',
-        })
-
-        setTimeout(() => {
-            window.location.href = '/auth/login'
-        }, 2000)
-    } catch (error) {
-        errors.value.general = 'Failed to reset password. Please try again or request a new reset link.'
-        console.log(error);
-        toast.error('Error', {
-            description: 'Failed to reset password',
-        })
-
-    } finally {
-        isLoading.value = false
-    }
+    })
 }
-
-// lifecycle hooks
-
-onMounted(() => {
-    const urlParams = new URLSearchParams(window.location.search)
-    token.value = urlParams.get('token') || ''
-    email.value = urlParams.get('email') || ''
-})
 
 </script>
 
@@ -137,10 +96,10 @@ onMounted(() => {
         <div class="flex-1 flex items-center justify-center p-8">
             <div class="w-full max-w-md space-y-8">
                 <div class="lg:hidden flex justify-center">
-                    <a href="/" class="flex items-center gap-2 text-primary">
+                    <Link href="/" class="flex items-center gap-2 text-primary">
                         <GraduationCap class="h-8 w-8" />
                         <span class="text-2xl font-bold">{{ name }}</span>
-                    </a>
+                    </Link>
                 </div>
 
                 <div v-if="!resetSuccess">
@@ -161,9 +120,9 @@ onMounted(() => {
                         </div>
 
                         <!-- General Error -->
-                        <div v-if="errors.general"
+                        <div v-if="form.errors.token"
                             class="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
-                            {{ errors.general }}
+                            {{ form.errors.token }}
                         </div>
 
                         <!-- New Password Field -->
@@ -172,15 +131,15 @@ onMounted(() => {
                             <div class="relative">
                                 <Lock class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                 <Input id="password" :type="showPassword ? 'text' : 'password'" placeholder="••••••••"
-                                    v-model="formData.password"
-                                    :class="['pl-10 pr-10', errors.password ? 'border-destructive' : '']" />
+                                    v-model="form.password"
+                                    :class="['pl-10 pr-10', form.errors.password ? 'border-destructive' : '']" />
                                 <button type="button" @click="showPassword = !showPassword"
                                     class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                                     <EyeOff v-if="showPassword" class="h-4 w-4" />
                                     <Eye v-else class="h-4 w-4" />
                                 </button>
                             </div>
-                            <p v-if="errors.password" class="text-sm text-destructive">{{ errors.password }}</p>
+                            <p v-if="form.errors.password" class="text-sm text-destructive">{{ form.errors.password }}</p>
                             <p v-else class="text-xs text-muted-foreground">
                                 Must be at least 8 characters
                             </p>
@@ -188,26 +147,26 @@ onMounted(() => {
 
                         <!-- Confirm Password Field -->
                         <div class="space-y-2">
-                            <Label for="confirmPassword">Confirm password</Label>
+                            <Label for="password_confirmation">Confirm password</Label>
                             <div class="relative">
                                 <Lock class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                <Input id="confirmPassword" :type="showConfirmPassword ? 'text' : 'password'"
-                                    placeholder="••••••••" v-model="formData.confirmPassword"
-                                    :class="['pl-10 pr-10', errors.confirmPassword ? 'border-destructive' : '']" />
+                                <Input id="password_confirmation" :type="showConfirmPassword ? 'text' : 'password'"
+                                    placeholder="••••••••" v-model="form.password_confirmation"
+                                    :class="['pl-10 pr-10', form.errors.password_confirmation ? 'border-destructive' : '']" />
                                 <button type="button" @click="showConfirmPassword = !showConfirmPassword"
                                     class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                                     <EyeOff v-if="showConfirmPassword" class="h-4 w-4" />
                                     <Eye v-else class="h-4 w-4" />
                                 </button>
                             </div>
-                            <p v-if="errors.confirmPassword" class="text-sm text-destructive">
-                                {{ errors.confirmPassword }}
+                            <p v-if="form.errors.password_confirmation" class="text-sm text-destructive">
+                                {{ form.errors.password_confirmation }}
                             </p>
                         </div>
 
                         <!-- Submit Button -->
-                        <Button type="submit" class="w-full" size="lg" :disabled="isLoading">
-                            <template v-if="isLoading">
+                        <Button type="submit" class="w-full" size="lg" :disabled="form.processing">
+                            <template v-if="form.processing">
                                 <Loader2 class="mr-2 h-4 w-4 animate-spin" />
                                 Resetting password...
                             </template>
@@ -232,7 +191,7 @@ onMounted(() => {
                         </p>
                     </div>
 
-                    <Button @click="window.location.href = '/auth/login'" class="w-full">
+                    <Button @click="window.location.href = route('login.index')" class="w-full">
                         Continue to login
                     </Button>
                 </div>
