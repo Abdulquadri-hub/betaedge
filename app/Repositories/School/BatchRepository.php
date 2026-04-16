@@ -4,6 +4,7 @@ namespace App\Repositories\School;
 
 use App\Contracts\Repositories\School\BatchRepositoryInterface;
 use App\Models\Batch;
+use App\Models\User;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -15,8 +16,9 @@ class BatchRepository implements BatchRepositoryInterface
      */
     public function getPaginated(int $perPage = 15, array $filters = []): Paginator
     {
-        $query = Batch::query()
-            ->where('tenant_id', Auth::user()->currentTenant->id ?? session('active_tenant_id'));
+        $user = User::find(Auth::user()->id);
+        dd($user);
+        $query = Batch::where('tenant_id', $user->currentTenant->id ?? session('active_tenant_id'));
 
         // Apply filters
         if (!empty($filters['search'])) {

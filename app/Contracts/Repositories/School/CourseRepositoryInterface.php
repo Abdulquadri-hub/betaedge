@@ -3,11 +3,12 @@
 namespace App\Contracts\Repositories\School;
 
 use App\Models\Course;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Pagination\Paginator;
 
 interface CourseRepositoryInterface
 {
-    public function getPaginated(int $perPage = 15, array $filters = []): Paginator;
+    public function getPaginated(int $perPage = 15, array $filters = []): LengthAwarePaginator;
     public function getActive();
     public function getById(int $id): ?Course;
     public function count(): int;

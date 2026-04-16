@@ -11,17 +11,38 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class ClassSession extends Model
 {
     use BelongsToTenant, HasFactory;
-    
+
     protected $fillable = [
-        'tenant_id','course_id','instructor_id','title','description','scheduled_at','started_at','ended_at','duration_minutes','google_meet_link','google_calendar_event_id','status','notes','max_participants',
+        'tenant_id',
+        'course_id',
+        'instructor_id',
+        'title',
+        'description',
+        'session_type',
+        'scheduled_start',
+        'scheduled_end',
+        'actual_start',
+        'actual_end',
+        'meeting_url',
+        'meeting_id',
+        'meeting_password',
+        'status',
+        'max_participants',
+        'actual_participants',
+        'recording_url',
+        'duration_minutes',
+        'session_notes',
     ];
 
     protected $casts = [
-        'scheduled_at' => 'datetime',
-        'started_at' => 'datetime',
-        'ended_at' => 'datetime',
+        'scheduled_start' => 'datetime',
+        'scheduled_end' => 'datetime',
+        'actual_start' => 'datetime',
+        'actual_end' => 'datetime',
         'duration_minutes' => 'integer',
         'max_participants' => 'integer',
+        'actual_participants' => 'integer',
+        'session_notes' => 'array',
     ];
 
     public function course(): BelongsTo {
@@ -45,43 +66,47 @@ class ClassSession extends Model
     }
 
     public function scopeUpcoming($query) {
-        return $query->where('scheduled_at', '>', now())
-                    ->where('status', 'scheduled');
+        return $query->where('scheduled_start', '>', now())
+                     ->where('status', 'scheduled');
     }
 
     public function scopeToday($query) {
-        return $query->whereDate('scheduled_at', today());
+        return $query->whereDate('scheduled_start', today());
     }
 
     public function startSession(): void {
         $this->update([
-            'started_at' => now(),
-            'status' => 'in-progress'
+            'actual_start' => now(),
+            'status' => 'in_progress'
         ]);
     }
 
     public function endSession(): void {
-        $started = $this->started_at;
+        $started = $this->actual_start;
         $ended = now();
-        $duration = $started->diffInMinutes($ended);
+
+        $duration = $started ? $started->diffInMinutes($ended) : 0;
 
         $this->update([
-            'ended_at' => $ended,
+            'actual_end' => $ended,
             'duration_minutes' => $duration,
             'status' => 'completed',
         ]);
     }
 
     public function cancelSession(): void {
-        $this->update(['status' => 'cancelled']);
+        $this->update([
+            'status' => 'cancelled'
+        ]);
     }
 
-    public function isInprogress(): bool {
-        return $this->status === "in-progress";
+    public function isInProgress(): bool {
+        return $this->status === "in_progress";
     }
 
     public function canStart(): bool {
-        return $this->status === "scheduled" && $this->scheduled_at->isPast();
+        return $this->status === "scheduled"
+            && $this->scheduled_start
+            && $this->scheduled_start->isPast();
     }
-    
 }

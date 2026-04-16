@@ -174,9 +174,6 @@ class DashboardService implements DashboardServiceInterface
         });
     }
 
-    /**
-     * Get recent activity
-     */
     public function getRecentActivity(int $limit = 6): Collection
     {
         $tenantId = session('active_tenant_id');
@@ -201,15 +198,13 @@ class DashboardService implements DashboardServiceInterface
         return $enrollments;
     }
 
-    /**
-     * Get upcoming sessions
-     */
+
     public function getUpcomingSessions(int $limit = 3): Collection
     {
         return ClassSession::where('tenant_id', session('active_tenant_id'))
-            ->where('scheduled_at', '>', now())
+            ->where('scheduled_start', '>', now())
             ->where('status', 'scheduled')
-            ->orderBy('scheduled_at', 'asc')
+            ->orderBy('scheduled_start', 'asc')
             ->limit($limit)
             ->get()
             ->map(function ($session) {
@@ -218,7 +213,7 @@ class DashboardService implements DashboardServiceInterface
                     'title' => $session->title,
                     'course' => $session->course?->title ?? 'Unknown',
                     'instructor' => $session->instructor?->user?->name ?? 'Unknown',
-                    'scheduledAt' => $session->scheduled_at->toIso8601String(),
+                    'scheduledAt' => $session->scheduled_start->toIso8601String(),
                     'duration' => $session->duration_minutes,
                     'platform' => 'google_meet', // Can be stored in DB
                     'enrolledCount' => $session->course?->activeEnrollments()->count() ?? 0,

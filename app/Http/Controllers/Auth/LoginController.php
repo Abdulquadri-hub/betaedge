@@ -66,11 +66,13 @@ class LoginController extends Controller
         $subdomain = $tenant->custom_domain ?? $tenant->subdomain;
         $userRole = $user->user_type;
 
+        $baseUrl = app()->isLocal() ? 'http://' . $subdomain : 'https://' . $subdomain;
+
         if ($tenantCount === 1) {
-            return redirect()->to('https://' . $subdomain . '/dashboard');
+            return Inertia::location($baseUrl . '/dashboard');
         }
 
-        return redirect()->to('https://' . $subdomain . '/auth/select-school');
+        return Inertia::location($baseUrl . '/auth/select-school');
     }
 
     public function initiate(Request $request)

@@ -32,7 +32,7 @@ class SelectSchoolController extends Controller
             session(['active_tenant_id' => $tenant->id]);
             
             $subdomain = $tenant->custom_domain ?? $tenant->subdomain;
-            return redirect()->to('https://' . $subdomain . '/dashboard');
+            return Inertia::location('https://' . $subdomain . '/dashboard');
         }
 
         if (count($tenants) === 0) {

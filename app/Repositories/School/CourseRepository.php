@@ -2,16 +2,14 @@
 
 namespace App\Repositories\School;
 
-use App\Models\Course;
-use Illuminate\Pagination\Paginator;
 use App\Contracts\Repositories\School\CourseRepositoryInterface;
+use App\Models\Course;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Pagination\Paginator;
 
 class CourseRepository implements CourseRepositoryInterface
 {
-    /**
-     * Get paginated courses for the active tenant
-     */
-    public function getPaginated(int $perPage = 15, array $filters = []): Paginator
+    public function getPaginated(int $perPage = 15, array $filters = []): LengthAwarePaginator
     {
         $query = Course::query()
             ->where('tenant_id', session('active_tenant_id'));
