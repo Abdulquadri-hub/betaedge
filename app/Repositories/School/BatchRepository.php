@@ -4,9 +4,9 @@ namespace App\Repositories\School;
 
 use App\Contracts\Repositories\School\BatchRepositoryInterface;
 use App\Models\Batch;
-use App\Models\User;
+// use App\Models\User;
 use Illuminate\Pagination\Paginator;
-use Illuminate\Support\Facades\Auth;
+// use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class BatchRepository implements BatchRepositoryInterface

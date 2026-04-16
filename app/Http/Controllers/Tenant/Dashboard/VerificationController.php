@@ -15,9 +15,9 @@ class VerificationController extends Controller
         protected NinVerificationServiceInterface $verificationService
     ) {}
 
-    public function index(): Response
+    public function index(Request $request): Response
     {
-        $user = auth()->user();
+        $user = $request->user();
         $verificationStatus = $this->verificationService->getStatus(
             $user,
             session('active_tenant_id')
@@ -32,7 +32,7 @@ class VerificationController extends Controller
 
     public function submit(Request $request): Response
     {
-        $user = auth()->user();
+        $user = $request->user();
         $tenantId = session('active_tenant_id');
 
         $validated = $request->validate([

@@ -8,7 +8,7 @@ export function useUserContext() {
   const tenant = computed(() => props.tenant)
   const notifications = computed(() => props.notifications || [])
 
-  const isOwner = computed(() => user.value?.user_type === 'school_owner')
+  const isOwner = computed(() => user.value?.user_type === 'tenant_admin')
   const isInstructor = computed(() => user.value?.user_type === 'instructor')
   const isStudent = computed(() => user.value?.user_type === 'student')
 

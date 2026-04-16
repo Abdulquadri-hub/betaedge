@@ -1,19 +1,19 @@
 <script setup>
 import { computed } from 'vue'
 import { useUserProfile } from '@/composables/useUserProfile'
-import { User, Mail, Phone, CheckCircle2, Clock, AlertCircle } from 'lucide-vue-next'
+import {CheckCircle2, Clock, AlertCircle } from 'lucide-vue-next'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
+// import { Badge } from '@/components/ui/badge'
 import { toast } from 'vue-sonner'
 import DashboardLayout from '@/components/Dashboard/School/Layouts/DashboardLayout.vue'
 import { Link } from '@inertiajs/vue3'
 
 const {
-  user,
-  tenant,
+//   user,
+//   tenant,
   verification,
   isVerified,
   isPending,
@@ -140,7 +140,7 @@ async function handleSubmit() {
                   Your verification was rejected. Please try again with correct information.
                 </p>
 
-                <Link :href="route('verification.show')" class="block">
+                <Link href="/dashboard/verification" class="block">
                   <Button type="button" variant="outline" size="sm" class="w-full">
                     {{ isPending ? 'View Details' : 'Start Verification' }}
                   </Button>

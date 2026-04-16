@@ -26,7 +26,7 @@ export function useUserProfile() {
   })
 
   const updateProfile = async () => {
-    await profileForm.post(route('profile.update'), {
+    await profileForm.post('/dashboard/profile', {
       onSuccess: () => {
         profileForm.reset()
       },

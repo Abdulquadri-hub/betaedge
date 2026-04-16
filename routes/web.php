@@ -10,7 +10,7 @@ use App\Http\Controllers\Instructors\Dashboard\EarningController as InstructorEa
 use App\Http\Controllers\Instructors\Dashboard\GradingController as InstructorGradingController;
 use App\Http\Controllers\Instructors\Dashboard\JobController as InstructorJobController;
 use App\Http\Controllers\Instructors\Dashboard\MainController;
-use App\Http\Controllers\Instructors\Dashboard\ProfileController;
+use App\Http\Controllers\Instructors\Dashboard\ProfileController as InstructorProfileController;
 use App\Http\Controllers\Instructors\Dashboard\SessionController as InstructorSessionController;
 use App\Http\Controllers\Instructors\Dashboard\StudentController as InstructorStudentController;
 use App\Http\Controllers\Instructors\Dashboard\VerificationController;
@@ -119,7 +119,7 @@ Route::domain(config('app.main_domain'))->middleware(['web'])->group(function ()
                 Route::get('', 'index')->name('instructor.earnings.index');
             });
 
-            Route::prefix('profile')->controller(ProfileController::class)->group(function () {
+            Route::prefix('profile')->controller(InstructorProfileController::class)->group(function () {
                 Route::get('', 'edit')->name('instructor.profile.edit');
                 Route::post('', 'update')->name('instructor.profile.update');
             });
