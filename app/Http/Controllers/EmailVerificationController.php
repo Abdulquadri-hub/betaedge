@@ -27,9 +27,6 @@ class EmailVerificationController extends Controller
         ]);
     }
 
-    /**
-     * Verify email with token and show password setup page
-     */
     public function verify(string $token) 
     {
         $key = 'verify-email:' . request()->ip();
@@ -48,7 +45,6 @@ class EmailVerificationController extends Controller
             ]);
         }
 
-        // Already verified - redirect to login
         if ($tenant->email_verified_at) {
             return redirect()->route('login')->with('info', 'Email already verified. Please login.');
         }

@@ -89,5 +89,8 @@ return [
         
         // School Dashboard Module
         DashboardServiceInterface::class => DashboardService::class,
+        
+        // Verification Module
+        NinVerificationServiceInterface::class => NinVerificationService::class,
     ]
 ];
