@@ -1,12 +1,10 @@
 <script setup>
 // import { ref } from 'vue'
 import { Link } from '@inertiajs/vue3'
-// TODO (Laravel): import { router } from '@inertiajs/vue3'
 import { Bell, LogOut, Settings, User, CheckCheck, BookOpen } from 'lucide-vue-next'
 import { SidebarProvider, SidebarTrigger, SidebarInset } from '@/components/ui/sidebar'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-// import { Badge } from '@/components/ui/badge'
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
@@ -16,26 +14,22 @@ import {
 } from '@/components/ui/popover'
 import AppSidebar from '../AppSidebar.vue'
 import { useUserContext } from '@/composables/useUserContext'
-import { Toaster } from 'vue-sonner'
+// import { Toaster } from 'vue-sonner'
 
-// ─── Composable ───────────────────────────────────────────────
 const {
   user, userInitials,
   notifications, unreadCount,
   markAllRead, markRead,
 } = useUserContext()
 
-// ─── Notification icon color by type ─────────────────────────
 const notifIcon = {
   enrollment: { icon: User,     bg: 'bg-primary/10',    color: 'text-primary'  },
   session:    { icon: BookOpen, bg: 'bg-secondary/10',  color: 'text-secondary' },
   payment:    { icon: CheckCheck, bg: 'bg-emerald-100', color: 'text-emerald-600' },
   complaint:  { icon: Bell,     bg: 'bg-red-100',       color: 'text-red-600'  },
 }
-
-// ─── Actions ─────────────────────────────────────────────────
+console.log(user.value);
 function handleLogout() {
-  // TODO (Laravel): router.post('/logout')
   window.location.href = '/login'
 }
 

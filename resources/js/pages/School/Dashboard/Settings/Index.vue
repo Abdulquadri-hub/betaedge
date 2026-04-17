@@ -29,7 +29,6 @@ import DashboardLayout from '@/components/Dashboard/School/Layouts/DashboardLayo
 const activeTab  = ref('profile')
 const isSaving   = ref(false)
 
-// ── 1. School Profile ─────────────────────────────────────────────────────────
 const profile = ref({
   name:           'Bright Stars Academy',
   tagline:        'Excellence in online education',
