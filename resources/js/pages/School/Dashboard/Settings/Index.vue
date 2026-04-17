@@ -51,14 +51,7 @@ async function saveProfile() {
   toast({ title: 'School profile saved' })
 }
 
-// ── 2. Academic Levels ────────────────────────────────────────────────────────
-const academicLevels = ref([
-  { id: 'lvl-001', name: 'Primary 1–3',   description: 'Ages 6–9',   active: true  },
-  { id: 'lvl-002', name: 'Primary 4–6',   description: 'Ages 9–12',  active: true  },
-  { id: 'lvl-003', name: 'JSS 1–3',       description: 'Ages 12–15', active: true  },
-  { id: 'lvl-004', name: 'SS 1–3',        description: 'Ages 15–18', active: false },
-  { id: 'lvl-005', name: 'University',    description: '18+',        active: false },
-])
+const academicLevels = ref([])
 const newLevel = ref({ name: '', description: '' })
 const isAddingLevel = ref(false)
 
@@ -70,7 +63,7 @@ async function addLevel() {
   academicLevels.value.push({ id: 'lvl-' + Date.now(), active: true, ...newLevel.value })
   newLevel.value = { name: '', description: '' }
   isAddingLevel.value = false
-  toast({ title: 'Academic level added' })
+  toast.success({ title: 'Academic level added' })
 }
 
 async function toggleLevel(level) {

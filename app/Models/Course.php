@@ -5,7 +5,7 @@ namespace App\Models;
 use App\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
+// use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -27,7 +27,9 @@ class Course extends Model
         'max_students' => 'integer',
     ];
 
-    // relationships
+    protected $appends = [
+        'active_batches',
+    ];
 
     public function academicLevel(): BelongsTo {
         return $this->belongsTo(AcademicLevel::class);
@@ -71,6 +73,14 @@ class Course extends Model
         return $this->hasMany(Material::class);
     }
 
+    public function batches(): HasMany {
+        return $this->hasMany(Batch::class);
+    }
+
+    public function activeBatches(): HasMany {
+        return $this->batches()->where('status', 'active');
+    }
+
     public function scopeByAcademicLevel($query, int $levelId)
     {
         return $query->where('academic_level_id', $levelId);
@@ -112,7 +122,6 @@ class Course extends Model
         return $this->academicLevel?->grade_number === $gradeNumber;
     }
 
-    // NEW: Enrollment Requests
     public function enrollmentRequests(): HasMany
     {
         return $this->hasMany(EnrollmentRequest::class);
@@ -128,13 +137,11 @@ class Course extends Model
         return $this->enrollmentRequests()->whereIn('status', ['pending', 'parent_notified', 'payment_pending']);
     }
 
-    // NEW: Get enrollment requests count
     public function getPendingEnrollmentRequestsCount(): int
     {
         return $this->pendingEnrollmentRequests()->count();
     }
 
-    // NEW: Check if course is full
     public function isFull(): bool
     {
         if (!$this->max_students) return false;
@@ -142,24 +149,25 @@ class Course extends Model
         return $this->activeEnrollments()->count() >= $this->max_students;
     }
 
-    // NEW: Get available spots
     public function getAvailableSpots(): ?int
     {
-        if (!$this->max_students) return null; // Unlimited
+        if (!$this->max_students) return null; 
         
         $current = $this->activeEnrollments()->count();
         return max(0, $this->max_students - $current);
     }
 
-    // NEW: Check if student can enroll
+    public function getActiveBatchesAttribute(): int
+    {
+        return $this->active_batches_count ?? $this->activeBatches()->count();
+    }
+
     public function canStudentEnroll(Student $student): array
     {
-        // Check if already enrolled
         if ($this->students()->where('student_id', $student->id)->exists()) {
             return ['can_enroll' => false, 'reason' => 'Already enrolled'];
         }
 
-        // Check pending requests
         if ($this->enrollmentRequests()
                 ->where('student_id', $student->id)
                 ->whereIn('status', ['pending', 'parent_notified', 'payment_pending'])
@@ -167,12 +175,10 @@ class Course extends Model
             return ['can_enroll' => false, 'reason' => 'Request already pending'];
         }
 
-        // Check if course is full
         if ($this->isFull()) {
             return ['can_enroll' => false, 'reason' => 'Course is full'];
         }
 
-        // Check grade level match
         if ($this->academic_level_id && $student->academic_level_id) {
             if ($this->academic_level_id !== $student->academic_level_id) {
                 return ['can_enroll' => false, 'reason' => 'Grade level mismatch'];

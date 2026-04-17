@@ -1,10 +1,26 @@
 
 import { ref, computed } from 'vue'
+import { usePage, router } from '@inertiajs/vue3'
 
 function sanitizeId(id) {
   if (!id || typeof id !== 'string') return null
-  const clean = id.trim().slice(0, 100)
+  const clean = String(id).trim().slice(0, 100)
   return /^[a-zA-Z0-9_-]+$/.test(clean) ? clean : null
+}
+
+// CSRF token helper
+function getCsrfToken() {
+  // Try to get from meta tag
+  const meta = document.querySelector('meta[name="csrf-token"]')
+  if (meta) return meta.getAttribute('content')
+  
+  // Try to get from cookie
+  const name = 'XSRF-TOKEN'
+  const value = `; ${document.cookie}`
+  const parts = value.split(`; ${name}=`)
+  if (parts.length === 2) return parts.pop().split(';').shift()
+  
+  return ''
 }
 
 export const ACADEMIC_LEVELS = [
@@ -177,8 +193,10 @@ const MOCK_MATERIALS = {
 
 // ─── Composable ───────────────────────────────────────────────────────────────
 export function useDashboardCourses() {
-  // TODO (Laravel 12): const { courses } = usePage().props
-  const courses   = ref(MOCK_COURSES)
+  const page = usePage()
+  // Get courses from Inertia props, fallback to mock courses if not available
+  const initialCourses = page.props.courses?.data ?? page.props.courses ?? MOCK_COURSES
+  const courses   = ref(Array.isArray(initialCourses) ? initialCourses : [])
   const isLoading = ref(false)
   const error     = ref(null)
 
@@ -260,39 +278,26 @@ export function useDashboardCourses() {
     return MOCK_MATERIALS[safeId] ?? []
   }
 
-  // ── CRUD ──────────────────────────────────────────────────────────────
   async function createCourse(data) {
     isLoading.value = true
     error.value     = null
     try {
-      await new Promise(r => setTimeout(r, 900))
-      /**
-       * TODO (Laravel 12):
-       * router.post(route('dashboard.courses.store'), data, {
-       *   onSuccess: () => {},
-       *   onError:   (e) => { error.value = e },
-       *   preserveScroll: true,
-       * })
-       */
-      const slug    = data.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
-      const newCourse = {
-        id:              'course-' + Date.now(),
-        tenant_id:       'tenant-001',
-        slug,
-        total_batches:   0,
-        active_batches:  0,
-        total_students:  0,
-        total_revenue:   0,
-        avg_rating:      null,
-        completion_rate: null,
-        status:          'draft',
-        created_at:      new Date().toISOString().split('T')[0],
-        updated_at:      new Date().toISOString().split('T')[0],
-        ...data,
-      }
-      courses.value.unshift(newCourse)
-      return { success: true, course: newCourse }
-    } catch {
+      return new Promise((resolve) => {
+        router.post(route('dashboard.courses.store'), data, {
+          onSuccess: (page) => {
+            const newCourse = page.props.course
+            courses.value.unshift(newCourse)
+            resolve({ success: true, course: newCourse })
+          },
+          onError: (e) => {
+            error.value = e.message || 'Failed to create course'
+            resolve({ success: false })
+          },
+          preserveScroll: true,
+        })
+      })
+    } catch (e) {
+      console.log(e);
       error.value = 'Failed to create course'
       return { success: false }
     } finally {
@@ -306,23 +311,26 @@ export function useDashboardCourses() {
     isLoading.value = true
     error.value     = null
     try {
-      await new Promise(r => setTimeout(r, 600))
-      /**
-       * TODO (Laravel 12):
-       * router.put(route('dashboard.courses.update', safeId), data, {
-       *   preserveScroll: true,
-       * })
-       */
-      const idx = courses.value.findIndex(c => c.id === safeId)
-      if (idx !== -1) {
-        courses.value[idx] = {
-          ...courses.value[idx],
-          ...data,
-          updated_at: new Date().toISOString().split('T')[0],
-        }
-      }
-      return { success: true }
-    } catch {
+      return new Promise((resolve) => {
+        router.put(route('dashboard.courses.update', safeId), data, {
+          onSuccess: (page) => {
+            const updatedCourse = page.props.course
+            const idx = courses.value.findIndex(c => c.id === safeId)
+            if (idx !== -1) {
+              courses.value[idx] = updatedCourse
+            }
+            resolve({ success: true })
+          },
+          onError: (e) => {
+            error.value = e.message || 'Failed to update course'
+            resolve({ success: false })
+          },
+          preserveScroll: true,
+        })
+      })
+    } catch (e) {
+      console.log(e);
+      
       error.value = 'Failed to update course'
       return { success: false }
     } finally {
@@ -331,25 +339,111 @@ export function useDashboardCourses() {
   }
 
   async function publishCourse(id) {
-    return updateCourse(id, { status: 'published' })
-    // TODO (Laravel 12): router.post(route('dashboard.courses.publish', id))
+    const safeId = sanitizeId(String(id))
+    if (!safeId) return { success: false }
+    isLoading.value = true
+    error.value     = null
+    try {
+      const response = await fetch(`/dashboard/courses/${safeId}/publish`, {
+        method: 'POST',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRF-Token': getCsrfToken(),
+          'Accept': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        error.value = 'Failed to publish course'
+        return { success: false }
+      }
+      
+      // Update local state optimistically
+      const idx = courses.value.findIndex(c => String(c.id) === safeId)
+      if (idx !== -1) {
+        courses.value[idx] = {
+          ...courses.value[idx],
+          status: 'published',
+          is_published: true,
+          updated_at: new Date().toISOString().split('T')[0],
+        }
+      }
+      return { success: true }
+    } catch (e) {
+      error.value = 'Failed to publish course'
+      console.error(e)
+      return { success: false }
+    } finally {
+      isLoading.value = false
+    }
   }
 
   async function archiveCourse(id) {
-    return updateCourse(id, { status: 'archived' })
-    // TODO (Laravel 12): router.post(route('dashboard.courses.archive', id))
+    const safeId = sanitizeId(String(id))
+    if (!safeId) return { success: false }
+    isLoading.value = true
+    error.value     = null
+    try {
+      // Make real HTTP POST request to archive
+      const response = await fetch(`/dashboard/courses/${safeId}/archive`, {
+        method: 'POST',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRF-Token': getCsrfToken(),
+          'Accept': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        error.value = 'Failed to archive course'
+        return { success: false }
+      }
+      
+      // Update local state optimistically
+      const idx = courses.value.findIndex(c => String(c.id) === safeId)
+      if (idx !== -1) {
+        courses.value[idx] = {
+          ...courses.value[idx],
+          status: 'archived',
+          updated_at: new Date().toISOString().split('T')[0],
+        }
+      }
+      return { success: true }
+    } catch (e) {
+      error.value = 'Failed to archive course'
+      console.error(e)
+      return { success: false }
+    } finally {
+      isLoading.value = false
+    }
   }
 
   async function deleteCourse(id) {
-    const safeId = sanitizeId(id)
+    const safeId = sanitizeId(String(id))
     if (!safeId) return { success: false }
     isLoading.value = true
     try {
-      await new Promise(r => setTimeout(r, 500))
-      // TODO (Laravel 12): router.delete(route('dashboard.courses.destroy', safeId))
-      courses.value = courses.value.filter(c => c.id !== safeId)
+      // Make real HTTP DELETE request
+      const response = await fetch(`/dashboard/courses/${safeId}`, {
+        method: 'DELETE',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRF-Token': getCsrfToken(),
+          'Accept': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        error.value = 'Failed to delete course'
+        return { success: false }
+      }
+
+      // Update local state - remove from list
+      courses.value = courses.value.filter(c => String(c.id) !== safeId)
       return { success: true }
-    } catch {
+    } catch (e) {
+      error.value = 'Failed to delete course'
+      console.error(e)
       return { success: false }
     } finally {
       isLoading.value = false
@@ -359,17 +453,53 @@ export function useDashboardCourses() {
   async function duplicateCourse(id) {
     const original = getCourseById(id)
     if (!original) return { success: false }
-    return createCourse({
-      ...original,
-      id:             undefined,
-      title:          original.title + ' (Copy)',
-      status:         'draft',
-      total_batches:  0,
-      active_batches: 0,
-      total_students: 0,
-      total_revenue:  0,
-    })
-    // TODO (Laravel 12): router.post(route('dashboard.courses.duplicate', id))
+    const safeId = sanitizeId(String(id))
+    if (!safeId) return { success: false }
+    
+    isLoading.value = true
+    error.value     = null
+    try {
+      // Make real HTTP POST request to duplicate
+      const response = await fetch(`/dashboard/courses/${safeId}/duplicate`, {
+        method: 'POST',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRF-Token': getCsrfToken(),
+          'Accept': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        error.value = 'Failed to duplicate course'
+        return { success: false }
+      }
+
+      const data = await response.json()
+      
+      // Optimistically add the duplicated course to the list
+      const newCourse = {
+        ...original,
+        id: data.course_id || 'course-' + Date.now(),
+        title: original.title + ' (Copy)',
+        status: 'draft',
+        is_published: false,
+        total_batches: 0,
+        active_batches: 0,
+        total_students: 0,
+        total_revenue: 0,
+        avg_rating: null,
+        created_at: new Date().toISOString().split('T')[0],
+        updated_at: new Date().toISOString().split('T')[0],
+      }
+      courses.value.unshift(newCourse)
+      return { success: true, course: newCourse }
+    } catch (e) {
+      error.value = 'Failed to duplicate course'
+      console.error(e)
+      return { success: false }
+    } finally {
+      isLoading.value = false
+    }
   }
 
   return {

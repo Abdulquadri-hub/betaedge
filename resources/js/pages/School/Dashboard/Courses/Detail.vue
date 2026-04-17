@@ -1,6 +1,5 @@
 <script setup>
-
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { router } from '@inertiajs/vue3'
 import {
   ArrowLeft, Edit, Globe, Archive, Trash2,
@@ -26,51 +25,15 @@ import {
   TableHeader, TableRow,
 } from '@/components/ui/table'
 import { toast } from "vue-sonner"
-import { useDashboardCourses } from '@/composables/useDashboardCourses'
-import { useDashboardBatches } from '@/composables/useDashboardBatches'
-
-// ─── Composables ──────────────────────────────────────────────────────────────
-const {
-  getCourseById, getMaterials,
-  publishCourse, archiveCourse, deleteCourse, duplicateCourse,
-  formatNaira, formatTime, platformLabel, frequencyLabel,
-} = useDashboardCourses()
-
-const { getBatchById, enrollmentPct, isFull, formatNaira: fmtNaira } = useDashboardBatches()
-
-// ─── Mock: derive from route param ────────────────────────────────────────────
-// TODO (Laravel 12): replace with props.course / props.batches / props.materials / props.stats
-const courseId = ref('course-001')
-const course   = computed(() => getCourseById(courseId.value))
-
-const materials = ref([])
-const isLoading  = ref(true)
-
-// Batches belonging to this course
-import { useDashboardBatches as useBatches } from '@/composables/useDashboardBatches'
 import DashboardLayout from '@/components/Dashboard/School/Layouts/DashboardLayout.vue'
-const { batches: allBatches } = useBatches()
-const courseBatches = computed(() =>
-  allBatches.value.filter(b => b.course_id === courseId.value)
-)
 
-onMounted(async () => {
-  materials.value = await getMaterials(courseId.value)
-  isLoading.value  = false
+const props = defineProps({
+  course: Object,
+  enrollments: Object,
 })
 
-// ─── Derived stats ────────────────────────────────────────────────────────────
-const totalStudents = computed(() =>
-  courseBatches.value.reduce((s, b) => s + b.current_enrollment, 0)
-)
-const grossRevenue = computed(() =>
-  totalStudents.value * (course.value?.price_per_student ?? 0)
-)
-const platformFee    = computed(() => grossRevenue.value * 0.1)
-const schoolEarnings = computed(() => grossRevenue.value * 0.9)
-const activeBatches  = computed(() => courseBatches.value.filter(b => b.status === 'active' || b.status === 'open'))
+const activeTab = ref('overview')
 
-// ─── Status config ────────────────────────────────────────────────────────────
 const statusCfg = {
   published: { label: 'Published', variant: 'default'   },
   draft:     { label: 'Draft',     variant: 'secondary' },
@@ -84,10 +47,14 @@ const batchStatusCfg = {
   completed: { label: 'Completed',   variant: 'outline'   },
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 function fmtDate(iso) {
   if (!iso) return '—'
   return new Date(iso).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+function fmtNaira(amount) {
+  if (!amount || amount === 0) return '₦0'
+  return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(amount)
 }
 
 function matTypeIcon(type) {
@@ -107,26 +74,24 @@ function formatSize(kb) {
   return kb >= 1024 ? (kb / 1024).toFixed(1) + ' MB' : kb + ' KB'
 }
 
-// ─── Actions ──────────────────────────────────────────────────────────────────
 async function handlePublish() {
-  await publishCourse(courseId.value)
-  toast({ title: 'Course published!', description: 'Students can now discover and enroll.' })
+  await router.post(`/dashboard/courses/${props.course.id}/publish`, {}, {
+    onSuccess: () => toast.success('Course published!')
+  })
 }
 
 async function handleArchive() {
-  await archiveCourse(courseId.value)
-  toast({ title: 'Course archived', description: 'No longer visible to students.' })
+  await router.post(`/dashboard/courses/${props.course.id}/archive`, {}, {
+    onSuccess: () => toast.success('Course archived')
+  })
 }
 
 async function handleDuplicate() {
-  const result = await duplicateCourse(courseId.value)
-  if (result?.success !== false) {
-    toast({ title: 'Course duplicated', description: 'A draft copy has been created.' })
-    router.visit(`/dashboard/courses/${result.course?.id}/edit`)
-  }
+  await router.post(`/dashboard/courses/${props.course.id}/duplicate`, {}, {
+    onSuccess: () => toast.success('Course duplicated'),
+    onError: () => toast.error('Failed to duplicate course')
+  })
 }
-
-const activeTab = ref('overview')
 </script>
 
 <template>

@@ -19,6 +19,7 @@ use App\Http\Controllers\MarketPlaceController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\PlatformController;
 use App\Http\Controllers\Tenant\CourseController as TenantController;
+use App\Http\Controllers\Tenant\Dashboard\AcademicLevelController;
 use App\Http\Controllers\Tenant\Dashboard\BatchController;
 use App\Http\Controllers\Tenant\Dashboard\CertificateController;
 use App\Http\Controllers\Tenant\Dashboard\ComplaintController;
@@ -158,21 +159,36 @@ Route::domain('{tenant}.' . config('app.main_domain'))->middleware(['web', 'tena
             Route::get('', 'index');
         });
 
+        // Academic Levels - public API for forms + settings management
+        Route::controller(AcademicLevelController::class)->group(function () {
+            Route::get('/academic-levels', 'list');  // Public list for forms (returns JSON)
+            Route::get('/settings/academic-levels', 'index')->name('dashboard.academic-levels.index');
+            Route::post('/settings/academic-levels', 'store')->name('dashboard.academic-levels.store');
+            Route::delete('/settings/academic-levels/{levelId}', 'destroy')->name('dashboard.academic-levels.destroy');
+            Route::put('/settings/academic-levels/{levelId}', 'update')->name('dashboard.academic-levels.update');
+        });
+
         Route::prefix('batches')->controller(BatchController::class)->group(function () {
             Route::get('', 'index');
+            Route::get('/create', 'create');
+            Route::post('/create', 'store');
             Route::get('/{batchId}', 'single');
+            Route::get('/{batchId}/edit', 'edit');
+            Route::post('/{batchId}/edit', 'update');
+            Route::delete('/{batchId}', 'delete');
         });
 
         Route::prefix('courses')->controller(CourseController::class)->group(function () {
-            Route::get('', 'index');
-            Route::get('/{courseId}', 'single');
-            Route::get('/create', 'create');
-            Route::post('/create', 'save');
-            Route::get('/{courseId}/edit', 'edit');
-            Route::post('/{courseId}/edit', 'update');
-            Route::post('/{courseId}/publish', 'publish')->name('courses.publish');
-            Route::post('/{courseId}/archive', 'archive')->name('courses.archive');
-            Route::post('/{courseId}/duplicate', 'duplicate')->name('courses.duplicate');
+            Route::get('', 'index')->name('dashboard.courses.index');
+            Route::get('/create', 'create')->name('dashboard.courses.create');
+            Route::post('/create', 'save')->name('dashboard.courses.store');
+            Route::get('/{courseId}', 'single')->name('dashboard.courses.single');
+            Route::get('/{courseId}/edit', 'edit')->name('dashboard.courses.edit');
+            Route::post('/{courseId}/edit', 'update')->name('dashboard.courses.update');
+            Route::post('/{courseId}/publish', 'publish')->name('dashboard.courses.publish');
+            Route::post('/{courseId}/archive', 'archive')->name('dashboard.courses.archive');
+            Route::post('/{courseId}/duplicate', 'duplicate')->name('dashboard.courses.duplicate');
+            Route::delete('/{courseId}', 'destroy')->name('dashboard.courses.destroy');
         });
 
         Route::prefix('verification')->controller(TenantVerificationController::class)->group(function () {

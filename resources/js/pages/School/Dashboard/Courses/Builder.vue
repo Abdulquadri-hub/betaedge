@@ -1,14 +1,13 @@
 <script setup>
 
 import { ref, computed, watch, onMounted } from 'vue'
-import { Link, router } from '@inertiajs/vue3'
+import {router } from '@inertiajs/vue3'
 import {
   ArrowLeft, Save, Globe, Archive, Eye,
   BookOpen, Calendar, FileText, Users,
   Plus, Trash2, Upload, Link2, Video,
-  AlertCircle, CheckCircle2, RefreshCw,
-  GripVertical, X, ExternalLink, Download,
-  Clock, Info,
+  CheckCircle2, RefreshCw,
+  ExternalLink, Download, Info,
 } from 'lucide-vue-next'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button }   from '@/components/ui/button'
@@ -29,77 +28,87 @@ import { Progress } from '@/components/ui/progress'
 import { toast } from "vue-sonner"
 import {
   useDashboardCourses,
-  ACADEMIC_LEVELS,
   SESSION_PLATFORMS,
   SESSION_FREQUENCIES,
   SCHEDULE_DAYS,
 } from '@/composables/useDashboardCourses'
 import { useDashboardBatches } from '@/composables/useDashboardBatches'
 
-// ─── Composables ──────────────────────────────────────────────────────────────
+
 const {
   getCourseById, getMaterials,
   createCourse, updateCourse, publishCourse, archiveCourse,
-  formatNaira, formatTime, platformLabel, frequencyLabel,
+  // formatNaira, 
+  formatTime, platformLabel, frequencyLabel,
 } = useDashboardCourses()
 
 const {
   filteredBatches: allBatches,
   createBatch, deleteBatch,
   formatNaira: fmtNaira,
-  enrollmentPct, isFull,
+  // enrollmentPct, isFull,
 } = useDashboardBatches()
 
+const props = defineProps({
+  course: {
+    type: Object,
+    default: null,
+  },
+  materials: {
+    type: Array,
+    default: () => [],
+  },
+  batches: {
+    type: Array,
+    default: () => [],
+  },
+  academicLevels: {
+    type: Array,
+    default: () => [],
+  },
+})
 
-
-// ─── Mode detection ───────────────────────────────────────────────────────────
-// TODO (Laravel 12): const props = defineProps({ course: Object, materials: Array, batches: Array })
-// For mock: derive from URL. In Inertia the controller passes the course object.
-const courseId  = ref('course-005') // null = create mode; in real app from props.course?.id
+const courseId  = ref(props.course?.id ?? null)
 const isEditMode = computed(() => !!courseId.value)
 
-// ─── Load course data ─────────────────────────────────────────────────────────
-const course    = computed(() => courseId.value ? getCourseById(courseId.value) : null)
-const materials = ref([])
-const batches   = ref([])
-const pageLoading = ref(true)
+const course    = ref(props.course ?? null)
+const materials = ref(props.materials ?? [])
+const batches   = ref(props.batches ?? [])
+const pageLoading = ref(false)
 
 onMounted(async () => {
-  if (courseId.value) {
+  if (courseId.value && !course.value) {
+    // Fallback: fetch from composable if not in props
+    course.value = getCourseById(courseId.value)
     materials.value = await getMaterials(courseId.value)
-    // Filter batches belonging to this course
     batches.value   = allBatches.value.filter(b => b.course_id === courseId.value)
   }
   pageLoading.value = false
 })
 
-// ─── Active builder tab ───────────────────────────────────────────────────────
 const activeTab = ref('details')
 
-// ─── Unsaved changes tracking ─────────────────────────────────────────────────
 const hasUnsavedChanges = ref(false)
 
-// ═════════════════════════════════════════════════════════════════════════════
-// TAB 1 — DETAILS FORM
-// ═════════════════════════════════════════════════════════════════════════════
 const detailsForm = ref({
   title:             course.value?.title             ?? '',
+  course_code:       course.value?.course_code       ?? '',
   description:       course.value?.description       ?? '',
-  academic_level:    course.value?.academic_level    ?? '',
+  academic_level_id: course.value?.academic_level_id ?? '',
   duration_weeks:    course.value?.duration_weeks    ?? 12,
-  price_per_student: course.value?.price_per_student ?? 0,
+  price:             course.value?.price             ?? 0,
 })
 const detailsErrors = ref({})
 
-// Re-sync if course loads after mount
 watch(course, (c) => {
   if (c && !hasUnsavedChanges.value) {
     detailsForm.value = {
       title:             c.title,
+      course_code:       c.course_code,
       description:       c.description       ?? '',
-      academic_level:    c.academic_level,
+      academic_level_id: c.academic_level_id,
       duration_weeks:    c.duration_weeks,
-      price_per_student: c.price_per_student,
+      price:             c.price,
     }
   }
 })
@@ -110,17 +119,16 @@ function validateDetails() {
   const e = {}
   if (!detailsForm.value.title.trim())        e.title          = 'Course title is required'
   if (detailsForm.value.title.length > 150)   e.title          = 'Title must be under 150 characters'
+  if (!detailsForm.value.course_code.trim())  e.course_code    = 'Course code is required'
+  if (detailsForm.value.course_code.length > 20) e.course_code = 'Course code must be under 20 characters'
   if (!detailsForm.value.description.trim())  e.description    = 'Description is required'
-  if (!detailsForm.value.academic_level)      e.academic_level = 'Academic level is required'
+  if (!detailsForm.value.academic_level_id)   e.academic_level_id = 'Academic level is required'
   if (detailsForm.value.duration_weeks < 1)   e.duration_weeks = 'Must be at least 1 week'
-  if (detailsForm.value.price_per_student < 0) e.price_per_student = 'Price cannot be negative'
+  if (detailsForm.value.price < 0)            e.price = 'Price cannot be negative'
   detailsErrors.value = e
   return Object.keys(e).length === 0
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
-// TAB 2 — SCHEDULE FORM
-// ═════════════════════════════════════════════════════════════════════════════
 const scheduleForm = ref({
   session_frequency:        course.value?.session_frequency        ?? '',
   session_day:              course.value?.session_day              ?? '',
@@ -154,9 +162,6 @@ function validateSchedule() {
   return Object.keys(e).length === 0
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
-// SAVE (Details + Schedule merged)
-// ═════════════════════════════════════════════════════════════════════════════
 const isSaving     = ref(false)
 const isPublishing = ref(false)
 
@@ -202,7 +207,7 @@ async function handlePublish() {
     await handleSave()
     if (courseId.value) {
       await publishCourse(courseId.value)
-      toast({ title: '🎉 Course published!', description: 'Students can now discover and enroll.' })
+      toast({ title: 'Course published!', description: 'Students can now discover and enroll.' })
     }
   } finally {
     isPublishing.value = false
@@ -215,11 +220,8 @@ async function handleArchive() {
   toast({ title: 'Course archived', description: 'No longer visible to students.' })
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
-// TAB 3 — MATERIALS
-// ═════════════════════════════════════════════════════════════════════════════
 const showAddMaterialDialog = ref(false)
-const materialType          = ref('pdf')   // 'pdf' | 'link' | 'video'
+const materialType          = ref('pdf')   
 const isDragOver            = ref(false)
 const uploadProgress        = ref(0)
 const isUploading           = ref(false)
@@ -378,9 +380,7 @@ function formatSize(kb) {
   return kb + ' KB'
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
-// TAB 4 — BATCHES (mini batch manager for this course)
-// ═════════════════════════════════════════════════════════════════════════════
+
 const showBatchDialog   = ref(false)
 const isSavingBatch     = ref(false)
 const batchForm         = ref({
@@ -388,7 +388,7 @@ const batchForm         = ref({
   start_date:        '',
   end_date:          '',
   max_students:      30,
-  price_per_student: detailsForm.value.price_per_student,
+  price_per_student: detailsForm.value.price,
   schedule_day:      scheduleForm.value.session_day,
   schedule_time:     scheduleForm.value.session_time,
   whatsapp_link:     '',
@@ -397,7 +397,7 @@ const batchForm         = ref({
 const batchErrors = ref({})
 
 // Keep batch default price in sync with course price
-watch(() => detailsForm.value.price_per_student, (v) => {
+watch(() => detailsForm.value.price, (v) => {
   if (!batchForm.value.price_per_student) batchForm.value.price_per_student = v
 })
 
@@ -407,7 +407,7 @@ function openAddBatch() {
     start_date:        '',
     end_date:          '',
     max_students:      30,
-    price_per_student: detailsForm.value.price_per_student,
+    price_per_student: detailsForm.value.price,
     schedule_day:      scheduleForm.value.session_day,
     schedule_time:     scheduleForm.value.session_time,
     whatsapp_link:     '',
@@ -477,8 +477,8 @@ const statusConfig = {
   draft:     { label: 'Draft',       variant: 'secondary' },
 }
 
-// ─── Completeness indicator (for tab headers) ─────────────────────────────────
-const detailsComplete  = computed(() => !!(detailsForm.value.title && detailsForm.value.description && detailsForm.value.academic_level))
+
+const detailsComplete  = computed(() => !!(detailsForm.value.title && detailsForm.value.description && detailsForm.value.academic_level_id))
 const scheduleComplete = computed(() => !!(scheduleForm.value.session_frequency && scheduleForm.value.session_day && scheduleForm.value.session_platform))
 const materialsCount   = computed(() => materials.value.length)
 const batchCount       = computed(() => batches.value.length)
@@ -486,8 +486,6 @@ const batchCount       = computed(() => batches.value.length)
 
 <template>
   <div class="p-6 max-w-5xl mx-auto space-y-6">
-
-    <!-- ── Header bar ────────────────────────────────────────────────────── -->
     <div class="flex items-center gap-4">
       <Button variant="ghost" size="icon" class="h-9 w-9 shrink-0" @click="router.visit('/dashboard/courses')">
         <ArrowLeft class="h-4 w-4" />
@@ -510,7 +508,6 @@ const batchCount       = computed(() => batches.value.length)
         </p>
       </div>
 
-      <!-- Action buttons -->
       <div class="flex items-center gap-2 shrink-0">
         <!-- Archive (edit mode only, published) -->
         <Button
@@ -616,6 +613,22 @@ const batchCount       = computed(() => batches.value.length)
               </div>
             </div>
 
+            <!-- Course Code -->
+            <div class="space-y-1.5">
+              <Label for="course-code">Course Code <span class="text-destructive">*</span></Label>
+              <Input
+                id="course-code"
+                v-model="detailsForm.course_code"
+                placeholder="e.g., PRI-4-MATH-001"
+                maxlength="20"
+                :class="detailsErrors.course_code && 'border-destructive'"
+              />
+              <div class="flex items-center justify-between">
+                <p v-if="detailsErrors.course_code" class="text-xs text-destructive">{{ detailsErrors.course_code }}</p>
+                <p class="text-xs text-muted-foreground ml-auto">{{ detailsForm.course_code.length }}/20</p>
+              </div>
+            </div>
+
             <!-- Description -->
             <div class="space-y-1.5">
               <Label for="description">Description <span class="text-destructive">*</span></Label>
@@ -634,15 +647,15 @@ const batchCount       = computed(() => batches.value.length)
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div class="space-y-1.5">
                 <Label>Academic Level <span class="text-destructive">*</span></Label>
-                <Select v-model="detailsForm.academic_level">
-                  <SelectTrigger :class="detailsErrors.academic_level && 'border-destructive'">
+                <Select v-model="detailsForm.academic_level_id">
+                  <SelectTrigger :class="detailsErrors.academic_level_id && 'border-destructive'">
                     <SelectValue placeholder="Select level" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem v-for="lvl in ACADEMIC_LEVELS" :key="lvl" :value="lvl">{{ lvl }}</SelectItem>
+                    <SelectItem v-for="lvl in props.academicLevels" :key="lvl.id" :value="lvl.id">{{ lvl.name }}</SelectItem>
                   </SelectContent>
                 </Select>
-                <p v-if="detailsErrors.academic_level" class="text-xs text-destructive">{{ detailsErrors.academic_level }}</p>
+                <p v-if="detailsErrors.academic_level_id" class="text-xs text-destructive">{{ detailsErrors.academic_level_id }}</p>
               </div>
 
               <div class="space-y-1.5">
@@ -666,21 +679,15 @@ const batchCount       = computed(() => batches.value.length)
                 <span class="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-medium text-muted-foreground">₦</span>
                 <Input
                   id="price"
-                  v-model.number="detailsForm.price_per_student"
+                  v-model.number="detailsForm.price"
                   type="number"
                   min="0"
                   placeholder="0"
                   class="pl-7"
-                  :class="detailsErrors.price_per_student && 'border-destructive'"
+                  :class="detailsErrors.price && 'border-destructive'"
                 />
               </div>
-              <p v-if="detailsErrors.price_per_student" class="text-xs text-destructive">{{ detailsErrors.price_per_student }}</p>
-              <div class="rounded-lg bg-muted/50 border border-border p-3 text-xs text-muted-foreground space-y-1">
-                <p class="font-medium text-foreground">💰 Revenue breakdown per student</p>
-                <p>Student pays: {{ formatNaira(detailsForm.price_per_student) }}</p>
-                <p>Platform fee (10%): {{ formatNaira(detailsForm.price_per_student * 0.1) }}</p>
-                <p class="font-semibold text-emerald-600">Your earnings: {{ formatNaira(detailsForm.price_per_student * 0.9) }}</p>
-              </div>
+              <p v-if="detailsErrors.price" class="text-xs text-destructive">{{ detailsErrors.price }}</p>
             </div>
 
           </CardContent>
