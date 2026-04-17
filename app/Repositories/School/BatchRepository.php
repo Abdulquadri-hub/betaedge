@@ -4,21 +4,16 @@ namespace App\Repositories\School;
 
 use App\Contracts\Repositories\School\BatchRepositoryInterface;
 use App\Models\Batch;
-// use App\Models\User;
-use Illuminate\Pagination\Paginator;
-// use Illuminate\Support\Facades\Auth;
+use Illuminate\Pagination\LengthAwarePaginator;
+//use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\DB;
 
 class BatchRepository implements BatchRepositoryInterface
 {
-    /**
-     * Get paginated batches for the active tenant
-     */
-    public function getPaginated(int $perPage = 15, array $filters = []): Paginator
+    public function getPaginated(int $perPage = 15, array $filters = []): LengthAwarePaginator
     {
         $query = Batch::where('tenant_id', session('active_tenant_id'));
 
-        // Apply filters
         if (!empty($filters['search'])) {
             $query->where(function ($q) use ($filters) {
                 $q->where('batch_name', 'like', "%{$filters['search']}%")

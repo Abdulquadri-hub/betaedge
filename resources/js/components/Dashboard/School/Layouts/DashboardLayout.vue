@@ -1,5 +1,4 @@
 <script setup>
-// import { ref } from 'vue'
 import { Link } from '@inertiajs/vue3'
 import { Bell, LogOut, Settings, User, CheckCheck, BookOpen } from 'lucide-vue-next'
 import { SidebarProvider, SidebarTrigger, SidebarInset } from '@/components/ui/sidebar'
