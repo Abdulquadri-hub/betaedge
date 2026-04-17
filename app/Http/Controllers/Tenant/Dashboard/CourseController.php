@@ -6,11 +6,13 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use App\Contracts\Repositories\School\CourseRepositoryInterface;
+use App\Contracts\Repositories\School\AcademicLevelRepositoryInterface;
 
 class CourseController extends Controller
 {
     public function __construct(
-        protected CourseRepositoryInterface $courseRepo
+        protected CourseRepositoryInterface $courseRepo,
+        protected AcademicLevelRepositoryInterface $academicLevelRepo
     ) {}
 
     public function index(Request $request) {
@@ -30,7 +32,7 @@ class CourseController extends Controller
         $course = $this->courseRepo->getById($courseId);
 
         if (!$course) {
-            return redirect()->route('dashboard.courses.index')->with('error', 'Course not found');
+            return redirect('/dashboard/courses')->with('error', 'Course not found');
         }
 
         return Inertia::render('School/Dashboard/Courses/Detail', [
@@ -40,7 +42,9 @@ class CourseController extends Controller
     }
 
     public function create() {
-        return Inertia::render('School/Dashboard/Courses/Builder');
+        return Inertia::render('School/Dashboard/Courses/Builder', [
+            'academicLevels' => $this->academicLevelRepo->getActive(),
+        ]);
     }
 
     public function save(Request $request) {
@@ -56,18 +60,25 @@ class CourseController extends Controller
 
         $course = $this->courseRepo->create($validated);
 
-        return redirect()->route('dashboard.courses.single', $course->id)->with('success', 'Course created successfully');
+        return redirect("/dashboard/courses/{$course->id}")->with('success', 'Course created successfully');
     }
 
     public function edit(Request $request, $courseId) {
         $course = $this->courseRepo->getById($courseId);
 
         if (!$course) {
-            return redirect()->route('dashboard.courses.index')->with('error', 'Course not found');
+            return redirect('/dashboard/courses')->with('error', 'Course not found');
         }
+
+        // Load related materials and batches
+        $materials = $course->materials()->get();
+        $batches = $course->batches()->get();
 
         return Inertia::render('School/Dashboard/Courses/Builder', [
             'course' => $course,
+            'materials' => $materials,
+            'batches' => $batches,
+            'academicLevels' => $this->academicLevelRepo->getActive(),
         ]);
     }
 
@@ -75,7 +86,7 @@ class CourseController extends Controller
         $course = $this->courseRepo->getById($courseId);
 
         if (!$course) {
-            return redirect()->route('dashboard.courses.index')->with('error', 'Course not found');
+            return redirect('/dashboard/courses')->with('error', 'Course not found');
         }
 
         $validated = $request->validate([
@@ -88,7 +99,7 @@ class CourseController extends Controller
 
         $updated = $this->courseRepo->update($courseId, $validated);
 
-        return redirect()->route('dashboard.courses.single', $updated->id)->with('success', 'Course updated successfully');
+        return redirect("/dashboard/courses/{$updated->id}")->with('success', 'Course updated successfully');
     }
 
     public function publish(Request $request, $courseId) {
@@ -141,4 +152,21 @@ class CourseController extends Controller
 
         return response()->json(['message' => 'Course duplicated successfully', 'course_id' => $duplicated->id]);
     }
+
+    public function destroy(Request $request, $courseId) {
+        $course = $this->courseRepo->getById($courseId);
+
+        if (!$course) {
+            return response()->json(['error' => 'Course not found'], 404);
+        }
+
+        if ($course->activeBatches()->count() > 0) {
+            return response()->json(['error' => 'Cannot delete course with active batches'], 422);
+        }
+
+        $course->delete();
+
+        return response()->json(['message' => 'Course deleted successfully']);
+    }
 }
+

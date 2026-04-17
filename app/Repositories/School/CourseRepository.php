@@ -5,14 +5,15 @@ namespace App\Repositories\School;
 use App\Contracts\Repositories\School\CourseRepositoryInterface;
 use App\Models\Course;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Pagination\Paginator;
+// use Illuminate\Pagination\Paginator;
 
 class CourseRepository implements CourseRepositoryInterface
 {
     public function getPaginated(int $perPage = 15, array $filters = []): LengthAwarePaginator
     {
         $query = Course::query()
-            ->where('tenant_id', session('active_tenant_id'));
+            ->where('tenant_id', session('active_tenant_id'))
+            ->withCount(['activeBatches']);
 
         // Apply filters
         if (!empty($filters['search'])) {
@@ -44,27 +45,18 @@ class CourseRepository implements CourseRepositoryInterface
             ->get();
     }
 
-    /**
-     * Get course by ID
-     */
-    public function getById(int $id): ?Course
+    public function getById(int|string $id): ?Course
     {
         return Course::where('tenant_id', session('active_tenant_id'))
-            ->find($id);
+            ->find((int) $id);
     }
 
-    /**
-     * Get course count for the tenant
-     */
     public function count(): int
     {
         return Course::where('tenant_id', session('active_tenant_id'))
             ->count();
     }
 
-    /**
-     * Get published courses count
-     */
     public function countPublished(): int
     {
         return Course::where('tenant_id', session('active_tenant_id'))
@@ -72,9 +64,6 @@ class CourseRepository implements CourseRepositoryInterface
             ->count();
     }
 
-    /**
-     * Create a new course
-     */
     public function create(array $data): Course
     {
         $data['tenant_id'] = session('active_tenant_id');
@@ -82,10 +71,7 @@ class CourseRepository implements CourseRepositoryInterface
         return Course::create($data);
     }
 
-    /**
-     * Update a course
-     */
-    public function update(int $id, array $data): Course
+    public function update(int|string $id, array $data): Course
     {
         $course = $this->getById($id);
 
@@ -98,9 +84,6 @@ class CourseRepository implements CourseRepositoryInterface
         return $course;
     }
 
-    /**
-     * Delete a course
-     */
     public function delete(int $id): bool
     {
         $course = $this->getById($id);
@@ -112,9 +95,6 @@ class CourseRepository implements CourseRepositoryInterface
         return (bool) $course->delete();
     }
 
-    /**
-     * Get published courses
-     */
     public function getPublished()
     {
         return Course::where('tenant_id', session('active_tenant_id'))
@@ -123,9 +103,6 @@ class CourseRepository implements CourseRepositoryInterface
             ->get();
     }
 
-    /**
-     * Get featured courses (limit 6)
-     */
     public function getFeatured(int $limit = 6)
     {
         return Course::where('tenant_id', session('active_tenant_id'))
@@ -135,9 +112,6 @@ class CourseRepository implements CourseRepositoryInterface
             ->get();
     }
 
-    /**
-     * Get courses by academic level
-     */
     public function getByAcademicLevel(int $levelId)
     {
         return Course::where('tenant_id', session('active_tenant_id'))

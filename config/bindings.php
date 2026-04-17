@@ -4,6 +4,7 @@ use App\Contracts\Repositories\Auth\AuthenticationRepositoryInterface;
 use App\Contracts\Repositories\MarketPlaceListingRepositoryInterface;
 use App\Contracts\Repositories\OnboardingProcessRepositoryInterface;
 use App\Contracts\Repositories\PasswordReset\PasswordResetRepositoryInterface;
+use App\Contracts\Repositories\School\AcademicLevelRepositoryInterface;
 use App\Contracts\Repositories\School\BatchRepositoryInterface;
 use App\Contracts\Repositories\School\CourseRepositoryInterface;
 use App\Contracts\Repositories\SubscriptionPlanRepositoryInterface;
@@ -28,6 +29,7 @@ use App\Repositories\Auth\AuthenticationRepository;
 use App\Repositories\MarketPlaceListingRepository;
 use App\Repositories\OnboardingProcessRepository;
 use App\Repositories\PasswordReset\PasswordResetRepository;
+use App\Repositories\School\AcademicLevelRepository;
 use App\Repositories\School\BatchRepository;
 use App\Repositories\School\CourseRepository;
 use App\Repositories\SubscriptionPlanRepository;
@@ -68,6 +70,7 @@ return [
         PasswordResetRepositoryInterface::class => PasswordResetRepository::class,
         
         // School Dashboard Module
+        AcademicLevelRepositoryInterface::class => AcademicLevelRepository::class,
         BatchRepositoryInterface::class => BatchRepository::class,
         CourseRepositoryInterface::class => CourseRepository::class,
     ],

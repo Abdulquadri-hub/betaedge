@@ -16,7 +16,6 @@ class TenantSubdomainRedirect
             return $next($request);
         }
 
-        // If custom domain exists and verified, redirect to it
         if ($tenant->hasCustomDomain() && $request->getHost() === $tenant->subdomain) {
             $url = $request->url();
             $customUrl = str_replace($tenant->subdomain, $tenant->custom_domain, $url);
