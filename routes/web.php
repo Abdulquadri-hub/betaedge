@@ -10,7 +10,7 @@ use App\Http\Controllers\Instructors\Dashboard\EarningController as InstructorEa
 use App\Http\Controllers\Instructors\Dashboard\GradingController as InstructorGradingController;
 use App\Http\Controllers\Instructors\Dashboard\JobController as InstructorJobController;
 use App\Http\Controllers\Instructors\Dashboard\MainController;
-use App\Http\Controllers\Instructors\Dashboard\ProfileController;
+use App\Http\Controllers\Instructors\Dashboard\ProfileController as InstructorProfileController;
 use App\Http\Controllers\Instructors\Dashboard\SessionController as InstructorSessionController;
 use App\Http\Controllers\Instructors\Dashboard\StudentController as InstructorStudentController;
 use App\Http\Controllers\Instructors\Dashboard\VerificationController;
@@ -33,6 +33,7 @@ use App\Http\Controllers\Tenant\Dashboard\ParentController;
 use App\Http\Controllers\Tenant\Dashboard\ReportController;
 use App\Http\Controllers\Tenant\Dashboard\SettingController;
 use App\Http\Controllers\Tenant\Dashboard\StudentController;
+use App\Http\Controllers\Tenant\Dashboard\ProfileController;
 use App\Http\Controllers\Tenant\Dashboard\VerificationController as TenantVerificationController;
 use App\Http\Controllers\Tenant\EnrollmentController as PublicEnrollmentController;
 use App\Http\Controllers\Tenant\PublicPageController;
@@ -118,7 +119,7 @@ Route::domain(config('app.main_domain'))->middleware(['web'])->group(function ()
                 Route::get('', 'index')->name('instructor.earnings.index');
             });
 
-            Route::prefix('profile')->controller(ProfileController::class)->group(function () {
+            Route::prefix('profile')->controller(InstructorProfileController::class)->group(function () {
                 Route::get('', 'edit')->name('instructor.profile.edit');
                 Route::post('', 'update')->name('instructor.profile.update');
             });
@@ -175,7 +176,13 @@ Route::domain('{tenant}.' . config('app.main_domain'))->middleware(['web', 'tena
         });
 
         Route::prefix('verification')->controller(TenantVerificationController::class)->group(function () {
-            Route::get('', 'index');
+            Route::get('', 'index')->name('verification.show');
+            Route::post('', 'submit')->name('verification.submit');
+        });
+
+        Route::prefix('profile')->controller(ProfileController::class)->group(function () {
+            Route::get('', 'show')->name('profile.show');
+            Route::post('', 'update')->name('profile.update');
         });
 
         Route::prefix('courses')->controller(CourseMaterialController::class)->group(function () {
@@ -218,7 +225,8 @@ Route::domain('{tenant}.' . config('app.main_domain'))->middleware(['web', 'tena
         });
 
         Route::prefix('settings')->controller(SettingController::class)->group(function () {
-            Route::get('', 'index');
+            Route::get('', 'index')->name('settings.show');
+            Route::post('', 'update')->name('settings.update');
         });
 
         Route::prefix('financials')->controller(FinancialController::class)->group(function () {

@@ -1,37 +1,10 @@
 <script setup>
-/**
- * InstructorProfilePublicPage.vue
- * Route: GET /tutors/{instructor}  → InstructorProfileController@public
- *
- * Public-facing instructor profile visible to school owners browsing the marketplace.
- * Only verified instructors are accessible at this URL.
- *
- * Laravel 12 Inertia props:
- *   instructor: {
- *     id, name, avatar, bio, location, gender,
- *     subjects: string[],
- *     levels: string[],
- *     years_experience: string,
- *     teaching_mode: string,
- *     verification_status: 'verified' | 'pending',
- *     rating: number,
- *     total_reviews: number,
- *     schools_count: number,
- *     batches_completed: number,
- *     students_taught: number,
- *     availability: Array<{ day, from, to }>,
- *     social: { linkedin, twitter, website },
- *     joined_at: string,
- *   }
- *   reviews: Array<{ school_name, rating, comment, date }>
- *   isOwner: boolean  (true = viewing own profile)
- *   canInvite: boolean (school owner viewing — can send invite)
- */
+
 import { ref, computed } from 'vue'
-import { Link, router } from '@inertiajs/vue3'
+import { Link } from '@inertiajs/vue3'
 import {
   MapPin, Star, BookOpen, Users, GraduationCap,
-  Clock, CheckCircle2, Send, Globe, Linkedin,
+ Send, Globe, Linkedin,
   Twitter, ArrowLeft, Calendar, Award, Briefcase,
   ChevronRight,
 } from 'lucide-vue-next'
@@ -44,13 +17,9 @@ import {
 } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
 import { Label }    from '@/components/ui/label'
-import { useToast } from '@/components/ui/toast/use-toast'
-import VerificationBadge from '@/components/verification/VerificationBadge.vue'
+import { toast } from 'vue-sonner'
+// import Verificationbadge from '@/components/verification/VerificationBadge.vue'
 
-const { toast } = useToast()
-
-// ── Mock data ─────────────────────────────────────────────────────────────────
-// TODO: replace with defineProps({ instructor, reviews, isOwner, canInvite })
 
 const instructor = ref({
   id:                  'inst-001',

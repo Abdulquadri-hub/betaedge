@@ -1,48 +1,16 @@
-import { ref, computed } from 'vue'
-
 import { usePage } from '@inertiajs/vue3'
-console.log(usePage);
-
-
-
-const MOCK_USER = {
-  id:     'user-001',
-  name:   'Tunde Adeyemi',
-  email:  'tunde@brightstars.teach.com',
-  avatar: null,
-  role:   'owner', // 'owner' | 'instructor' | 'student' | 'parent'
-  phone:  '+234 801 234 5678',
-  joinedAt: '2024-01-15',
-}
-
-const MOCK_TENANT = {
-  id:        'tenant-001',
-  name:      'Bright Stars Academy',
-  subdomain: 'brightstars',
-  logo:      null,
-  plan:      'pro',          
-  currency:  '₦',
-}
-
-// ─── Notifications mock ───────────────────────────────────────
-const MOCK_NOTIFICATIONS = [
-  { id: 1, title: 'New enrollment request', message: 'Ada Okonkwo enrolled in Web Dev Batch 3', time: '2 min ago', read: false, type: 'enrollment' },
-  { id: 2, title: 'Session starting soon',  message: 'JavaScript Basics starts in 30 minutes', time: '28 min ago', read: false, type: 'session' },
-  { id: 3, title: 'Payment received',       message: '₦20,000 received from Emeka Nwosu',      time: '1 hr ago',  read: false, type: 'payment' },
-]
-// ─────────────────────────────────────────────────────────────
+import { computed } from 'vue'
 
 export function useUserContext() {
-  // TODO (Laravel): replace with usePage().props.auth.user
-  console.log()
-  const user   = ref(MOCK_USER)
-  const tenant = ref(MOCK_TENANT)
-  const notifications = ref(MOCK_NOTIFICATIONS)
+  const { props } = usePage()
 
-  // ── Derived booleans ─────────────────────────────────────
-  const isOwner      = computed(() => user.value?.role === 'owner')
-  const isInstructor = computed(() => user.value?.role === 'instructor')
-  const isStudent    = computed(() => user.value?.role === 'student')
+  const user = computed(() => props.auth?.user)
+  const tenant = computed(() => props.tenant)
+  const notifications = computed(() => props.notifications || [])
+
+  const isOwner = computed(() => user.value?.user_type === 'tenant_admin')
+  const isInstructor = computed(() => user.value?.user_type === 'instructor')
+  const isStudent = computed(() => user.value?.user_type === 'student')
 
   const userInitials = computed(() => {
     if (!user.value?.name) return 'U'
