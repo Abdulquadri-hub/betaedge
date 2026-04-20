@@ -27,7 +27,7 @@ const notifIcon = {
   payment:    { icon: CheckCheck, bg: 'bg-emerald-100', color: 'text-emerald-600' },
   complaint:  { icon: Bell,     bg: 'bg-red-100',       color: 'text-red-600'  },
 }
-console.log(user.value);
+
 function handleLogout() {
   window.location.href = '/login'
 }

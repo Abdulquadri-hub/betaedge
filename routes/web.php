@@ -39,7 +39,6 @@ use App\Http\Controllers\Tenant\Dashboard\VerificationController as TenantVerifi
 use App\Http\Controllers\Tenant\EnrollmentController as PublicEnrollmentController;
 use App\Http\Controllers\Tenant\PublicPageController;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 
 Route::domain(config('app.main_domain'))->middleware(['web'])->group(function () {
 
@@ -73,10 +72,10 @@ Route::domain(config('app.main_domain'))->middleware(['web'])->group(function ()
     });
 
     Route::controller(EmailVerificationController::class)->group(function () {
-        Route::get('/verification/notice',  'notice')->name('verification.notice');
-        Route::get('/verification/verify/{token}',  'verify')->name('verification.verify');
-        Route::post('/verification/set-password',  'setPassword')->name('password.set');
-        Route::post('/verification/resend',  'resend')->middleware('throttle:3,60')->name('verification.resend');
+        Route::get('/verification/notice', 'notice')->name('verification.notice');
+        Route::get('/verification/verify/{token}', 'verify')->name('verification.verify');
+        Route::post('/verification/set-password', 'setPassword')->name('password.set');
+        Route::post('/verification/resend', 'resend')->middleware('throttle:3,60')->name('verification.resend');
     });
 
     Route::controller(OnboardingController::class)->middleware(['guest', 'throttle:60,1'])->group(function () {
@@ -90,59 +89,55 @@ Route::domain(config('app.main_domain'))->middleware(['web'])->group(function ()
         Route::get('/instructor', 'index');
     });
 
-    Route::prefix('instructor')
-        //->middleware(['auth', 'verified', 'instructor'])
-        ->group(function () {
-            Route::controller(MainController::class)->group(function () {
-                Route::get('', 'index')->name('instructor.home');
-                Route::post('/switch-school/{tenantId}', 'switchSchool')->name('instructor.switchSchool');
-            });
+    Route::prefix('instructor')->group(function () {
+        Route::controller(MainController::class)->group(function () {
+            Route::get('', 'index')->name('instructor.home');
+            Route::post('/switch-school/{tenantId}', 'switchSchool')->name('instructor.switchSchool');
+        });
 
-            Route::prefix('batches')->controller(InstructorBatchController::class)->group(function () {
-                Route::get('', 'index')->name('instructor.batches.index');
-                Route::get('/{batch}', 'single')->name('instructor.batches.single');
-            });
+        Route::prefix('batches')->controller(InstructorBatchController::class)->group(function () {
+            Route::get('', 'index')->name('instructor.batches.index');
+            Route::get('/{batch}', 'single')->name('instructor.batches.single');
+        });
 
-            Route::prefix('sessions')->controller(InstructorSessionController::class)->group(function () {
-                Route::get('', 'index')->name('instructor.sessions.index');
-            });
+        Route::prefix('sessions')->controller(InstructorSessionController::class)->group(function () {
+            Route::get('', 'index')->name('instructor.sessions.index');
+        });
 
-            Route::prefix('grading')->controller(InstructorGradingController::class)->group(function () {
-                Route::get('', 'index')->name('instructor.grading.index');
-                Route::post('/{submission}', 'grade')->name('instructor.grading.grade');
-            });
+        Route::prefix('grading')->controller(InstructorGradingController::class)->group(function () {
+            Route::get('', 'index')->name('instructor.grading.index');
+            Route::post('/{submission}', 'grade')->name('instructor.grading.grade');
+        });
 
-            Route::prefix('students')->controller(InstructorStudentController::class)->group(function () {
-                Route::get('', 'index')->name('instructor.students.index');
-            });
+        Route::prefix('students')->controller(InstructorStudentController::class)->group(function () {
+            Route::get('', 'index')->name('instructor.students.index');
+        });
 
-            Route::prefix('earnings')->controller(InstructorEarningsController::class)->group(function () {
-                Route::get('', 'index')->name('instructor.earnings.index');
-            });
+        Route::prefix('earnings')->controller(InstructorEarningsController::class)->group(function () {
+            Route::get('', 'index')->name('instructor.earnings.index');
+        });
 
-            Route::prefix('profile')->controller(InstructorProfileController::class)->group(function () {
-                Route::get('', 'edit')->name('instructor.profile.edit');
-                Route::post('', 'update')->name('instructor.profile.update');
-            });
+        Route::prefix('profile')->controller(InstructorProfileController::class)->group(function () {
+            Route::get('', 'edit')->name('instructor.profile.edit');
+            Route::post('', 'update')->name('instructor.profile.update');
+        });
 
-            Route::prefix('applications')->controller(InstructorJobController::class)->group(function () {
-                Route::get('', 'index')->name('instructor.applications.index');
-                Route::post('/{job}', 'apply')->name('instructor.applications.apply');
-            });
+        Route::prefix('applications')->controller(InstructorJobController::class)->group(function () {
+            Route::get('', 'index')->name('instructor.applications.index');
+            Route::post('/{job}', 'apply')->name('instructor.applications.apply');
+        });
 
-            Route::prefix('verification')->controller(VerificationController::class)->group(function () {
-                Route::get('', 'index');
-            });
-
+        Route::prefix('verification')->controller(VerificationController::class)->group(function () {
+            Route::get('', 'index');
+        });
     });
-
-
 });
 
 
 Route::domain('{tenant}.' . config('app.main_domain'))->middleware(['web', 'tenant'])->group(function () {
+
     Route::controller(PublicPageController::class)->group(function () {
-        Route::get('/',  'landing')->name('tenant.landing');
+        Route::get('/', 'landing')->name('tenant.landing');
     });
 
     Route::controller(TenantController::class)->group(function () {
@@ -153,29 +148,29 @@ Route::domain('{tenant}.' . config('app.main_domain'))->middleware(['web', 'tena
         Route::get('/enroll', 'showEnroll')->name('tenant.enroll');
     });
 
-
     Route::prefix('dashboard')->middleware(['tenant.access'])->group(function () {
+
         Route::controller(HomeController::class)->group(function () {
             Route::get('', 'index');
         });
 
-        // Academic Levels - public API for forms + settings management
         Route::controller(AcademicLevelController::class)->group(function () {
-            Route::get('/academic-levels', 'list');  // Public list for forms (returns JSON)
-            Route::get('/settings/academic-levels', 'index')->name('dashboard.academic-levels.index');
+            Route::get('/academic-levels', 'list');
             Route::post('/settings/academic-levels', 'store')->name('dashboard.academic-levels.store');
-            Route::delete('/settings/academic-levels/{levelId}', 'destroy')->name('dashboard.academic-levels.destroy');
             Route::put('/settings/academic-levels/{levelId}', 'update')->name('dashboard.academic-levels.update');
+            Route::patch('/settings/academic-levels/{levelId}/toggle', 'toggle')->name('dashboard.academic-levels.toggle');
+            Route::delete('/settings/academic-levels/{levelId}', 'destroy')->name('dashboard.academic-levels.destroy');
         });
 
         Route::prefix('batches')->controller(BatchController::class)->group(function () {
-            Route::get('', 'index');
-            Route::get('/create', 'create');
-            Route::post('/create', 'store');
-            Route::get('/{batchId}', 'single');
-            Route::get('/{batchId}/edit', 'edit');
-            Route::post('/{batchId}/edit', 'update');
-            Route::delete('/{batchId}', 'delete');
+            Route::get('', 'index')->name('dashboard.batches.index');
+            Route::get('/create', 'create')->name('dashboard.batches.create');
+            Route::post('/create', 'store')->name('dashboard.batches.store');
+            Route::get('/{batchId}', 'single')->name('dashboard.batches.single');
+            Route::get('/{batchId}/edit', 'edit')->name('dashboard.batches.edit');
+            Route::put('/{batchId}/edit', 'update')->name('dashboard.batches.update');
+            Route::patch('/{batchId}/toggle', 'toggleEnrollment')->name('dashboard.batches.toggle');
+            Route::delete('/{batchId}', 'delete')->name('dashboard.batches.delete');
         });
 
         Route::prefix('courses')->controller(CourseController::class)->group(function () {
@@ -191,6 +186,11 @@ Route::domain('{tenant}.' . config('app.main_domain'))->middleware(['web', 'tena
             Route::delete('/{courseId}', 'destroy')->name('dashboard.courses.destroy');
         });
 
+        Route::prefix('courses')->controller(CourseMaterialController::class)->group(function () {
+            Route::post('/{courseId}/materials', 'store')->name('courses.materials.store');
+            Route::delete('/{courseId}/materials/{material}', 'destroy')->name('courses.materials.destroy');
+        });
+
         Route::prefix('verification')->controller(TenantVerificationController::class)->group(function () {
             Route::get('', 'index')->name('verification.show');
             Route::post('', 'submit')->name('verification.submit');
@@ -199,11 +199,6 @@ Route::domain('{tenant}.' . config('app.main_domain'))->middleware(['web', 'tena
         Route::prefix('profile')->controller(ProfileController::class)->group(function () {
             Route::get('', 'show')->name('profile.show');
             Route::post('', 'update')->name('profile.update');
-        });
-
-        Route::prefix('courses')->controller(CourseMaterialController::class)->group(function () {
-            Route::post('/{courseId}/materials', 'store')->name('courses.materials.store');
-            Route::delete('/{courseId}/materials/{material}', 'destroy')->name('courses.materials.destroy');
         });
 
         Route::prefix('students')->controller(StudentController::class)->group(function () {
@@ -215,11 +210,11 @@ Route::domain('{tenant}.' . config('app.main_domain'))->middleware(['web', 'tena
 
         Route::prefix('instructors')->controller(InstructorController::class)->group(function () {
             Route::get('', 'index')->name('instructors.index');
-            Route::get('/{instructorId}',   'single')->name('instructors.single');
+            Route::get('/{instructorId}', 'single')->name('instructors.single');
             Route::post('/invite', 'invite')->name('instructors.invite');
             Route::post('/{instructorId}', 'update')->name('instructors.update');
             Route::delete('/{instructorId}', 'destroy')->name('instructors.destroy');
-            Route::post('/{instructorId}/mark-paid',  'markPaid')->name('instructors.markPaid');
+            Route::post('/{instructorId}/mark-paid', 'markPaid')->name('instructors.markPaid');
         });
 
         Route::prefix('enrollments')->controller(EnrollmentController::class)->group(function () {
@@ -242,7 +237,9 @@ Route::domain('{tenant}.' . config('app.main_domain'))->middleware(['web', 'tena
 
         Route::prefix('settings')->controller(SettingController::class)->group(function () {
             Route::get('', 'index')->name('settings.show');
-            Route::post('', 'update')->name('settings.update');
+            Route::post('/profile', 'updateProfile')->name('settings.profile.update');
+            Route::post('/paystack', 'updatePaystack')->name('settings.paystack.update');
+            Route::post('/notifications', 'updateNotifications')->name('settings.notifications.update');
         });
 
         Route::prefix('financials')->controller(FinancialController::class)->group(function () {
@@ -259,7 +256,5 @@ Route::domain('{tenant}.' . config('app.main_domain'))->middleware(['web', 'tena
             Route::post('/{parentId}/message', 'message');
             Route::post('/{parentId}/thresholds', 'thresholds');
         });
-
-
     });
 });

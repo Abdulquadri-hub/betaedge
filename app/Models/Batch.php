@@ -24,25 +24,20 @@ class Batch extends Model
         'end_date',
         'max_students',
         'status',
-        'schedule_type',
-        'schedule_days',
-        'start_time',
-        'end_time',
-        'location',
-        'notes',
+        'enrollment_status',
+        'whatsapp_link',   
+        'notes',          
         'is_published',
         'published_at',
     ];
 
     protected $casts = [
-        'start_date' => 'date',
-        'end_date' => 'date',
-        'published_at' => 'datetime',
-        'schedule_days' => 'array',
-        'max_students' => 'integer',
-        'is_published' => 'boolean',
+        'start_date'        => 'date',
+        'end_date'          => 'date',
+        'published_at'      => 'datetime',
+        'max_students'      => 'integer',
+        'is_published'      => 'boolean',
     ];
-
 
     public function course(): BelongsTo
     {
@@ -66,9 +61,27 @@ class Batch extends Model
         return $this->hasMany(ClassSession::class);
     }
 
+    public function upcomingSessions(): HasMany
+    {
+        return $this->classSessions()
+            ->where('status', 'scheduled')
+            ->where('scheduled_start', '>=', now())
+            ->orderBy('scheduled_start');
+    }
+
+    public function nextSession(): ?ClassSession
+    {
+        return $this->upcomingSessions()->first();
+    }
+
     public function scopeActive($query)
     {
         return $query->where('status', 'active');
+    }
+
+    public function scopeEnrollmentOpen($query)
+    {
+        return $query->where('enrollment_status', 'open');
     }
 
     public function scopePublished($query)
@@ -76,26 +89,52 @@ class Batch extends Model
         return $query->where('is_published', true);
     }
 
-    public function scopeUpcoming($query)
-    {
-        return $query->where('start_date', '>', now())
-            ->where('status', '!=', 'cancelled');
-    }
-
-    public function scopeOngoing($query)
-    {
-        return $query->whereDate('start_date', '<=', now())
-            ->where(function ($q) {
-                $q->whereNull('end_date')
-                    ->orWhereDate('end_date', '>=', now());
-            })
-            ->where('status', 'active');
-    }
-
-    
     public function getStudentCountAttribute(): int
     {
         return $this->activeStudents()->count();
+    }
+
+    public function getPriceAttribute(): ?float
+    {
+        return $this->course?->price;
+    }
+
+    public function getScheduleSummaryAttribute(): string
+    {
+        $day      = $this->course?->session_day;
+        $time     = $this->course?->session_time;
+        $duration = $this->course?->session_duration_minutes;
+
+        if (!$day && !$time) return 'Schedule not set';
+
+        $parts = array_filter([$day, $time ? $this->formatTime($time) : null]);
+        $summary = implode(' at ', $parts);
+
+        if ($duration) {
+            $summary .= " ({$duration} min)";
+        }
+
+        return $summary;
+    }
+
+    public function isEnrollmentOpen(): bool
+    {
+        return $this->enrollment_status === 'open';
+    }
+
+    public function isFull(): bool
+    {
+        return $this->activeStudents()->count() >= $this->max_students;
+    }
+
+    public function openEnrollment(): void
+    {
+        $this->update(['enrollment_status' => 'open']);
+    }
+
+    public function closeEnrollment(): void
+    {
+        $this->update(['enrollment_status' => 'closed']);
     }
 
     public function publish(): void
@@ -106,40 +145,10 @@ class Batch extends Model
         ]);
     }
 
-    public function unpublish(): void
+    private function formatTime(string $t): string
     {
-        $this->update([
-            'is_published' => false,
-            'published_at' => null,
-        ]);
-    }
-
-    public function isFull(): bool
-    {
-        return $this->activeStudents()->count() >= $this->max_students;
-    }
-
-    public function getProgressPercentage(): float
-    {
-        if ($this->end_date === null) {
-            return 0;
-        }
-
-        $start = $this->start_date;
-        $end = $this->end_date;
-        $now = now()->date;
-
-        if ($now < $start) {
-            return 0;
-        }
-
-        if ($now > $end) {
-            return 100;
-        }
-
-        $total = $start->diffInDays($end);
-        $elapsed = $start->diffInDays($now);
-
-        return round(($elapsed / $total) * 100, 2);
+        [$h, $m] = explode(':', $t);
+        $hour = (int) $h;
+        return ($hour % 12 ?: 12) . ':' . $m . ' ' . ($hour >= 12 ? 'PM' : 'AM');
     }
 }

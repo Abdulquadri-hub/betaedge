@@ -16,7 +16,8 @@ class Course extends Model
     
     protected $fillable = [
         'tenant_id', "course_code", "title", "description", "category", 
-        "level", "duration_weeks", "credit_hours", "price", "thumbnail", "learning_objectives", "prerequisites", "status", "max_students", "academic_level_id"
+        "level", "duration_weeks", "credit_hours", "price", "thumbnail", "learning_objectives", "prerequisites", "status", "max_students", "academic_level_id", "session_frequency",
+        "session_day", "session_time", "session_duration_minutes", "session_platform"
     ];
 
     protected $casts = [
