@@ -63,7 +63,7 @@ class CourseController extends Controller
         return Inertia::render('School/Dashboard/Courses/Builder', [
             'course'         => null,
             'materials'      => [],
-            'batches'        => [],
+            'batches'        => $this->batchRepo->getActive() ?? [],
             'academicLevels' => $this->academicLevelRepo->getActive(),
         ]);
     }
