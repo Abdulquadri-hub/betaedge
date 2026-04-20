@@ -190,7 +190,7 @@ function handleDelete() {
                 </div>
                 <div class="rounded-xl border border-border bg-card p-4">
                     <p class="text-xs text-muted-foreground font-medium">Drafts</p>
-                    <p class="text-2xl font-bold text-amber-600 mt-1">{{ statusCounts.draft }}</p>
+                    <p class="text-2xl font-bold mt-1">{{ statusCounts.draft }}</p>
                     <p class="text-xs text-muted-foreground">not yet published</p>
                 </div>
             </div>

@@ -351,13 +351,13 @@ function handleSave() {
                                             ₦{{ (selectedCourse.price * form.max_students).toLocaleString('en-NG') }}
                                         </span>
                                     </div>
-                                    <div class="flex justify-between text-xs">
+                                    <!-- <div class="flex justify-between text-xs">
                                         <span class="text-muted-foreground">Your earnings (90%)</span>
                                         <span class="font-semibold text-emerald-600">
                                             ₦{{ Math.round(selectedCourse.price * form.max_students *
                                             0.9).toLocaleString('en-NG') }}
                                         </span>
-                                    </div>
+                                    </div> -->
                                 </div>
                             </div>
                         </CardContent>
