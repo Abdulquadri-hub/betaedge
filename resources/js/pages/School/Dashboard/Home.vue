@@ -38,8 +38,8 @@ const statCards = computed(() => [
         change: stats.value.totalStudents.change,
         trend: stats.value.totalStudents.trend,
         icon: Users,
-        iconBg: 'bg-primary/10',
-        iconColor: 'text-primary',
+        iconBg: 'bg-secondary/10',
+        iconColor: 'text-secondary',
         href: '/dashboard/students',
         suffix: '',
     },
@@ -60,8 +60,8 @@ const statCards = computed(() => [
         change: stats.value.monthRevenue.change,
         trend: stats.value.monthRevenue.trend,
         icon: Wallet,
-        iconBg: 'bg-emerald-100 dark:bg-emerald-950',
-        iconColor: 'text-emerald-600',
+        iconBg: 'bg-secondary/10',
+        iconColor: 'text-secondary',
         href: '/dashboard/financials',
         suffix: '',
         isRevenue: true,
@@ -72,8 +72,8 @@ const statCards = computed(() => [
         change: stats.value.pendingEnrollments.change,
         trend: stats.value.pendingEnrollments.trend,
         icon: ClipboardList,
-        iconBg: 'bg-amber-100 dark:bg-amber-950',
-        iconColor: 'text-amber-600',
+        iconBg: 'bg-secondary/10',
+        iconColor: 'text-secondary',
         href: '/dashboard/enrollments',
         suffix: ' requests',
     },
@@ -82,8 +82,8 @@ const statCards = computed(() => [
 const quickActions = [
     { label: 'New Batch', href: '/dashboard/batches', icon: UsersRound, color: 'text-primary' },
     { label: 'New Course', href: '/dashboard/courses', icon: BookOpen, color: 'text-secondary' },
-    { label: 'Schedule Session', href: '/dashboard/live-sessions', icon: Video, color: 'text-emerald-600' },
-    { label: 'View Reports', href: '/dashboard/reports', icon: TrendingUp, color: 'text-amber-600' },
+    { label: 'Schedule Session', href: '/dashboard/live-sessions', icon: Video, color: 'text-secondary' },
+    { label: 'View Reports', href: '/dashboard/reports', icon: TrendingUp, color: 'text-secondary' },
 ]
 
 const activityConfig = {
@@ -242,7 +242,7 @@ const firstName = computed(() => user.value.name.split(' ')[0])
                                                 : 'bg-primary/25 group-hover:bg-primary/40'" :style="{ height: barHeight(bar.revenue) + '%' }">
                                             <!-- Tooltip on hover -->
                                             <div class="absolute -top-8 left-1/2 -translate-x-1/2 hidden group-hover:flex
-                      bg-foreground text-background text-[10px] px-2 py-1 rounded whitespace-nowrap z-10 shadow">
+                                            bg-foreground text-background text-[10px] px-2 py-1 rounded whitespace-nowrap z-10 shadow">
                                                 {{ formatRevenue(bar.revenue) }}
                                             </div>
                                         </div>
@@ -269,8 +269,8 @@ const firstName = computed(() => user.value.name.split(' ')[0])
                                 </div>
                                 <div class="text-center">
                                     <p class="text-xs text-muted-foreground">Growth</p>
-                                    <p class="text-sm font-bold text-emerald-600">
-                                        +{{ stats.monthRevenue?.change ?? 18 }}%
+                                    <p class="text-sm font-bold text-secondary">
+                                        +{{ stats.monthRevenue?.change ?? 18 }}% 
                                     </p>
                                 </div>
                             </div>
