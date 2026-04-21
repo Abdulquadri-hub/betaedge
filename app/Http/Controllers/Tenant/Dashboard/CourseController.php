@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Tenant\Dashboard;
 
 use App\Http\Controllers\Controller;
+use App\Models\AcademicLevel;
 use App\Models\Course;
-// use App\Models\Material;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
@@ -277,7 +277,7 @@ class CourseController extends Controller
 
     private function getAcademicLevels(int $tenantId): array
     {
-        return \App\Models\AcademicLevel::withoutGlobalScopes()
+        return AcademicLevel::withoutGlobalScopes()
             ->where('tenant_id', $tenantId)
             ->where('is_active', true)
             ->orderBy('level_number')

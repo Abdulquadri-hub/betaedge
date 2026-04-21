@@ -96,7 +96,7 @@ class Course extends Model
             ->withTimestamps();
     }
 
-    public function activeBatches(): HasMany {
+    public function activeBatches() {
         return $this->batches()->where('status', 'active');
     }
 

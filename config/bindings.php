@@ -7,6 +7,7 @@ use App\Contracts\Repositories\PasswordReset\PasswordResetRepositoryInterface;
 use App\Contracts\Repositories\School\AcademicLevelRepositoryInterface;
 use App\Contracts\Repositories\School\BatchRepositoryInterface;
 use App\Contracts\Repositories\School\CourseRepositoryInterface;
+use App\Contracts\Repositories\School\LiveSessionRepositoryInterface;
 use App\Contracts\Repositories\School\TenantNotificationPreferenceRepositoryInterface;
 use App\Contracts\Repositories\School\TenantPaymentConfigRepositoryInterface;
 use App\Contracts\Repositories\SubscriptionPlanRepositoryInterface;
@@ -34,6 +35,7 @@ use App\Repositories\PasswordReset\PasswordResetRepository;
 use App\Repositories\School\AcademicLevelRepository;
 use App\Repositories\School\BatchRepository;
 use App\Repositories\School\CourseRepository;
+use App\Repositories\School\LiveSessionRepository;
 use App\Repositories\School\TenantNotificationPreferenceRepository;
 use App\Repositories\School\TenantPaymentConfigRepository;
 use App\Repositories\SubscriptionPlanRepository;
@@ -73,6 +75,7 @@ return [
         CourseRepositoryInterface::class => CourseRepository::class,
         TenantNotificationPreferenceRepositoryInterface::class => TenantNotificationPreferenceRepository::class,
         TenantPaymentConfigRepositoryInterface::class => TenantPaymentConfigRepository::class,
+        LiveSessionRepositoryInterface::class => LiveSessionRepository::class,
     ],
 
     'services' => [
