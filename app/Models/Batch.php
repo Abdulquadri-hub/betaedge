@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
+// use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Batch extends Model
@@ -16,17 +16,18 @@ class Batch extends Model
 
     protected $fillable = [
         'tenant_id',
-        'course_id',
         'batch_name',
         'batch_code',
         'description',
         'start_date',
         'end_date',
         'max_students',
-        'status',
+        'price',            
+        'price_note',     
+        'status',        
         'enrollment_status',
-        'whatsapp_link',   
-        'notes',          
+        'whatsapp_link',
+        'notes',
         'is_published',
         'published_at',
     ];
@@ -34,14 +35,33 @@ class Batch extends Model
     protected $casts = [
         'start_date'        => 'date',
         'end_date'          => 'date',
-        'published_at'      => 'datetime',
+        'price'             => 'decimal:2',
         'max_students'      => 'integer',
         'is_published'      => 'boolean',
+        'published_at'      => 'datetime',
     ];
 
-    public function course(): BelongsTo
+    public function courses(): BelongsToMany
     {
-        return $this->belongsTo(Course::class);
+        return $this->belongsToMany(Course::class, 'batch_courses', 'batch_id', 'course_id')
+            // ->using(BatchCourse::class)
+            ->withPivot([
+                'id',
+                'instructor_id',
+                'session_day',
+                'session_time',
+                'session_duration_minutes',
+                'session_platform',
+                'session_frequency',
+                'display_order',
+            ])
+            ->withTimestamps()
+            ->orderByPivot('display_order');
+    }
+
+    public function batchCourses(): HasMany
+    {
+        return $this->hasMany(BatchCourse::class)->orderBy('display_order');
     }
 
     public function students(): BelongsToMany
@@ -94,27 +114,14 @@ class Batch extends Model
         return $this->activeStudents()->count();
     }
 
-    public function getPriceAttribute(): ?float
+    public function getAcademicLevelAttribute(): ?string
     {
-        return $this->course?->price;
+        return $this->courses()->with('academicLevel')->first()?->academicLevel?->name;
     }
 
-    public function getScheduleSummaryAttribute(): string
+    public function canBePublished(): bool
     {
-        $day      = $this->course?->session_day;
-        $time     = $this->course?->session_time;
-        $duration = $this->course?->session_duration_minutes;
-
-        if (!$day && !$time) return 'Schedule not set';
-
-        $parts = array_filter([$day, $time ? $this->formatTime($time) : null]);
-        $summary = implode(' at ', $parts);
-
-        if ($duration) {
-            $summary .= " ({$duration} min)";
-        }
-
-        return $summary;
+        return $this->batchCourses()->exists();
     }
 
     public function isEnrollmentOpen(): bool
@@ -137,18 +144,17 @@ class Batch extends Model
         $this->update(['enrollment_status' => 'closed']);
     }
 
-    public function publish(): void
+    public function publish(): bool
     {
+        if (!$this->canBePublished()) {
+            return false;
+        }
+
         $this->update([
             'is_published' => true,
             'published_at' => now(),
         ]);
-    }
 
-    private function formatTime(string $t): string
-    {
-        [$h, $m] = explode(':', $t);
-        $hour = (int) $h;
-        return ($hour % 12 ?: 12) . ':' . $m . ' ' . ($hour >= 12 ? 'PM' : 'AM');
+        return true;
     }
 }

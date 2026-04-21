@@ -1,13 +1,11 @@
 <script setup>
-import { ref, computed } from 'vue'
-import { router } from '@inertiajs/vue3'
+import { ref, computed, watch } from 'vue'
+import { router, usePage } from '@inertiajs/vue3'
 import {
-    Plus, Search, BookOpen,
-    MoreVertical, Eye, Edit, Copy, Archive,
-    Trash2, Star, Clock, Calendar,
-    Video, RefreshCw,
-    Globe, Lock,
+    Plus, Search, MoreVertical, Eye, Edit, Copy, Trash2,
+    Globe, Archive, BookOpen, Users, RefreshCw,
 } from 'lucide-vue-next'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -25,13 +23,17 @@ import { toast } from 'vue-sonner'
 import DashboardLayout from '@/components/Dashboard/School/Layouts/DashboardLayout.vue'
 
 const props = defineProps({
-    courses:       { type: Array,  default: () => [] },
-    filters:       { type: Object, default: () => ({}) },
-    stats:         { type: Object, default: () => ({}) },
-    totalStudents: { type: Number, default: 0 },
-    totalRevenue:  { type: Number, default: 0 },
-    pagination:    { type: Object, default: null },
+    courses:    { type: Array,  default: () => [] },
+    filters:    { type: Object, default: () => ({}) },
+    stats:      { type: Object, default: () => ({}) },
+    pagination: { type: Object, default: null },
 })
+
+const page = usePage()
+watch(() => page.props.flash, (f) => {
+    if (f?.success) toast.success(f.success)
+    if (f?.error)   toast.error(f.error)
+}, { deep: true })
 
 const search       = ref(props.filters.search ?? '')
 const filterStatus = ref(props.filters.status ?? 'all')
@@ -44,94 +46,25 @@ const filteredCourses = computed(() => {
     if (search.value.trim()) {
         const q = search.value.toLowerCase()
         list = list.filter(c =>
-            c.title.toLowerCase().includes(q) ||
-            c.course_code?.toLowerCase().includes(q)
+            c.title?.toLowerCase().includes(q) ||
+            c.course_code?.toLowerCase().includes(q) ||
+            c.academic_level?.toLowerCase().includes(q)
         )
     }
     return list
 })
 
 const statusCounts = computed(() => ({
-    all:       props.courses.length,
-    published: props.courses.filter(c => c.status === 'active' || c.is_published).length,
-    draft:     props.courses.filter(c => c.status === 'draft').length,
-    archived:  props.courses.filter(c => c.status === 'archived').length,
+    all:      props.courses.length,
+    active:   props.courses.filter(c => c.status === 'active').length,
+    draft:    props.courses.filter(c => c.status === 'draft').length,
+    archived: props.courses.filter(c => c.status === 'archived').length,
 }))
 
 const statusConfig = {
-    active:    { label: 'Published', variant: 'default',   icon: Globe   },
-    draft:     { label: 'Draft',     variant: 'secondary', icon: Lock    },
-    archived:  { label: 'Archived',  variant: 'outline',   icon: Archive },
-}
-
-const categoryColors = [
-    'bg-primary/10 text-primary',
-    'bg-secondary/10 text-secondary',
-    'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400',
-    'bg-amber-100   text-amber-700   dark:bg-amber-950   dark:text-amber-400',
-    'bg-violet-100  text-violet-700  dark:bg-violet-950  dark:text-violet-400',
-]
-
-function courseColor(id) {
-    const idx = id ? parseInt(String(id).replace(/\D/g, '').slice(-1)) % categoryColors.length : 0
-    return categoryColors[idx]
-}
-
-function initials(title) {
-    return (title ?? '').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
-}
-
-function formatNaira(amount) {
-    if (!amount || amount === 0) return '₦0'
-    return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(amount)
-}
-
-function formatTime(time) {
-    if (!time) return '—'
-    const [h, m] = time.split(':')
-    const hour   = parseInt(h)
-    const suffix = hour >= 12 ? 'PM' : 'AM'
-    return `${hour % 12 || 12}:${m} ${suffix}`
-}
-
-function platformLabel(platform) {
-    return { jitsi: 'Jitsi Meet', zoom: 'Zoom', google_meet: 'Google Meet', custom: 'Custom' }[platform] ?? platform ?? '—'
-}
-
-function viewCourse(course) {
-    router.visit(`/dashboard/courses/${course.id}`)
-}
-
-function goToBuilder(course) {
-    router.visit(`/dashboard/courses/${course.id}/edit`)
-}
-
-const isPublishing = ref(null)
-
-function handlePublish(course) {
-    isPublishing.value = course.id
-    router.post(`/dashboard/courses/${course.id}/publish`, {}, {
-        preserveScroll: true,
-        onSuccess: () => toast.success(`${course.title} is now live`),
-        onError:   () => toast.error('Failed to publish course'),
-        onFinish:  () => { isPublishing.value = null },
-    })
-}
-
-function handleArchive(course) {
-    router.post(`/dashboard/courses/${course.id}/archive`, {}, {
-        preserveScroll: true,
-        onSuccess: () => toast.success(`${course.title} archived`),
-        onError:   () => toast.error('Failed to archive course'),
-    })
-}
-
-function handleDuplicate(course) {
-    router.post(`/dashboard/courses/${course.id}/duplicate`, {}, {
-        preserveScroll: true,
-        onSuccess: () => toast.success('Course duplicated'),
-        onError:   () => toast.error('Failed to duplicate course'),
-    })
+    active:   { label: 'Published', variant: 'default'   },
+    draft:    { label: 'Draft',     variant: 'secondary' },
+    archived: { label: 'Archived',  variant: 'outline'   },
 }
 
 const showDeleteDialog = ref(false)
@@ -147,193 +80,181 @@ function handleDelete() {
     if (!deletingCourse.value) return
     isDeleting.value = true
     router.delete(`/dashboard/courses/${deletingCourse.value.id}`, {
-        preserveScroll: true,
-        onSuccess: () => {
-            toast.success(`${deletingCourse.value.title} deleted`)
-            showDeleteDialog.value = false
-            deletingCourse.value   = null
-        },
-        onError: (errors) => toast.error(errors?.error ?? 'Failed to delete course'),
-        onFinish: () => { isDeleting.value = false },
+        onSuccess: () => { showDeleteDialog.value = false; deletingCourse.value = null },
+        onFinish:  () => { isDeleting.value = false },
     })
+}
+
+function handlePublish(course) {
+    router.post(`/dashboard/courses/${course.id}/publish`, {}, { preserveScroll: true })
+}
+
+function handleDuplicate(course) {
+    router.post(`/dashboard/courses/${course.id}/duplicate`, {})
 }
 </script>
 
 <template>
     <DashboardLayout>
         <div class="p-6 max-w-7xl mx-auto space-y-6">
+
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h1 class="text-2xl font-bold text-foreground tracking-tight">Courses</h1>
-                    <p class="text-sm text-muted-foreground mt-1">Build, publish, and manage your course catalogue.</p>
+                    <h1 class="text-2xl font-bold tracking-tight text-foreground">Courses</h1>
+                    <p class="text-sm text-muted-foreground mt-1">
+                        Subjects you teach. Attach them to batches to offer them to students.
+                    </p>
                 </div>
                 <Button class="gap-2 shrink-0" @click="router.visit('/dashboard/courses/create')">
                     <Plus class="h-4 w-4" />New Course
                 </Button>
             </div>
 
+            <!-- Stats -->
             <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <div class="rounded-xl border border-border bg-card p-4">
-                    <p class="text-xs text-muted-foreground font-medium">Total Courses</p>
-                    <p class="text-2xl font-bold text-foreground mt-1">{{ statusCounts.all }}</p>
-                    <p class="text-xs text-muted-foreground">{{ statusCounts.published }} published</p>
+                    <p class="text-xs font-medium text-muted-foreground">Total Courses</p>
+                    <p class="text-2xl font-bold text-foreground mt-1">{{ props.stats?.total ?? 0 }}</p>
                 </div>
                 <div class="rounded-xl border border-border bg-card p-4">
-                    <p class="text-xs text-muted-foreground font-medium">Total Students</p>
-                    <p class="text-2xl font-bold text-foreground mt-1">{{ totalStudents.toLocaleString() }}</p>
-                    <p class="text-xs text-muted-foreground">across all courses</p>
+                    <p class="text-xs font-medium text-muted-foreground">Published</p>
+                    <p class="text-2xl font-bold text-primary mt-1">{{ props.stats?.active ?? 0 }}</p>
                 </div>
                 <div class="rounded-xl border border-border bg-card p-4">
-                    <p class="text-xs text-muted-foreground font-medium">Total Revenue</p>
-                    <p class="text-2xl font-bold text-foreground mt-1">{{ formatNaira(totalRevenue) }}</p>
-                    <p class="text-xs text-muted-foreground">school earnings</p>
+                    <p class="text-xs font-medium text-muted-foreground">Drafts</p>
+                    <p class="text-2xl font-bold text-foreground mt-1">{{ props.stats?.draft ?? 0 }}</p>
                 </div>
                 <div class="rounded-xl border border-border bg-card p-4">
-                    <p class="text-xs text-muted-foreground font-medium">Drafts</p>
-                    <p class="text-2xl font-bold mt-1">{{ statusCounts.draft }}</p>
-                    <p class="text-xs text-muted-foreground">not yet published</p>
+                    <p class="text-xs font-medium text-muted-foreground">Archived</p>
+                    <p class="text-2xl font-bold text-muted-foreground mt-1">{{ props.stats?.archived ?? 0 }}</p>
                 </div>
             </div>
 
+            <!-- Toolbar -->
             <div class="flex flex-col sm:flex-row gap-3">
-                <Tabs :model-value="filterStatus" class="flex-1" @update:model-value="filterStatus = $event">
+                <Tabs :model-value="filterStatus" @update:model-value="filterStatus = $event">
                     <TabsList>
-                        <TabsTrigger value="all">All <Badge variant="secondary" class="ml-1.5 h-5 px-1.5 text-xs">{{ statusCounts.all }}</Badge></TabsTrigger>
-                        <TabsTrigger value="active">Published <Badge variant="default" class="ml-1.5 h-5 px-1.5 text-xs">{{ statusCounts.published }}</Badge></TabsTrigger>
-                        <TabsTrigger value="draft">Drafts <Badge variant="secondary" class="ml-1.5 h-5 px-1.5 text-xs">{{ statusCounts.draft }}</Badge></TabsTrigger>
-                        <TabsTrigger value="archived">Archived <Badge variant="outline" class="ml-1.5 h-5 px-1.5 text-xs">{{ statusCounts.archived }}</Badge></TabsTrigger>
+                        <TabsTrigger value="all">All
+                            <Badge variant="secondary" class="ml-1.5 h-4 px-1.5 text-[10px]">{{ statusCounts.all }}</Badge>
+                        </TabsTrigger>
+                        <TabsTrigger value="active">Published
+                            <Badge variant="default" class="ml-1.5 h-4 px-1.5 text-[10px]">{{ statusCounts.active }}</Badge>
+                        </TabsTrigger>
+                        <TabsTrigger value="draft">Drafts
+                            <Badge variant="secondary" class="ml-1.5 h-4 px-1.5 text-[10px]">{{ statusCounts.draft }}</Badge>
+                        </TabsTrigger>
                     </TabsList>
                 </Tabs>
-                <div class="relative w-full sm:w-64">
+                <div class="relative flex-1 sm:max-w-xs">
                     <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input v-model="search" placeholder="Search courses..." class="pl-9" />
+                    <Input v-model="search" placeholder="Search courses…" class="pl-9" />
                 </div>
             </div>
 
-            <div class="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-                <div v-if="filteredCourses.length === 0" class="col-span-full flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-16 text-center">
-                    <BookOpen class="h-10 w-10 text-muted-foreground/40 mb-3" />
-                    <p class="text-sm font-medium text-foreground">No courses found</p>
-                    <p class="text-xs text-muted-foreground mt-1">
-                        {{ search ? 'Try a different search term.' : 'Create your first course to get started.' }}
-                    </p>
-                    <Button class="mt-4 gap-2" size="sm" @click="router.visit('/dashboard/courses/create')">
-                        <Plus class="h-4 w-4" />Create Course
-                    </Button>
-                </div>
+            <!-- Empty -->
+            <div v-if="filteredCourses.length === 0"
+                class="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-16 text-center">
+                <BookOpen class="h-10 w-10 text-muted-foreground/40 mb-3" />
+                <p class="text-sm font-medium text-foreground">No courses found</p>
+                <p class="text-xs text-muted-foreground mt-1">
+                    {{ search ? 'Try a different search.' : 'Create your first course to get started.' }}
+                </p>
+                <Button class="mt-4 gap-2" size="sm" @click="router.visit('/dashboard/courses/create')">
+                    <Plus class="h-4 w-4" />New Course
+                </Button>
+            </div>
 
-                <div v-for="course in filteredCourses" :key="course.id"
-                    class="group rounded-xl border border-border bg-card overflow-hidden transition-all duration-200 hover:shadow-lg hover:border-primary/30 hover:-translate-y-0.5 cursor-pointer"
-                    @click="viewCourse(course)">
-                    <div class="relative h-28 flex items-center justify-center overflow-hidden"
-                        :class="course.thumbnail ? '' : courseColor(course.id)">
-                        <img v-if="course.thumbnail" :src="course.thumbnail" :alt="course.title" class="w-full h-full object-cover" />
-                        <span v-else class="text-4xl font-black opacity-30 select-none tracking-tighter">{{ initials(course.title) }}</span>
+            <!-- Grid -->
+            <div v-else class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                <Card v-for="course in filteredCourses" :key="course.id"
+                    class="group overflow-hidden transition-all duration-200 hover:shadow-md hover:border-primary/20 cursor-pointer"
+                    @click="router.visit(`/dashboard/courses/${course.id}`)">
 
-                        <div class="absolute top-2.5 left-2.5">
-                            <Badge :variant="statusConfig[course.status]?.variant ?? 'outline'" class="text-xs gap-1 shadow-sm">
-                                <component :is="statusConfig[course.status]?.icon" class="h-3 w-3" />
+                    <!-- Thumbnail -->
+                    <div class="relative h-36 bg-gradient-to-br from-muted to-muted/60 overflow-hidden">
+                        <img v-if="course.thumbnail" :src="course.thumbnail" :alt="course.title"
+                            class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                        <div v-else
+                            class="flex h-full w-full items-center justify-center">
+                            <BookOpen class="h-10 w-10 text-muted-foreground/30" />
+                        </div>
+                        <div class="absolute top-3 left-3">
+                            <Badge :variant="statusConfig[course.status]?.variant ?? 'secondary'" class="text-xs shadow-sm">
                                 {{ statusConfig[course.status]?.label ?? course.status }}
                             </Badge>
                         </div>
-
-                        <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div class="absolute top-3 right-3" @click.stop>
                             <DropdownMenu>
                                 <DropdownMenuTrigger as-child>
-                                    <Button variant="secondary" size="icon" class="h-7 w-7 shadow-sm" @click.stop>
+                                    <Button variant="secondary" size="icon"
+                                        class="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">
                                         <MoreVertical class="h-3.5 w-3.5" />
                                     </Button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" @click.stop>
-                                    <DropdownMenuItem @click.stop="viewCourse(course)"><Eye class="mr-2 h-4 w-4" />View Course</DropdownMenuItem>
-                                    <DropdownMenuItem @click.stop="goToBuilder(course)"><Edit class="mr-2 h-4 w-4" />Edit / Builder</DropdownMenuItem>
-                                    <DropdownMenuItem @click.stop="handleDuplicate(course)"><Copy class="mr-2 h-4 w-4" />Duplicate</DropdownMenuItem>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem v-if="course.status === 'draft'" @click.stop="handlePublish(course)">
-                                        <Globe class="mr-2 h-4 w-4 text-primary" />Publish Course
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuItem @click="router.visit(`/dashboard/courses/${course.id}`)">
+                                        <Eye class="mr-2 h-4 w-4" />View
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem v-if="course.status === 'active'" @click.stop="handleArchive(course)">
-                                        <Archive class="mr-2 h-4 w-4" />Archive Course
+                                    <DropdownMenuItem @click="router.visit(`/dashboard/courses/${course.id}/edit`)">
+                                        <Edit class="mr-2 h-4 w-4" />Edit
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem @click="handleDuplicate(course)">
+                                        <Copy class="mr-2 h-4 w-4" />Duplicate
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem v-if="course.status === 'draft'" @click="handlePublish(course)">
+                                        <Globe class="mr-2 h-4 w-4 text-primary" />Publish
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem v-if="course.status === 'active'" @click="router.post(`/dashboard/courses/${course.id}/archive`, {})">
+                                        <Archive class="mr-2 h-4 w-4" />Archive
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem class="text-destructive focus:text-destructive"
-                                        :disabled="course.active_batches > 0" @click.stop="confirmDelete(course)">
-                                        <Trash2 class="mr-2 h-4 w-4" />
-                                        {{ course.active_batches > 0 ? 'Cannot delete (active batches)' : 'Delete Course' }}
+                                        @click="confirmDelete(course)">
+                                        <Trash2 class="mr-2 h-4 w-4" />Delete
                                     </DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
                         </div>
                     </div>
 
-                    <div class="p-4">
-                        <h3 class="font-semibold text-foreground text-sm leading-snug group-hover:text-primary transition-colors line-clamp-2 mb-1">
+                    <CardContent class="p-4">
+                        <p class="font-semibold text-foreground text-sm leading-snug group-hover:text-primary transition-colors mb-1">
                             {{ course.title }}
-                        </h3>
-                        <div class="flex items-center gap-2 mb-3 flex-wrap">
-                            <Badge variant="outline" class="text-[10px] h-4 px-1.5">{{ course.academic_level }}</Badge>
-                            <span class="text-[10px] text-muted-foreground flex items-center gap-1">
-                                <Clock class="h-3 w-3" />{{ course.duration_weeks }} weeks
+                        </p>
+                        <p class="text-xs text-muted-foreground mb-3">
+                            {{ course.academic_level ?? '—' }}
+                            <span v-if="course.duration_weeks"> · {{ course.duration_weeks }}w</span>
+                        </p>
+
+                        <div class="flex items-center justify-between text-xs text-muted-foreground border-t border-border pt-3">
+                            <span class="flex items-center gap-1">
+                                <Users class="h-3.5 w-3.5" />
+                                {{ course.batch_count ?? 0 }} batch{{ (course.batch_count ?? 0) !== 1 ? 'es' : '' }}
                             </span>
+                            <span class="font-mono text-muted-foreground/60 text-[10px]">{{ course.course_code }}</span>
                         </div>
-                        <div class="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-                            <Calendar class="h-3.5 w-3.5 shrink-0" />
-                            <span>{{ course.session_day || '—' }} · {{ formatTime(course.session_time) }}</span>
-                        </div>
-                        <div class="flex items-center gap-2 text-xs text-muted-foreground mb-4">
-                            <Video class="h-3.5 w-3.5 shrink-0" />
-                            <span>{{ platformLabel(course.session_platform) }} · {{ course.session_duration_minutes || '—' }} min sessions</span>
-                        </div>
-                        <div class="grid grid-cols-3 gap-2 pt-3 border-t border-border">
-                            <div class="text-center">
-                                <p class="text-sm font-bold text-foreground">{{ course.total_batches }}</p>
-                                <p class="text-[10px] text-muted-foreground">Batches</p>
-                            </div>
-                            <div class="text-center">
-                                <p class="text-sm font-bold text-foreground">{{ course.total_students }}</p>
-                                <p class="text-[10px] text-muted-foreground">Students</p>
-                            </div>
-                            <div class="text-center">
-                                <p class="text-sm font-bold text-foreground">{{ formatNaira(course.price_per_student) }}</p>
-                                <p class="text-[10px] text-muted-foreground">Per student</p>
-                            </div>
-                        </div>
-                        <div class="flex items-center justify-between mt-3 pt-2 border-t border-border">
-                            <div class="flex items-center gap-1">
-                                <Star v-if="course.avg_rating" class="h-3.5 w-3.5 text-amber-500 fill-amber-500" />
-                                <span class="text-xs font-medium text-foreground">{{ course.avg_rating ?? 'No reviews yet' }}</span>
-                            </div>
-                            <span class="text-xs font-semibold text-emerald-600">{{ formatNaira(course.total_revenue) }} earned</span>
-                        </div>
-                        <div v-if="course.status === 'draft'" class="mt-3">
-                            <Button size="sm" class="w-full gap-2 text-xs h-8" :disabled="isPublishing === course.id" @click.stop="handlePublish(course)">
-                                <RefreshCw v-if="isPublishing === course.id" class="h-3.5 w-3.5 animate-spin" />
-                                <Globe v-else class="h-3.5 w-3.5" />
-                                {{ isPublishing === course.id ? 'Publishing...' : 'Publish Course' }}
-                            </Button>
-                        </div>
-                        <div v-else-if="course.status === 'active'" class="mt-3">
-                            <Button size="sm" variant="outline" class="w-full gap-2 text-xs h-8" @click.stop="goToBuilder(course)">
-                                <Edit class="h-3.5 w-3.5" />Open Builder
-                            </Button>
-                        </div>
-                    </div>
-                </div>
+                    </CardContent>
+                </Card>
             </div>
 
+            <!-- Delete dialog -->
             <AlertDialog :open="showDeleteDialog" @update:open="showDeleteDialog = $event">
                 <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>Delete this course?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            <strong class="text-foreground">{{ deletingCourse?.title }}</strong> and all its materials will be permanently deleted. This cannot be undone.
+                            <strong class="text-foreground">{{ deletingCourse?.title }}</strong>
+                            will be permanently deleted. Remove it from all batches first.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel :disabled="isDeleting">Cancel</AlertDialogCancel>
-                        <AlertDialogAction class="bg-destructive text-destructive-foreground hover:bg-destructive/90" :disabled="isDeleting" @click="handleDelete">
+                        <AlertDialogAction
+                            class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            :disabled="isDeleting" @click="handleDelete">
                             <RefreshCw v-if="isDeleting" class="mr-2 h-4 w-4 animate-spin" />
-                            {{ isDeleting ? 'Deleting...' : 'Delete Course' }}
+                            {{ isDeleting ? 'Deleting…' : 'Delete Course' }}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
