@@ -366,7 +366,7 @@ function handleDelete() {
                         <div class="mt-3 pt-3 border-t border-border flex items-center justify-between">
                             <span class="text-xs text-muted-foreground">Price per student</span>
                             <span class="text-xs font-semibold text-foreground">
-                                {{ fmtNaira(batch.price_per_student) }}
+                                {{ fmtNaira(batch.price) }}
                             </span>
                         </div>
                     </CardContent>
