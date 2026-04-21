@@ -15,16 +15,26 @@ class Course extends Model
     use BelongsToTenant, HasFactory;
     
     protected $fillable = [
-        'tenant_id', "course_code", "title", "description", "category", 
-        "level", "duration_weeks", "credit_hours", "price", "thumbnail", "learning_objectives", "prerequisites", "status", "max_students", "academic_level_id"
+        'tenant_id',
+        'course_code',
+        'title',
+        'description',
+        'academic_level_id',
+        'duration_weeks',
+        'thumbnail',
+        'learning_objectives',
+        'prerequisites',
+        'status',           
+        'is_published',
+        'published_at',
     ];
-
+ 
     protected $casts = [
-        'price' => 'decimal:2',
-        'duration_weeks' => 'integer',
+        'duration_weeks'      => 'integer',
+        'is_published'        => 'boolean',
+        'published_at'        => 'datetime',
         'learning_objectives' => 'array',
-        'credit_hours' => 'integer',
-        'max_students' => 'integer',
+        'prerequisites'       => 'array',
     ];
 
     protected $appends = [
@@ -65,22 +75,46 @@ class Course extends Model
             ->where('status', 'scheduled');
     }
 
-    public function assignments(): HasMany {
-        return $this->hasMany(Assignment::class);
+    // public function batches(): HasMany {
+    //     return $this->hasMany(Batch::class);
+    // }
+
+     public function batches(): BelongsToMany
+    {
+        return $this->belongsToMany(Batch::class, 'batch_courses', 'course_id', 'batch_id')
+            // ->using(BatchCourse::class)
+            ->withPivot([
+                'id',
+                'instructor_id',
+                'session_day',
+                'session_time',
+                'session_duration_minutes',
+                'session_platform',
+                'session_frequency',
+                'display_order',
+            ])
+            ->withTimestamps();
     }
 
-    public function materials(): HasMany {
-        return $this->hasMany(Material::class);
-    }
-
-    public function batches(): HasMany {
-        return $this->hasMany(Batch::class);
-    }
-
-    public function activeBatches(): HasMany {
+    public function activeBatches() {
         return $this->batches()->where('status', 'active');
     }
 
+    public function batchCourses(): HasMany
+    {
+        return $this->hasMany(BatchCourse::class);
+    }
+ 
+    public function materials(): HasMany
+    {
+        return $this->hasMany(Material::class)->orderBy('display_order');
+    }
+ 
+    public function assignments(): HasMany
+    {
+        return $this->hasMany(Assignment::class);
+    }
+ 
     public function scopeByAcademicLevel($query, int $levelId)
     {
         return $query->where('academic_level_id', $levelId);
@@ -105,6 +139,16 @@ class Course extends Model
         return $query->whereHas('academicLevel', function ($q) {
             $q->where('level_type', 'high');
         });
+    }
+
+    public function scopeActive($query)
+    {
+        return $query->where('status', 'active');
+    }
+ 
+    public function scopeDraft($query)
+    {
+        return $query->where('status', 'draft');
     }
 
     public function getGradeLevelName(): ?string
@@ -186,5 +230,20 @@ class Course extends Model
         }
 
         return ['can_enroll' => true, 'reason' => null];
+    }
+
+    public function getActiveBatchCountAttribute(): int
+    {
+        return $this->batches()
+            ->wherePivot('tenant_id', $this->tenant_id)
+            ->where('batches.status', 'active')
+            ->count();
+    }
+ 
+    public function getTotalEnrollmentAttribute(): int
+    {
+        return \App\Models\Enrollment::whereHas('batch.batchCourses', function ($q) {
+            $q->where('course_id', $this->id);
+        })->where('status', 'active')->count();
     }
 }

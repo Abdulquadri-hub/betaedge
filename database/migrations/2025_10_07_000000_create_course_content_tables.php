@@ -48,12 +48,12 @@ return new class extends Migration
             $table->unsignedBigInteger('course_id');
             $table->string('title');
             $table->text('description')->nullable();
-            $table->enum('material_type', ['document', 'video', 'image', 'audio', 'link', 'quiz'])->default('document');
+            $table->enum('material_type', ['document', 'video', 'image', 'audio', 'link', 'quiz', 'pdf'])->default('document');
             $table->string('file_url')->nullable();
             $table->string('file_path')->nullable();
             $table->string('file_mime_type')->nullable();
             $table->unsignedBigInteger('file_size_bytes')->nullable();
-            $table->text('content')->nullable(); // For embedded content
+            $table->text('content')->nullable(); 
             $table->integer('display_order')->default(0);
             $table->boolean('is_published')->default(true);
             $table->timestamp('published_at')->nullable();

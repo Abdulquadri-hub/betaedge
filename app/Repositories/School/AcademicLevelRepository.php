@@ -8,36 +8,35 @@ use Illuminate\Pagination\LengthAwarePaginator;
 
 class AcademicLevelRepository implements AcademicLevelRepositoryInterface
 {
-    /**
-     * Get all active academic levels for tenant
-     */
+    private function tenantId(): int
+    {
+        return (int) session('active_tenant_id');
+    }
+
     public function getActive(): array
     {
-        return AcademicLevel::where('tenant_id', session('active_tenant_id'))
+        return AcademicLevel::withoutGlobalScopes()
+            ->where('tenant_id', $this->tenantId())
             ->where('is_active', true)
             ->orderBy('display_order', 'asc')
+            ->orderBy('level_number', 'asc')
             ->get()
             ->toArray();
     }
 
-    /**
-     * Get academic level by ID
-     */
     public function getById(int|string $id): ?AcademicLevel
     {
-        return AcademicLevel::where('tenant_id', session('active_tenant_id'))
-            ->find((int) $id);
+        return AcademicLevel::withoutGlobalScopes()
+            ->where('tenant_id', $this->tenantId())
+            ->where('id', (int) $id)
+            ->first();
     }
 
-    /**
-     * Get paginated academic levels with optional filters
-     */
     public function getPaginated(int $perPage = 15, array $filters = []): LengthAwarePaginator
     {
-        $query = AcademicLevel::query()
-            ->where('tenant_id', session('active_tenant_id'));
+        $query = AcademicLevel::withoutGlobalScopes()
+            ->where('tenant_id', $this->tenantId());
 
-        // Search filter
         if (!empty($filters['search'])) {
             $query->where(function ($q) use ($filters) {
                 $q->where('name', 'like', "%{$filters['search']}%")
@@ -45,24 +44,21 @@ class AcademicLevelRepository implements AcademicLevelRepositoryInterface
             });
         }
 
-        // Status filter
         if (isset($filters['is_active'])) {
             $query->where('is_active', (bool) $filters['is_active']);
         }
 
-        return $query->orderBy('display_order', 'asc')->paginate($perPage);
+        return $query->orderBy('display_order', 'asc')->orderBy('level_number', 'asc')->paginate($perPage);
     }
 
-    /**
-     * Create new academic level
-     */
     public function create(array $data): AcademicLevel
     {
-        $data['tenant_id'] = session('active_tenant_id');
-        
-        // If display_order not provided, set to next highest
+        $tenantId          = $this->tenantId();
+        $data['tenant_id'] = $tenantId;
+
         if (!isset($data['display_order'])) {
-            $maxOrder = AcademicLevel::where('tenant_id', $data['tenant_id'])
+            $maxOrder              = AcademicLevel::withoutGlobalScopes()
+                ->where('tenant_id', $tenantId)
                 ->max('display_order') ?? 0;
             $data['display_order'] = $maxOrder + 1;
         }
@@ -70,9 +66,6 @@ class AcademicLevelRepository implements AcademicLevelRepositoryInterface
         return AcademicLevel::create($data);
     }
 
-    /**
-     * Update academic level
-     */
     public function update(int|string $id, array $data): AcademicLevel
     {
         $level = $this->getById($id);
@@ -82,13 +75,9 @@ class AcademicLevelRepository implements AcademicLevelRepositoryInterface
         }
 
         $level->update($data);
-
-        return $level;
+        return $level->fresh();
     }
 
-    /**
-     * Delete academic level
-     */
     public function delete(int|string $id): bool
     {
         $level = $this->getById($id);
@@ -97,21 +86,16 @@ class AcademicLevelRepository implements AcademicLevelRepositoryInterface
             throw new \Exception("Academic level not found");
         }
 
-        // Soft delete via model or hard delete
-        return $level->delete();
+        return (bool) $level->delete();
     }
 
-    /**
-     * Get total count for tenant
-     */
     public function count(): int
     {
-        return AcademicLevel::where('tenant_id', session('active_tenant_id'))->count();
+        return AcademicLevel::withoutGlobalScopes()
+            ->where('tenant_id', $this->tenantId())
+            ->count();
     }
 
-    /**
-     * Check if academic level is in use (has courses)
-     */
     public function isInUse(int|string $id): bool
     {
         $level = $this->getById($id);

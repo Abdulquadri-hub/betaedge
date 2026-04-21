@@ -10,101 +10,83 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Material extends Model
 {
     use BelongsToTenant, HasFactory;
-    
+
     protected $fillable = [
         'tenant_id',
         'course_id',
-        'instructor_id',
         'title',
-        'description',
-        'type',
-        'file_path',
-        'file_name',
-        'file_size',
-        'external_url',
-        'download_count',
-        'is_downloadable',
-        'uploaded_at',
-        'status',
+        'description',      
+        'material_type',    
+        'file_url',         
+        'file_path',        
+        'file_mime_type',
+        'file_size_bytes',  
+        'display_order',
+        'is_published',     
+        'view_count',       
     ];
 
     protected $casts = [
-        'file_size' => 'integer',
-        'download_count' => 'integer',
-        'is_downloadable' => 'boolean',
-        'uploaded_at' => 'datetime',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
-        'deleted_at' => 'datetime',
+        'file_size_bytes' => 'integer',
+        'view_count'      => 'integer',
+        'display_order'   => 'integer',
+        'is_published'    => 'boolean',
+        'published_at'    => 'datetime',
+        'metadata'        => 'array',
+        'created_at'      => 'datetime',
+        'updated_at'      => 'datetime',
     ];
 
-    // Relationships
+    
     public function course(): BelongsTo
     {
         return $this->belongsTo(Course::class);
     }
 
-    public function instructor(): BelongsTo
+    public function getUrlAttribute(): ?string
     {
-        return $this->belongsTo(Instructor::class);
-    }
-
-    // Accessors
-    public function getFileUrlAttribute(): ?string
-    {
-        return $this->file_path ? asset('storage/' . $this->file_path) : null;
+        if ($this->file_url) return $this->file_url;
+        if ($this->file_path) return asset('storage/' . $this->file_path);
+        return null;
     }
 
     public function getFileSizeHumanAttribute(): string
     {
-        if (!$this->file_size) return 'N/A';
-
-        $units = ['B', 'KB', 'MB', 'GB'];
-        $size = $this->file_size;
-        $unit = 0;
-
-        while ($size >= 1024 && $unit < count($units) - 1) {
-            $size /= 1024;
-            $unit++;
-        }
-
-        return round($size, 2) . ' ' . $units[$unit];
+        if (!$this->file_size_bytes) return '';
+        $kb = $this->file_size_bytes / 1024;
+        return $kb >= 1024
+            ? round($kb / 1024, 1) . ' MB'
+            : round($kb) . ' KB';
     }
 
-    // Scopes
+
     public function scopePublished($query)
     {
-        return $query->where('status', 'published');
+        return $query->where('is_published', true);
     }
 
     public function scopeByType($query, string $type)
     {
-        return $query->where('type', $type);
+        return $query->where('material_type', $type);
     }
 
-    // Helper Methods
-    public function incrementDownloadCount(): void
+    public function incrementViewCount(): void
     {
-        $this->increment('download_count');
-    }
-
-    public function isVideo(): bool
-    {
-        return $this->type === 'video';
+        $this->increment('view_count');
     }
 
     public function isPdf(): bool
     {
-        return $this->type === 'pdf';
+        return in_array($this->material_type, ['pdf', 'document']);
     }
 
-    public function hasFile(): bool
+    public function isVideo(): bool
     {
-        return !empty($this->file_path);
+        return $this->material_type === 'video';
     }
 
-    public function hasExternalUrl(): bool
+    public function isLink(): bool
     {
-        return !empty($this->external_url);
+        return $this->material_type === 'link';
     }
 }

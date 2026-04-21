@@ -41,36 +41,38 @@ class Tenant extends Model
         'trial_ends_at',
         'setup_completed',
         'onboarding_step',
+        'enrollment_mode',
+        'tagline',
+        'phone',
+        'whatsapp',
     ];
 
     protected $casts = [
-        'is_verified' => 'boolean',
-        'setup_completed' => 'boolean',
-        'email_verified_at' => 'datetime',
-        'trial_ends_at' => 'datetime',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
-        'deleted_at' => 'datetime',
+        'is_verified'      => 'boolean',
+        'setup_completed'  => 'boolean',
+        'email_verified_at'=> 'datetime',
+        'trial_ends_at'    => 'datetime',
+        'created_at'       => 'datetime',
+        'updated_at'       => 'datetime',
+        'deleted_at'       => 'datetime',
     ];
 
     protected $hidden = [
-        'verification_token'
+        'verification_token',
     ];
-
 
     protected static function boot()
     {
         parent::boot();
 
         static::creating(function ($tenant) {
-            if(empty($tenant->slug)) {
+            if (empty($tenant->slug)) {
                 $tenant->slug = self::generateUniqueSlug($tenant->name);
             }
 
-            if(empty($tenant->subdomain)) {
-                $appUrl = config("app.url", 'https://betaedge.test');
+            if (empty($tenant->subdomain)) {
+                $appUrl       = config('app.url', 'https://betaedge.test');
                 $parsedDomain = parse_url($appUrl, PHP_URL_HOST);
-
                 $tenant->subdomain = $tenant->slug . '.' . $parsedDomain;
             }
 
@@ -83,23 +85,25 @@ class Tenant extends Model
             Cache::forget("tenant_host_{$tenant->slug}." . config('app.main_domain'));
             Cache::forget("tenant_host_{$tenant->custom_domain}");
         });
-         
     }
 
-    public function owner(): BelongsTo 
+    public function owner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'owner_id');
     }
 
-    public function users(): HasMany {
+    public function users(): HasMany
+    {
         return $this->hasMany(TenantUser::class);
     }
 
-    public function subscription(): BelongsTo {
+    public function subscription(): BelongsTo
+    {
         return $this->belongsTo(TenantSubscription::class, 'id', 'tenant_id');
     }
 
-    public function subscriptionHistory(): HasMany {
+    public function subscriptionHistory(): HasMany
+    {
         return $this->hasMany(TenantSubscription::class);
     }
 
@@ -128,119 +132,134 @@ class Tenant extends Model
         return $this->hasMany(DomainVerification::class);
     }
 
-    public function files(): HasMany {
+    public function files(): HasMany
+    {
         return $this->hasMany(TenantFile::class, 'tenant_id');
     }
 
-    public function onboardingProcess(): HasOne {
-        return $this->hasOne(onboardingProcess::class, 'tenant_id');
+    public function onboardingProcess(): HasOne
+    {
+        return $this->hasOne(OnboardingProcess::class, 'tenant_id');
     }
 
-    public function scopeActive($query) {
+    public function paymentConfig(): HasOne
+    {
+        return $this->hasOne(TenantPaymentConfig::class);
+    }
+
+    public function notificationPreference(): HasOne
+    {
+        return $this->hasOne(TenantNotificationPreference::class);
+    }
+
+    public function scopeActive($query)
+    {
         return $query->where('status', 'active');
     }
 
-    public function scopeVerified($query) {
+    public function scopeVerified($query)
+    {
         return $query->where('is_verified', 'true');
     }
 
-    public function scopeOnTrial($query) {
+    public function scopeOnTrial($query)
+    {
         return $query->where('trial_ends_at', '>', now())
-                    ->whereNull('deleted_at');
+            ->whereNull('deleted_at');
     }
 
-    public function getFullDomainAttribute(): string {
+    public function getFullDomainAttribute(): string
+    {
         return $this->custom_domain ?? $this->subdomain;
     }
 
-    public function hasCustomDomain(): bool {
+    public function hasCustomDomain(): bool
+    {
         return !empty($this->custom_domain);
     }
 
-    public function isOnTrial(): bool {
-        return $this->trial_ends_at && 
-        $this->trial_ends_at->isFuture();
+    public function isOnTrial(): bool
+    {
+        return $this->trial_ends_at && $this->trial_ends_at->isFuture();
     }
 
-    public function trialDaysRemaining(): int {
+    public function trialDaysRemaining(): int
+    {
         if (!$this->trial_ends_at) return 0;
-        
         return max(0, now()->diffInDays($this->trial_ends_at, false));
     }
 
-    public function getCurrentSubscription(): ?TenantSubscription {
+    public function getCurrentSubscription(): ?TenantSubscription
+    {
         return TenantSubscription::where('tenant_id', $this->id)
             ->where('status', 'active')
             ->first();
     }
 
-    public function hasReachedLimit(string $limitType): bool {
+    public function hasReachedLimit(string $limitType): bool
+    {
         $subscription = $this->getCurrentSubscription();
-
-        if(!$subscription) return true;
+        if (!$subscription) return true;
 
         return match ($limitType) {
-            'students' => $this->students()->count() >= $subscription->plan->max_students,
-            'instructor'=> $this->instructors()->count() >= $subscription->plan->max_instructors,
-            'courses' => $this->courses()->count() >= $subscription->plan->max_courses,
-            'storage' => $this->calculateStorageUsage() >= $subscription->plan->storage_gb * 1024 * 1024 * 1024,
-            default => false
+            'students'   => $this->students()->count() >= $subscription->plan->max_students,
+            'instructor' => $this->instructors()->count() >= $subscription->plan->max_instructors,
+            'courses'    => $this->courses()->count() >= $subscription->plan->max_courses,
+            'storage'    => $this->calculateStorageUsage() >= $subscription->plan->storage_gb * 1024 * 1024 * 1024,
+            default      => false,
         };
     }
 
-    public function  getUsageStats(): array {
-
+    public function getUsageStats(): array
+    {
         $subscription = $this->getCurrentSubscription();
 
         return [
             'students' => [
-                'current' => $this->students()->count(),
-                'limit' => $subscription?->plan->students,
-                'percentage' => $this->calculateUsagePercentage('students')
+                'current'    => $this->students()->count(),
+                'limit'      => $subscription?->plan->students,
+                'percentage' => $this->calculateUsagePercentage('students'),
             ],
             'instructors' => [
-                'current' => $this->instructors()->count(),
-                'limit' => $subscription?->plan->instructors,
-                'percentage' => $this->calculateUsagePercentage('instructors')
+                'current'    => $this->instructors()->count(),
+                'limit'      => $subscription?->plan->instructors,
+                'percentage' => $this->calculateUsagePercentage('instructors'),
             ],
             'courses' => [
-                'current' => $this->courses()->count(),
-                'limit' => $subscription?->plan->courses,
-                'percentage' => $this->calculateUsagePercentage('courses')
+                'current'    => $this->courses()->count(),
+                'limit'      => $subscription?->plan->courses,
+                'percentage' => $this->calculateUsagePercentage('courses'),
             ],
             'storage' => [
-                'current' => $this->calculateStorageUsage(),
-                'limit' => ($subscription?->plan->storage_gb ?? 0) * 1024 * 1024 * 1024,
-                'percentage' => $this->calculateUsagePercentage('storage')
-            ]
+                'current'    => $this->calculateStorageUsage(),
+                'limit'      => ($subscription?->plan->storage_gb ?? 0) * 1024 * 1024 * 1024,
+                'percentage' => $this->calculateUsagePercentage('storage'),
+            ],
         ];
-
     }
 
-    protected  function calculateUsagePercentage(string $type): float {
-
+    protected function calculateUsagePercentage(string $type): float
+    {
         $subscription = $this->getCurrentSubscription();
-
-        if(!$subscription) return 0;
+        if (!$subscription) return 0;
 
         $current = match ($type) {
-            'students' => $this->students()->count(),
+            'students'    => $this->students()->count(),
             'instructors' => $this->instructors()->count(),
-            'courses' => $this->courses()->count(),
-            'storage' => $this->calculateStorageUsage(),
-            default => 0,
+            'courses'     => $this->courses()->count(),
+            'storage'     => $this->calculateStorageUsage(),
+            default       => 0,
         };
 
-        $limit = match($type) {
-            'students' => $subscription?->plan->students,
+        $limit = match ($type) {
+            'students'    => $subscription?->plan->students,
             'instructors' => $subscription?->plan->instructors,
-            'courses' => $subscription?->plan->courses,
-            'storage' => $subscription->plan->storage_gb * 1024 * 1024 * 1024,
-            default => 1
+            'courses'     => $subscription?->plan->courses,
+            'storage'     => $subscription->plan->storage_gb * 1024 * 1024 * 1024,
+            default       => 1,
         };
 
-        if($limit === 0) return 0;
-
+        if ($limit === 0) return 0;
         return round(($current / $limit) * 100, 2);
     }
 
@@ -257,11 +276,12 @@ class Tenant extends Model
         $this->update(['onboarding_step' => $step]);
     }
 
-    public function markEmailAsVerified(): void {
+    public function markEmailAsVerified(): void
+    {
         $this->update([
-            'email_verified_at' => now(),
+            'email_verified_at'  => now(),
             'verification_token' => null,
-            'is_verified' => true
+            'is_verified'        => true,
         ]);
     }
 
@@ -272,20 +292,21 @@ class Tenant extends Model
         return $token;
     }
 
-    public function isEmailVerified(): bool {
+    public function isEmailVerified(): bool
+    {
         return !is_null($this->email_verified_at);
     }
 
     public static function generateUniqueSlug(string $name): string
     {
         $slug = Str::slug($name);
-        
+
         if (self::isSlugReserved($slug)) {
             $slug .= '-school';
         }
 
         $originalSlug = $slug;
-        $counter = 1;
+        $counter      = 1;
 
         while (self::where('slug', $slug)->exists()) {
             $slug = $originalSlug . '-' . $counter;
@@ -300,7 +321,8 @@ class Tenant extends Model
         return in_array($slug, self::$reservedSlugs);
     }
 
-    private function calculateStorgeUsage(): int {
+    private function calculateStorageUsage(): int
+    {
         return $this->files()->sum('size');
     }
 
@@ -309,7 +331,7 @@ class Tenant extends Model
         'localhost', 'staging', 'dev', 'test', 'beta', 'demo',
         'help', 'support', 'blog', 'forum', 'shop', 'store',
         'cdn', 'static', 'assets', 'files', 'downloads',
-        'dashboard', 'panel', 'console', 'portal', 'gov', 
-        'php', 'png'
+        'dashboard', 'panel', 'console', 'portal', 'gov',
+        'php', 'png',
     ];
 }

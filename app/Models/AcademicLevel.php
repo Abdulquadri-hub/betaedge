@@ -5,10 +5,7 @@ namespace App\Models;
 use App\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class AcademicLevel extends Model
 {
@@ -21,13 +18,15 @@ class AcademicLevel extends Model
         'level_number',
         'description',
         'is_active',
+        'display_order',
     ];
 
     protected $casts = [
-        'level_number' => 'integer',
-        'is_active' => 'boolean',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
+        'level_number'  => 'integer',
+        'display_order' => 'integer',
+        'is_active'     => 'boolean',
+        'created_at'    => 'datetime',
+        'updated_at'    => 'datetime',
     ];
 
     public function courses(): HasMany
