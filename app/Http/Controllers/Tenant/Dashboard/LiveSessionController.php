@@ -150,8 +150,6 @@ class LiveSessionController extends Controller
         return redirect()->back()->with('success', 'Session deleted');
     }
 
-    // ── Private helpers ────────────────────────────────────────────────────────
-
     private function formatSession($session): array
     {
         $get = fn ($key) => is_array($session)
