@@ -6,36 +6,33 @@ use App\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
-/**
- * Enrollment Model
- *
- * Represents a student's enrollment in a course
- */
+
 class Enrollment extends Model
 {
-    use BelongsToTenant, SoftDeletes, HasFactory;
+    use BelongsToTenant, HasFactory, SoftDeletes;
 
     protected $fillable = [
         'tenant_id',
         'student_id',
-        'course_id',
+        'batch_id',
+        'course_id',              
+        'enrollment_route',       
+        'enrollment_payment_id',  
         'enrollment_date',
-        'status',
+        'status',                 
         'progress_percentage',
         'final_grade',
+        'grade_letter',
+        'notes',
     ];
 
     protected $casts = [
-        'enrollment_date' => 'datetime',
-        'progress_percentage' => 'decimal:2',
-        'final_grade' => 'decimal:2',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
-        'deleted_at' => 'datetime',
+        'enrollment_date'    => 'datetime',
+        'progress_percentage'=> 'decimal:2',
+        'final_grade'        => 'decimal:2',
     ];
 
     public function student(): BelongsTo
@@ -43,24 +40,20 @@ class Enrollment extends Model
         return $this->belongsTo(Student::class);
     }
 
-    public function course(): BelongsTo
+    public function batch(): BelongsTo
     {
-        return $this->belongsTo(Course::class);
+        return $this->belongsTo(Batch::class);
     }
 
-    public function submissions(): HasMany
+    public function payment(): BelongsTo
     {
-        return $this->hasMany(Submission::class);
+        return $this->belongsTo(EnrollmentPayment::class, 'enrollment_payment_id');
     }
 
-    public function grade(): HasOne
+    public function certificate(): HasOne
     {
-        return $this->hasOne(Grade::class);
-    }
-
-    public function classSessionsAttended(): HasMany
-    {
-        return $this->hasMany(Attendance::class);
+        return $this->hasOne(Certificate::class, 'batch_id', 'batch_id')
+            ->where('student_id', $this->student_id);
     }
 
     public function scopeActive($query)
@@ -78,88 +71,40 @@ class Enrollment extends Model
         return $query->where('status', 'pending');
     }
 
-    public function scopeWithdrawn($query)
+    public function isActive(): bool
     {
-        return $query->where('status', 'withdrawn');
+        return $this->status === 'active';
     }
 
-    public function scopeFailed($query)
+    public function isPending(): bool
     {
-        return $query->where('status', 'failed');
+        return $this->status === 'pending';
     }
 
-    public function getAttendanceRate(): float
+    public function isPaid(): bool
     {
-        $totalSessions = $this->course->classSessions()->count();
-        
-        if ($totalSessions === 0) {
-            return 0;
-        }
-
-        $attended = $this->classSessionsAttended()
-            ->whereIn('status', ['present', 'late'])
-            ->count();
-
-        return round(($attended / $totalSessions) * 100, 2);
+        return $this->payment?->isCompleted() ?? false;
     }
 
-    public function getAverageSubmissionScore(): float
+    public function markActive(): void
     {
-        $grades = $this->submissions()
-            ->whereHas('grade', function ($query) {
-                $query->where('is_published', true);
-            })
-            ->get()
-            ->flatMap->grade;
-
-        if ($grades->isEmpty()) {
-            return 0;
-        }
-
-        return round($grades->avg('percentage'), 2);
+        $this->update(['status' => 'active', 'enrollment_date' => $this->enrollment_date ?? now()]);
     }
 
-    public function updateProgress(): bool
+    public function markCompleted(float $finalGrade): void
     {
-        $submissions = $this->submissions()->count();
-        $courseAssignments = $this->course->assignments()->count();
+        $letter = match(true) {
+            $finalGrade >= 90 => 'A',
+            $finalGrade >= 80 => 'B',
+            $finalGrade >= 70 => 'C',
+            $finalGrade >= 60 => 'D',
+            default           => 'F',
+        };
 
-        if ($courseAssignments === 0) {
-            $progress = 0;
-        } else {
-            $progress = ($submissions / $courseAssignments) * 100;
-        }
-
-        return $this->update(['progress_percentage' => round($progress, 2)]);
-    }
-
-    public function markCompleted(?float $finalGrade = null): bool
-    {
-        return $this->update([
-            'status' => 'completed',
-            'final_grade' => $finalGrade ?? $this->getAverageSubmissionScore(),
+        $this->update([
+            'status'      => 'completed',
+            'final_grade' => $finalGrade,
+            'grade_letter'=> $letter,
         ]);
-    }
-
-    public function markWithdrawn(): bool
-    {
-        return $this->update(['status' => 'withdrawn']);
-    }
-
-    public function isPassing(): bool
-    {
-        return $this->final_grade >= 60;
-    }
-
-    public function getPerformanceData(): array
-    {
-        return [
-            'enrollment_status' => $this->status,
-            'progress' => $this->progress_percentage,
-            'attendance_rate' => $this->getAttendanceRate(),
-            'average_score' => $this->getAverageSubmissionScore(),
-            'final_grade' => $this->final_grade,
-            'is_passing' => $this->isPassing(),
-        ];
     }
 }

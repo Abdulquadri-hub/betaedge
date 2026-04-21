@@ -18,14 +18,14 @@ use App\Http\Controllers\Instructors\OnboardingController as InstructorsOnboardi
 use App\Http\Controllers\MarketPlaceController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\PlatformController;
-use App\Http\Controllers\Tenant\CourseController as TenantPublicCourseController;
 use App\Http\Controllers\Tenant\Dashboard\AcademicLevelController;
+use App\Http\Controllers\Tenant\Dashboard\AttendanceController;
 use App\Http\Controllers\Tenant\Dashboard\BatchController;
 use App\Http\Controllers\Tenant\Dashboard\CertificateController;
 use App\Http\Controllers\Tenant\Dashboard\ComplaintController;
 use App\Http\Controllers\Tenant\Dashboard\CourseController;
 use App\Http\Controllers\Tenant\Dashboard\CourseMaterialController;
-use App\Http\Controllers\Tenant\Dashboard\EnrollmentController;
+use App\Http\Controllers\Tenant\Dashboard\EnrollmentController as DashboardEnrollmentController;
 use App\Http\Controllers\Tenant\Dashboard\FinancialController;
 use App\Http\Controllers\Tenant\Dashboard\HomeController;
 use App\Http\Controllers\Tenant\Dashboard\InstructorController;
@@ -36,11 +36,11 @@ use App\Http\Controllers\Tenant\Dashboard\ReportController;
 use App\Http\Controllers\Tenant\Dashboard\SettingController;
 use App\Http\Controllers\Tenant\Dashboard\StudentController;
 use App\Http\Controllers\Tenant\Dashboard\VerificationController as TenantVerificationController;
-use App\Http\Controllers\Tenant\EnrollmentController as PublicEnrollmentController;
+use App\Http\Controllers\Tenant\EnrollmentController;
+use App\Http\Controllers\Tenant\PublicBatchController;
 use App\Http\Controllers\Tenant\PublicPageController;
+use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Support\Facades\Route;
-
-// ── Platform domain ────────────────────────────────────────────────────────────
 
 Route::domain(config('app.main_domain'))->middleware(['web'])->group(function () {
 
@@ -92,10 +92,12 @@ Route::domain(config('app.main_domain'))->middleware(['web'])->group(function ()
     });
 
     Route::prefix('instructor')->group(function () {
+
         Route::controller(MainController::class)->group(function () {
             Route::get('', 'index')->name('instructor.home');
             Route::post('/switch-school/{tenantId}', 'switchSchool')->name('instructor.switchSchool');
         });
+
         Route::prefix('batches')->controller(InstructorBatchController::class)->group(function () {
             Route::get('', 'index')->name('instructor.batches.index');
             Route::get('/{batch}', 'single')->name('instructor.batches.single');
@@ -127,40 +129,49 @@ Route::domain(config('app.main_domain'))->middleware(['web'])->group(function ()
     });
 });
 
-// ── Tenant subdomains ──────────────────────────────────────────────────────────
 
 Route::domain('{tenant}.' . config('app.main_domain'))->middleware(['web', 'tenant'])->group(function () {
 
-    // Public pages
     Route::controller(PublicPageController::class)->group(function () {
         Route::get('/', 'landing')->name('tenant.landing');
     });
 
-    Route::controller(TenantPublicCourseController::class)->group(function () {
-        Route::get('/course/{course}', 'show')->name('tenant.course');
+    Route::prefix('batches')->group(function () {
+
+        Route::controller(PublicBatchController::class)->group(function () {
+            Route::get('', 'index')->name('tenant.batches.index');
+            Route::get('/{batchSlug}', 'show')->name('tenant.batches.show');
+        });
+
+        Route::prefix('/{batchSlug}')->controller(EnrollmentController::class)->group(function () {
+            Route::get('/enroll', 'showForm')->name('tenant.enroll');
+            Route::post('/enroll', 'submit')->name('tenant.enroll.submit')->middleware('throttle:10,1');
+            Route::get('/payment/callback', 'paystackCallback')->name('tenant.payment.callback');
+        });
     });
 
-    Route::controller(PublicEnrollmentController::class)->group(function () {
-        Route::get('/enroll', 'showEnroll')->name('tenant.enroll');
-    });
+    Route::post('/webhooks/paystack', [EnrollmentController::class, 'paystackWebhook'])
+        ->name('tenant.webhook.paystack')
+        ->withoutMiddleware(['web', 'tenant', VerifyCsrfToken::class]);
 
-    // Authenticated dashboard
+    Route::get('/verify/{certificateCode}', [CertificateController::class, 'verify'])
+        ->name('tenant.certificate.verify');
+
     Route::prefix('dashboard')->middleware(['tenant.access'])->group(function () {
 
         Route::controller(HomeController::class)->group(function () {
-            Route::get('', 'index');
+            Route::get('', 'index')->name('dashboard.home');
         });
 
-        // ── Academic Levels (called from Settings) ─────────────────────────────
         Route::controller(AcademicLevelController::class)->group(function () {
-            Route::get('/academic-levels', 'list');
-            Route::post('/settings/academic-levels', 'store');
-            Route::put('/settings/academic-levels/{levelId}', 'update');
-            Route::patch('/settings/academic-levels/{levelId}/toggle', 'toggle');
-            Route::delete('/settings/academic-levels/{levelId}', 'destroy');
+            Route::get('/academic-levels', 'list')->name('dashboard.academic-levels.list');
+            Route::post('/settings/academic-levels', 'store')->name('dashboard.academic-levels.store');
+            Route::put('/settings/academic-levels/{levelId}', 'update')->name('dashboard.academic-levels.update');
+            Route::patch('/settings/academic-levels/{levelId}/toggle', 'toggle')->name('dashboard.academic-levels.toggle');
+            Route::delete('/settings/academic-levels/{levelId}', 'destroy')->name('dashboard.academic-levels.destroy');
         });
 
-        // ── Courses ────────────────────────────────────────────────────────────
+
         Route::prefix('courses')->controller(CourseController::class)->group(function () {
             Route::get('', 'index')->name('dashboard.courses.index');
             Route::get('/create', 'create')->name('dashboard.courses.create');
@@ -179,7 +190,7 @@ Route::domain('{tenant}.' . config('app.main_domain'))->middleware(['web', 'tena
             Route::delete('/{courseId}/materials/{materialId}', 'destroy')->name('courses.materials.destroy');
         });
 
-        // ── Batches ────────────────────────────────────────────────────────────
+
         Route::prefix('batches')->controller(BatchController::class)->group(function () {
             Route::get('', 'index')->name('dashboard.batches.index');
             Route::get('/create', 'create')->name('dashboard.batches.create');
@@ -192,7 +203,6 @@ Route::domain('{tenant}.' . config('app.main_domain'))->middleware(['web', 'tena
             Route::delete('/{batchId}', 'delete')->name('dashboard.batches.delete');
         });
 
-        // ── Live Sessions ──────────────────────────────────────────────────────
         Route::prefix('live-sessions')->controller(LiveSessionController::class)->group(function () {
             Route::get('', 'index')->name('dashboard.live-sessions.index');
             Route::post('', 'store')->name('dashboard.live-sessions.store');
@@ -203,71 +213,75 @@ Route::domain('{tenant}.' . config('app.main_domain'))->middleware(['web', 'tena
             Route::delete('/{sessionId}', 'destroy')->name('dashboard.live-sessions.destroy');
         });
 
-        // ── Settings ───────────────────────────────────────────────────────────
-        Route::prefix('settings')->controller(SettingController::class)->group(function () {
-            Route::get('', 'index')->name('settings.show');
-            Route::post('/profile', 'updateProfile')->name('settings.profile.update');
-            Route::post('/paystack', 'updatePaystack')->name('settings.paystack.update');
-            Route::post('/notifications', 'updateNotifications')->name('settings.notifications.update');
+        Route::prefix('attendance')->controller(AttendanceController::class)->group(function () {
+            Route::get('/session/{sessionId}', 'show')->name('dashboard.attendance.show');
+            Route::post('/session/{sessionId}', 'save')->name('dashboard.attendance.save');
+            Route::get('/batch/{batchId}', 'batchReport')->name('dashboard.attendance.batch-report');
         });
 
-        // ── Students ───────────────────────────────────────────────────────────
         Route::prefix('students')->controller(StudentController::class)->group(function () {
-            Route::get('', 'index')->name('students.index');
-            Route::get('/{student}', 'single')->name('students.single');
-            Route::post('/{student}/suspend', 'suspend');
-            Route::post('/{student}/activate', 'activate');
+            Route::get('', 'index')->name('dashboard.students.index');
+            Route::get('/{studentId}', 'single')->name('dashboard.students.single');
+            Route::post('/{studentId}/suspend', 'suspend')->name('dashboard.students.suspend');
+            Route::post('/{studentId}/activate', 'activate')->name('dashboard.students.activate');
         });
 
-        // ── Instructors ────────────────────────────────────────────────────────
         Route::prefix('instructors')->controller(InstructorController::class)->group(function () {
-            Route::get('', 'index')->name('instructors.index');
-            Route::get('/{instructorId}', 'single');
-            Route::post('/invite', 'invite');
-            Route::post('/{instructorId}', 'update');
-            Route::delete('/{instructorId}', 'destroy');
-            Route::post('/{instructorId}/mark-paid', 'markPaid');
+            Route::get('', 'index')->name('dashboard.instructors.index');
+            Route::get('/{instructorId}', 'single')->name('dashboard.instructors.single');
+            Route::post('/invite', 'invite')->name('dashboard.instructors.invite');
+            Route::put('/{instructorId}', 'update')->name('dashboard.instructors.update');
+            Route::delete('/{instructorId}', 'destroy')->name('dashboard.instructors.destroy');
+            Route::post('/{instructorId}/mark-paid', 'markPaid')->name('dashboard.instructors.mark-paid');
         });
 
-        // ── Enrollments ────────────────────────────────────────────────────────
-        Route::prefix('enrollments')->controller(EnrollmentController::class)->group(function () {
-            Route::get('', 'index');
-            Route::patch('/{id}/approve', 'approve');
-            Route::patch('/{id}/reject', 'reject');
+        Route::prefix('enrollments')->controller(DashboardEnrollmentController::class)->group(function () {
+            Route::get('', 'index')->name('dashboard.enrollments.index');
+            Route::patch('/{id}/approve', 'approve')->name('dashboard.enrollments.approve');
+            Route::patch('/{id}/reject', 'reject')->name('dashboard.enrollments.reject');
         });
 
-        // ── Other ──────────────────────────────────────────────────────────────
         Route::prefix('certificates')->controller(CertificateController::class)->group(function () {
-            Route::get('', 'index');
-        });
-
-        Route::prefix('complaints')->controller(ComplaintController::class)->group(function () {
-            Route::get('', 'index');
+            Route::get('', 'index')->name('dashboard.certificates.index');
+            Route::post('/batch/{batchId}/generate', 'generateForBatch')->name('dashboard.certificates.generate');
+            Route::post('/{certificateId}/revoke', 'revoke')->name('dashboard.certificates.revoke');
         });
 
         Route::prefix('financials')->controller(FinancialController::class)->group(function () {
-            Route::get('', 'index');
+            Route::get('', 'index')->name('dashboard.financials.index');
         });
 
-        Route::prefix('reports')->controller(ReportController::class)->group(function () {
-            Route::get('', 'index');
+        Route::prefix('settings')->controller(SettingController::class)->group(function () {
+            Route::get('', 'index')->name('dashboard.settings.index');
+            Route::post('/profile', 'updateProfile')->name('dashboard.settings.profile');
+            Route::post('/paystack', 'updatePaystack')->name('dashboard.settings.paystack');
+            Route::post('/notifications', 'updateNotifications')->name('dashboard.settings.notifications');
         });
 
-        Route::prefix('parents')->controller(ParentController::class)->group(function () {
-            Route::get('', 'index');
-            Route::get('/{parentId}', 'single');
-            Route::post('/{parentId}/message', 'message');
-            Route::post('/{parentId}/thresholds', 'thresholds');
-        });
 
         Route::prefix('profile')->controller(ProfileController::class)->group(function () {
-            Route::get('', 'show');
-            Route::post('', 'update');
+            Route::get('', 'show')->name('dashboard.profile.show');
+            Route::post('', 'update')->name('dashboard.profile.update');
         });
 
         Route::prefix('verification')->controller(TenantVerificationController::class)->group(function () {
-            Route::get('', 'index');
-            Route::post('', 'submit');
+            Route::get('', 'index')->name('dashboard.verification.index');
+            Route::post('', 'submit')->name('dashboard.verification.submit');
+        });
+
+
+        Route::prefix('reports')->controller(ReportController::class)->group(function () {
+            Route::get('', 'index')->name('dashboard.reports.index');
+        });
+
+
+        Route::prefix('parents')->controller(ParentController::class)->group(function () {
+            Route::get('', 'index')->name('dashboard.parents.index');
+            Route::get('/{parentId}', 'single');
+        });
+
+        Route::prefix('complaints')->controller(ComplaintController::class)->group(function () {
+            Route::get('', 'index')->name('dashboard.complaints.index');
         });
     });
 });
