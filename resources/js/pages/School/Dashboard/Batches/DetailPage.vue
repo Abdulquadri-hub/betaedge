@@ -116,6 +116,7 @@ function rankColor(rank) {
     if (rank === 3) return 'text-amber-700'
     return 'text-muted-foreground'
 }
+console.log(props.batch);
 
 const scheduleDays = computed(() => props.batch?.course_session_day ?? null)
 
@@ -177,7 +178,7 @@ function handleExportStudents() {
                 </div>
             </div>
 
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="grid grid-cols-2 lg:grid-cols-3 gap-4">
                 <Card>
                     <CardContent class="p-4">
                         <p class="text-xs text-muted-foreground font-medium">Enrolled</p>
@@ -194,16 +195,21 @@ function handleExportStudents() {
                         <p class="text-xs text-muted-foreground">→ {{ fmtDate(batch.end_date) }}</p>
                     </CardContent>
                 </Card>
-                <Card>
+                <!-- <Card>
                     <CardContent class="p-4">
                         <p class="text-xs text-muted-foreground font-medium">Schedule</p>
-                        <p class="text-sm font-semibold text-foreground mt-1">{{ scheduleDays || '—' }}</p>
+                        <p class="text-sm font-semibold text-foreground mt-1" 
+                            v-for="scheduled_days in batch.schedule_lines" 
+                            :key="scheduled_days.i"
+                        >  
+                          <span class="text-secodnary text-xm text-wrap">-  {{ scheduled_days || '—' }}</span>
+                        </p>
                         <p class="text-xs text-muted-foreground">
                             {{ batch.course_session_time ? fmtTime(batch.course_session_time) : '' }}
                             <span v-if="batch.course_duration_min" class="ml-1">· {{ batch.course_duration_min }}min</span>
                         </p>
                     </CardContent>
-                </Card>
+                </Card> -->
                 <Card>
                     <CardContent class="p-4">
                         <p class="text-xs text-muted-foreground font-medium">Revenue</p>
