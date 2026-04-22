@@ -8,10 +8,9 @@ import {
 } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent} from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 
-// ── Props from PublicBatchController@show ─────────────────────────────────────
 const props = defineProps({
     tenant:    { type: Object, required: true },
     batch:     { type: Object, required: true },
@@ -67,7 +66,7 @@ if (typeof document !== 'undefined') {
 <template>
     <div class="min-h-screen bg-background">
         <!-- Top nav -->
-        <div class="border-b bg-card">
+        <div class="bg-muted border-b sticky top-0 z-10">
             <div class="max-w-5xl mx-auto px-4 sm:px-6 py-4 flex items-center gap-4">
                 <button type="button"
                     class="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"

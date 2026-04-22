@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Tenant;
 use App\Http\Controllers\Controller;
 use App\Models\Batch;
 use App\Models\Tenant;
-use App\Services\Payment\PaystackService;
+use App\Services\School\Payment\PaystackService;
 use App\Services\School\EnrollmentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -57,20 +57,19 @@ class EnrollmentController extends Controller
 
         // Build validation rules
         $rules = [
-            'student.name'          => 'required|string|max:255',
-            'student.email'         => 'required|email|max:255',
-            'student.password'      => 'required|string|min:8|confirmed',
-            'student.phone'         => 'required|string|max:30',
-            // 'student.date_of_birth' => 'required|date|before:today',
+            'student.name'     => 'required|string|max:255',
+            'student.email'    => 'required|email|max:255',
+            'student.password' => 'required|string|min:8|confirmed',
+            'student.phone'    => 'required|string|max:30',
         ];
 
 
         if ($isMinor) {
-            $rules['student.date_of_birth'] = 'required|date|before:today';
+            $rules['student.date_of_birth'] = 'required|date|after:' . now()->subYears(18)->toDateString();
             $rules = array_merge($rules, [
-                'parent.name'         => 'required|string|max:255',
-                'parent.email'        => 'required|email|max:255|different:student.email',
-                'parent.phone'        => 'required|string|max:30',
+                'parent.name'  => 'required|string|max:255',
+                'parent.email' => 'required|email|max:255|different:student.email',
+                'parent.phone' => 'required|string|max:30',
                 'parent.relationship' => 'required|in:father,mother,guardian,grandmother,grandfather,uncle,aunt,other',
             ]);
         } else {

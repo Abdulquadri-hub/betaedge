@@ -1,19 +1,18 @@
 <script setup>
 import { ref, computed } from 'vue'
-import { router } from '@inertiajs/vue3'
+import { Link, router } from '@inertiajs/vue3'
 import {
     Search, Users, Calendar, BookOpen,
-    GraduationCap, ArrowRight, Filter, 
+    GraduationCap, ArrowRight, Filter,
+    ArrowLeft, 
 } from 'lucide-vue-next'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-// import { Card, CardContent } from '@/components/ui/card'
 import {
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 
-// ── Props from PublicBatchController@index ────────────────────────────────────
 const props = defineProps({
     tenant:  { type: Object, required: true },
     batches: { type: Array,  default: () => [] },
@@ -38,7 +37,6 @@ function clearFilters() {
     router.get('/batches', {}, { preserveState: true })
 }
 
-// Navigate to batch detail page using plain URL (no Ziggy needed for public pages)
 function goToBatch(batch) {
     router.visit(`/batches/${batch.slug}`)
 }
@@ -73,7 +71,6 @@ function spotsClass(batch) {
     return 'text-emerald-600'
 }
 
-// Set SEO title
 if (typeof document !== 'undefined') {
     document.title = props.meta?.title ?? `${props.tenant.name} — Programmes`
 }
@@ -81,11 +78,20 @@ if (typeof document !== 'undefined') {
 
 <template>
     <div class="min-h-screen bg-background">
-
-        <!-- ── School header ─────────────────────────────────────────────────── -->
-        <div class="border-b bg-card shadow-sm">
-            <div class="max-w-6xl mx-auto px-4 sm:px-6 py-5">
+        <div class="bg-muted border-b sticky top-0 z-10">
+            <div class="max-w-5xl mx-auto px-4 sm:px-6 py-4 flex items-center gap-4">
                 <div class="flex items-center gap-4">
+
+                    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+                        <Link :href="('/')">
+                          <button
+                            class="inline-flex items-center text-muted-foreground text-sm hover:text-foreground transition-colors cursor-pointer">
+                            <ArrowLeft class="w-4 h-4 mr-2" />
+                            Back
+                          </button>
+                        </Link>
+                    </div>
+                    
                     <!-- Logo -->
                     <div class="h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-border bg-muted flex items-center justify-center">
                         <img v-if="tenant.logo" :src="tenant.logo" :alt="tenant.name"
@@ -107,8 +113,6 @@ if (typeof document !== 'undefined') {
         </div>
 
         <div class="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-8">
-
-            <!-- ── Hero ──────────────────────────────────────────────────────── -->
             <div class="text-center space-y-3 py-4">
                 <h2 class="text-3xl sm:text-4xl font-extrabold text-foreground tracking-tight">
                     Available Programmes
@@ -291,9 +295,9 @@ if (typeof document !== 'undefined') {
 
         </div>
 
-        <!-- ── Footer ─────────────────────────────────────────────────────────── -->
+
         <footer class="border-t border-border mt-16 py-6 text-center text-xs text-muted-foreground">
-            <p>{{ tenant.name }} · Powered by <strong>Teach</strong></p>
+            <p>{{ tenant.name }} · Powered by <strong>BetaEdge</strong></p>
             <p v-if="tenant.phone" class="mt-1">{{ tenant.phone }}</p>
         </footer>
     </div>

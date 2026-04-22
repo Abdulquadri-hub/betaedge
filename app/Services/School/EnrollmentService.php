@@ -3,6 +3,7 @@
 namespace App\Services\School;
 
 
+use App\Mail\EnrollmentWelcomeMail;
 use App\Models\Batch;
 use App\Models\Enrollment;
 use App\Models\EnrollmentPayment;
@@ -10,12 +11,11 @@ use App\Models\ParentModel;
 use App\Models\Student;
 use App\Models\Tenant;
 use App\Models\User;
-use App\Services\Payment\PaystackService;
+use App\Services\School\Payment\PaystackService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
-use App\Mail\EnrollmentWelcomeMail;
 
 class EnrollmentService
 {

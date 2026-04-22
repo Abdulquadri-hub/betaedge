@@ -475,7 +475,7 @@ const RELATIONSHIPS = [
 
             <!-- School branding footer -->
             <div class="text-center text-xs text-muted-foreground">
-                Enrolling with <strong>{{ tenant.name }}</strong> · Powered by Teach
+                Enrolling with <strong>{{ tenant.name }}</strong> · Powered by BetaEdge
             </div>
         </div>
     </div>
