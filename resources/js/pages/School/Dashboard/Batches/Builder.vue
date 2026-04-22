@@ -26,6 +26,7 @@ const props = defineProps({
     instructors: { type: Array,  default: () => [] },
 })
 
+
 const page       = usePage()
 const isEditMode = computed(() => !!props.batch?.id)
 const isSaving   = ref(false)

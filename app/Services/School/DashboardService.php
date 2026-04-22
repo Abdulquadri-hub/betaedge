@@ -189,7 +189,7 @@ class DashboardService implements DashboardServiceInterface
                     'type' => 'enrollment',
                     'actor' => $enrollment->student?->user?->name ?? 'Student',
                     'action' => 'enrolled in',
-                    'target' => $enrollment->course?->title ?? 'Unknown Course',
+                    'target' => $enrollment->batch?->batch_name ?? 'Unknown Batch',
                     'time' => $enrollment->created_at->diffForHumans(),
                     'avatar' => $enrollment->student?->user?->avatar,
                 ];

@@ -21,6 +21,7 @@ use App\Contracts\Services\MarketPlaceListingServiceInterface;
 use App\Contracts\Services\OnboardingProcessServiceInterface;
 use App\Contracts\Services\PasswordReset\PasswordResetServiceInterface;
 use App\Contracts\Services\School\DashboardServiceInterface;
+use App\Contracts\Services\School\PaystackServiceInterface;
 use App\Contracts\Services\SubscriptionPlanServiceInterface;
 use App\Contracts\Services\TenantPageServiceInterface;
 use App\Contracts\Services\TenantPaymentServiceInterface;
@@ -49,6 +50,7 @@ use App\Services\MarketPlaceListingService;
 use App\Services\OnboardingProcessService;
 use App\Services\PasswordReset\PasswordResetService;
 use App\Services\School\DashboardService;
+use App\Services\School\Payment\PaystackService;
 use App\Services\SubscriptionPlanService;
 use App\Services\TenantPageService;
 use App\Services\TenantPaymentService;
@@ -91,5 +93,6 @@ return [
         PasswordResetServiceInterface::class => PasswordResetService::class,
         DashboardServiceInterface::class => DashboardService::class,
         NinVerificationServiceInterface::class => NinVerificationService::class,
+        PaystackServiceInterface::class => PaystackService::class,
     ]
 ];

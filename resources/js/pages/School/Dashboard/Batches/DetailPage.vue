@@ -7,6 +7,7 @@ import {
     Medal, Award, CheckCircle2,AlertCircle,
     // Eye, FileText, Plus, RefreshCw, UserCheck, ExternalLink,
     Lock, Unlock,
+    Plus, BookOpen,
 } from 'lucide-vue-next'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -25,7 +26,9 @@ import DashboardLayout from '@/components/Dashboard/School/Layouts/DashboardLayo
 const props = defineProps({
     batch:    { type: Object, required: true },
     students: { type: Array,  default: () => [] },
+    courses:  { type: Array,  default: () => [] },
 })
+
 
 const page      = usePage()
 const activeTab = ref('students')
@@ -84,10 +87,10 @@ function enrollmentPct() {
 }
 
 function gradeColor(grade) {
-    if (grade >= 90) return 'text-emerald-600'
+    if (grade >= 90) return 'text-secondary'
     if (grade >= 80) return 'text-primary'
-    if (grade >= 70) return 'text-amber-600'
-    if (grade >= 60) return 'text-orange-600'
+    if (grade >= 70) return 'text-secondary'
+    if (grade >= 60) return 'text-primary'
     return 'text-destructive'
 }
 
@@ -113,8 +116,8 @@ function rankColor(rank) {
     if (rank === 3) return 'text-amber-700'
     return 'text-muted-foreground'
 }
+console.log(props.batch);
 
-// Schedule lives on course, not batch — read course_session_day/time passed from controller
 const scheduleDays = computed(() => props.batch?.course_session_day ?? null)
 
 // Two separate status configs
@@ -175,7 +178,7 @@ function handleExportStudents() {
                 </div>
             </div>
 
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="grid grid-cols-2 lg:grid-cols-3 gap-4">
                 <Card>
                     <CardContent class="p-4">
                         <p class="text-xs text-muted-foreground font-medium">Enrolled</p>
@@ -192,23 +195,28 @@ function handleExportStudents() {
                         <p class="text-xs text-muted-foreground">→ {{ fmtDate(batch.end_date) }}</p>
                     </CardContent>
                 </Card>
-                <Card>
+                <!-- <Card>
                     <CardContent class="p-4">
                         <p class="text-xs text-muted-foreground font-medium">Schedule</p>
-                        <p class="text-sm font-semibold text-foreground mt-1">{{ scheduleDays || '—' }}</p>
+                        <p class="text-sm font-semibold text-foreground mt-1" 
+                            v-for="scheduled_days in batch.schedule_lines" 
+                            :key="scheduled_days.i"
+                        >  
+                          <span class="text-secodnary text-xm text-wrap">-  {{ scheduled_days || '—' }}</span>
+                        </p>
                         <p class="text-xs text-muted-foreground">
                             {{ batch.course_session_time ? fmtTime(batch.course_session_time) : '' }}
                             <span v-if="batch.course_duration_min" class="ml-1">· {{ batch.course_duration_min }}min</span>
                         </p>
                     </CardContent>
-                </Card>
+                </Card> -->
                 <Card>
                     <CardContent class="p-4">
                         <p class="text-xs text-muted-foreground font-medium">Revenue</p>
                         <p class="text-sm font-bold text-foreground mt-1">
-                            {{ fmtNaira((batch.price_per_student ?? 0) * (batch.current_enrollment ?? 0)) }}
+                            {{ fmtNaira((batch.price ?? 0) * (batch.current_enrollment ?? 0)) }}
                         </p>
-                        <p class="text-xs text-muted-foreground">{{ fmtNaira(batch.price_per_student) }} × {{ batch.current_enrollment }}</p>
+                        <p class="text-xs text-muted-foreground">{{ fmtNaira(batch.price) }} × {{ batch.current_enrollment }}</p>
                     </CardContent>
                 </Card>
             </div>
@@ -218,6 +226,10 @@ function handleExportStudents() {
                     <TabsTrigger value="students" class="gap-2">
                         <Users class="h-4 w-4" />Students
                         <Badge variant="secondary" class="h-4 px-1.5 text-[10px]">{{ students.length }}</Badge>
+                    </TabsTrigger>
+                    <TabsTrigger value="courses" class="gap-2">
+                        <BookOpen class="h-4 w-4" />Courses
+                        <Badge variant="secondary" class="h-4 px-1.5 text-[10px]">{{ courses.length }}</Badge>
                     </TabsTrigger>
                     <TabsTrigger value="leaderboard" class="gap-2">
                         <Trophy class="h-4 w-4" />Leaderboard
@@ -277,8 +289,8 @@ function handleExportStudents() {
                                         </TableCell>
                                         <TableCell class="text-center">
                                             <div class="flex items-center justify-center gap-1">
-                                                <CheckCircle2 v-if="s.attendance_rate >= 80" class="h-3.5 w-3.5 text-emerald-500" />
-                                                <AlertCircle v-else class="h-3.5 w-3.5 text-amber-500" />
+                                                <CheckCircle2 v-if="s.attendance_rate >= 80" class="h-3.5 w-3.5 text-primary" />
+                                                <AlertCircle v-else class="h-3.5 w-3.5 text-secondary" />
                                                 <span class="text-sm font-medium">{{ s.attendance_rate }}%</span>
                                             </div>
                                         </TableCell>
@@ -296,11 +308,57 @@ function handleExportStudents() {
                     </Card>
                 </TabsContent>
 
+                <TabsContent value="courses" class="mt-4">
+                    <div v-if="courses.length === 0" class="py-12 text-center rounded-xl border border-dashed border-border">
+                        <BookOpen class="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
+                        <p class="text-sm text-muted-foreground">No courses attached to this batch yet</p>
+                    </div>
+                    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <Card v-for="course in courses" :key="course.id" class="hover:shadow-md transition-shadow">
+                            <CardHeader class="pb-3">
+                                <div class="flex items-start justify-between gap-2 mb-2">
+                                    <CardTitle class="text-base leading-tight line-clamp-2">{{ course.title }}</CardTitle>
+                                    <Badge :variant="course.status === 'active' ? 'default' : 'outline'" class="text-xs shrink-0 capitalize">
+                                        {{ course.status }}
+                                    </Badge>
+                                </div>
+                                <CardDescription class="text-xs line-clamp-2">
+                                    {{ course.description || 'No description' }}
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent class="pb-3">
+                                <div class="space-y-2">
+                                    <div v-if="course.instructor" class="flex items-center gap-2 text-xs">
+                                        <span class="text-muted-foreground font-medium">Instructor:</span>
+                                        <span>{{ course.instructor }}</span>
+                                    </div>
+                                    <div v-if="course.course_code" class="flex items-center gap-2 text-xs">
+                                        <span class="text-muted-foreground font-medium">Code:</span>
+                                        <span class="font-mono text-primary">{{ course.course_code }}</span>
+                                    </div>
+                                    <div v-if="course.duration_weeks" class="flex items-center gap-2 text-xs">
+                                        <span class="text-muted-foreground font-medium">Duration:</span>
+                                        <span>{{ course.duration_weeks }} weeks</span>
+                                    </div>
+                                    <!-- <div v-if="course.capacity" class="flex items-center gap-2 text-xs">
+                                        <span class="text-muted-foreground font-medium">Capacity:</span>
+                                        <span>{{ course.enrollment_count || 0 }}/{{ course.capacity }} students</span>
+                                    </div> -->
+                                    <!-- <div v-if="course.credits" class="flex items-center gap-2 text-xs">
+                                        <span class="text-muted-foreground font-medium">Credits:</span>
+                                        <span>{{ course.credits }}</span>
+                                    </div> -->
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+                </TabsContent>
+
                 <TabsContent value="leaderboard" class="mt-4">
                     <Card>
                         <CardHeader>
                             <CardTitle class="text-base flex items-center gap-2">
-                                <Trophy class="h-5 w-5 text-amber-500" />Batch Leaderboard
+                                <Trophy class="h-5 w-5 text-secondary" />Batch Leaderboard
                             </CardTitle>
                             <CardDescription class="text-xs">
                                 Students ranked by overall performance. Leaderboard activates after Week 3.
@@ -314,7 +372,7 @@ function handleExportStudents() {
                             <div v-else class="space-y-2">
                                 <div v-for="s in leaderboard" :key="s.id" :class="[
                                     'flex items-center gap-3 rounded-lg p-3 transition-colors',
-                                    s.rank <= 3 ? 'bg-amber-50 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-800/30' : 'hover:bg-muted/50',
+                                    s.rank <= 3 ? 'bg-muted dark:bg-secondary border border-muted dark:border-secondary' : 'hover:bg-muted/50',
                                 ]">
                                     <div class="w-8 shrink-0 text-center">
                                         <component v-if="rankIcon(s.rank)" :is="rankIcon(s.rank)"
@@ -322,7 +380,7 @@ function handleExportStudents() {
                                         <span v-else class="text-sm font-semibold text-muted-foreground">#{{ s.rank }}</span>
                                     </div>
                                     <Avatar class="h-9 w-9 shrink-0">
-                                        <AvatarFallback :class="['text-xs font-bold', s.rank <= 3 ? 'bg-amber-100 text-amber-700' : 'bg-primary/10 text-primary']">
+                                        <AvatarFallback :class="['text-xs font-bold', s.rank <= 3 ? 'bg-muted text-secondary' : 'bg-primary/10 text-primary']">
                                             {{ initials(s.name) }}
                                         </AvatarFallback>
                                     </Avatar>

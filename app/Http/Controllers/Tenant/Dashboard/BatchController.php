@@ -7,6 +7,7 @@ use App\Models\Batch;
 use App\Models\BatchCourse;
 use App\Models\Course;
 use App\Models\Instructor;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -25,7 +26,7 @@ class BatchController extends Controller
             ->with(['batchCourses.course', 'batchCourses.instructor.user'])
             ->withCount([
                 'students as total_students',
-                'students as active_students_count' => fn($q) => $q->where('batch_student.status', 'active'), // ← fixed
+                'students as active_students_count' => fn($q) => $q->where('batch_student.status', 'active'),
             ]);
 
         if ($search) {
@@ -72,28 +73,52 @@ class BatchController extends Controller
             return redirect('/dashboard/batches')->with('error', 'Batch not found');
         }
 
-        $students = $batch->activeStudents()->with('user')->get()->map(fn($s) => [
-            'id'              => $s->id,
-            'name'            => $s->user?->full_name ?? '—',
-            'email'           => $s->user?->email ?? '—',
-            'type'            => ($s->date_of_birth && now()->diffInYears($s->date_of_birth) < 18) ? 'child' : 'adult',
-            'attendance_rate' => $s->calculateAttendanceRate(),
-            'grade'           => null,
-            'enrolled_at'     => $s->pivot?->enrolled_at,
-        ]);
+        $students = $batch->activeStudents()
+            ->with('user')
+            ->get()
+            ->map(fn ($s) => [
+                'id'              => $s->id,
+                'name'            => $s->full_name ?? '—',
+                'email'           => $s->user?->email ?? '—',
+                'type'            => ($s->date_of_birth && Carbon::parse($s->date_of_birth)->age < 18)
+                                        ? 'child' : 'adult',
+                'attendance_rate' => $s->calculateAttendanceRate(),
+                'grade'           => null,
+                'enrolled_at'     => $s->pivot?->enrolled_at,
+            ]);
+
+        $courses = $batch->batchCourses()
+            ->with(['course', 'instructor.user'])
+            ->orderBy('display_order')
+            ->get()
+            ->map(fn ($bc) => [
+                'id'               => $bc->id,
+                'course_id'        => $bc->course_id,
+                'title'            => $bc->course?->title ?? '—',
+                'description'      => $bc->course?->description,
+                'course_code'      => $bc->course?->course_code,
+                'status'           => $bc->course?->status ?? 'active',
+                'duration_weeks'   => $bc->course?->duration_weeks,
+                'instructor'       => $bc->instructor?->user?->full_name ?? 'No instructor assigned',
+                'schedule_summary' => $bc->schedule_summary,
+                'platform_label'   => $bc->platform_label,
+                'session_day'      => $bc->session_day,
+                'session_time'     => $bc->session_time,
+                'display_order'    => $bc->display_order,
+            ]);
 
         return Inertia::render('School/Dashboard/Batches/DetailPage', [
             'batch'    => $this->formatBatch($batch),
             'students' => $students,
+            'courses'  => $courses,
         ]);
     }
 
 
-
     public function create(Request $request)
     {
-        $tenantId   = (int) session('active_tenant_id');
-        $courses    = $this->getCoursesForTenant($tenantId);
+        $tenantId    = (int) session('active_tenant_id');
+        $courses     = $this->getCoursesForTenant($tenantId);
         $instructors = $this->getInstructorsForTenant($tenantId);
 
         return Inertia::render('School/Dashboard/Batches/Builder', [
@@ -107,24 +132,23 @@ class BatchController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name'            => 'required|string|max:255',
-            'description'     => 'nullable|string|max:1000',
-            'start_date'      => 'required|date',
-            'end_date'        => 'required|date|after:start_date',
-            'max_students'    => 'required|integer|min:1|max:1000',
-            'price'           => 'nullable|numeric|min:0',
-            'price_note'      => 'nullable|string|max:255',
-            'whatsapp_link'   => 'nullable|url',
-            'notes'           => 'nullable|string|max:1000',
-            // Course slots — array of course attachments
-            'courses'                          => 'nullable|array',
-            'courses.*.course_id'              => 'required|exists:courses,id',
-            'courses.*.instructor_id'          => 'nullable|exists:instructors,id',
-            'courses.*.session_day'            => 'nullable|string|max:100',
-            'courses.*.session_time'           => 'nullable|string|max:10',
+            'name'                               => 'required|string|max:255',
+            'description'                        => 'nullable|string|max:1000',
+            'start_date'                         => 'required|date',
+            'end_date'                           => 'required|date|after:start_date',
+            'max_students'                       => 'required|integer|min:1|max:1000',
+            'price'                              => 'nullable|numeric|min:0',
+            'price_note'                         => 'nullable|string|max:255',
+            'whatsapp_link'                      => 'nullable|url',
+            'notes'                              => 'nullable|string|max:1000',
+            'courses'                            => 'nullable|array',
+            'courses.*.course_id'                => 'required|exists:courses,id',
+            'courses.*.instructor_id'            => 'nullable|exists:instructors,id',
+            'courses.*.session_day'              => 'nullable|string|max:100',
+            'courses.*.session_time'             => 'nullable|string|max:10',
             'courses.*.session_duration_minutes' => 'nullable|integer|min:15|max:480',
-            'courses.*.session_platform'       => 'nullable|string|max:50',
-            'courses.*.session_frequency'      => 'nullable|string|max:50',
+            'courses.*.session_platform'         => 'nullable|string|max:50',
+            'courses.*.session_frequency'        => 'nullable|string|max:50',
         ]);
 
         $tenantId = (int) session('active_tenant_id');
@@ -180,23 +204,23 @@ class BatchController extends Controller
         }
 
         $validated = $request->validate([
-            'name'            => 'required|string|max:255',
-            'description'     => 'nullable|string|max:1000',
-            'start_date'      => 'required|date',
-            'end_date'        => 'required|date|after:start_date',
-            'max_students'    => 'required|integer|min:1|max:1000',
-            'price'           => 'nullable|numeric|min:0',
-            'price_note'      => 'nullable|string|max:255',
-            'whatsapp_link'   => 'nullable|url',
-            'notes'           => 'nullable|string|max:1000',
-            'courses'                          => 'nullable|array',
-            'courses.*.course_id'              => 'required|exists:courses,id',
-            'courses.*.instructor_id'          => 'nullable|exists:instructors,id',
-            'courses.*.session_day'            => 'nullable|string|max:100',
-            'courses.*.session_time'           => 'nullable|string|max:10',
+            'name'                               => 'required|string|max:255',
+            'description'                        => 'nullable|string|max:1000',
+            'start_date'                         => 'required|date',
+            'end_date'                           => 'required|date|after:start_date',
+            'max_students'                       => 'required|integer|min:1|max:1000',
+            'price'                              => 'nullable|numeric|min:0',
+            'price_note'                         => 'nullable|string|max:255',
+            'whatsapp_link'                      => 'nullable|url',
+            'notes'                              => 'nullable|string|max:1000',
+            'courses'                            => 'nullable|array',
+            'courses.*.course_id'                => 'required|exists:courses,id',
+            'courses.*.instructor_id'            => 'nullable|exists:instructors,id',
+            'courses.*.session_day'              => 'nullable|string|max:100',
+            'courses.*.session_time'             => 'nullable|string|max:10',
             'courses.*.session_duration_minutes' => 'nullable|integer|min:15|max:480',
-            'courses.*.session_platform'       => 'nullable|string|max:50',
-            'courses.*.session_frequency'      => 'nullable|string|max:50',
+            'courses.*.session_platform'         => 'nullable|string|max:50',
+            'courses.*.session_frequency'        => 'nullable|string|max:50',
         ]);
 
         $batch->update([
@@ -217,6 +241,7 @@ class BatchController extends Controller
             ->with('success', 'Batch updated');
     }
 
+
     public function toggleEnrollment(Request $request, $tenant, $batchId)
     {
         $tenantId = (int) session('active_tenant_id');
@@ -226,7 +251,7 @@ class BatchController extends Controller
             return redirect()->back()->withErrors(['message' => 'Batch not found']);
         }
 
-        $new     = $batch->enrollment_status === 'open' ? 'closed' : 'open';
+        $new = $batch->enrollment_status === 'open' ? 'closed' : 'open';
         $batch->update(['enrollment_status' => $new]);
 
         return redirect()->back()->with(
@@ -277,6 +302,8 @@ class BatchController extends Controller
     }
 
 
+    // ── Private helpers ────────────────────────────────────────────────────────
+
     private function findBatch(int|string $id, int $tenantId): ?Batch
     {
         return Batch::withoutGlobalScopes()
@@ -296,7 +323,7 @@ class BatchController extends Controller
             ->with('academicLevel')
             ->orderBy('title')
             ->get()
-            ->map(fn($c) => [
+            ->map(fn ($c) => [
                 'id'             => $c->id,
                 'title'          => $c->title,
                 'course_code'    => $c->course_code,
@@ -314,19 +341,20 @@ class BatchController extends Controller
             ->where('status', 'active')
             ->with('user')
             ->get()
-            ->map(fn($i) => [
+            ->map(fn ($i) => [
                 'id'   => $i->id,
                 'name' => $i->user?->full_name ?? '—',
             ])
             ->toArray();
     }
 
-
     private function syncBatchCourses(Batch $batch, int $tenantId, array $courses): void
     {
-        $incomingCourseIds = collect($courses)->pluck('course_id')->filter()->map(fn($id) => (int) $id);
+        $incomingCourseIds = collect($courses)
+            ->pluck('course_id')
+            ->filter()
+            ->map(fn ($id) => (int) $id);
 
-        // Remove courses no longer in the list
         BatchCourse::where('batch_id', $batch->id)
             ->whereNotIn('course_id', $incomingCourseIds)
             ->delete();
@@ -352,7 +380,7 @@ class BatchController extends Controller
 
     private function formatBatch(Batch $batch): array
     {
-        $batchCourses = $batch->batchCourses->map(fn($bc) => [
+        $batchCourses = $batch->batchCourses->map(fn ($bc) => [
             'id'                       => $bc->id,
             'course_id'                => $bc->course_id,
             'course_title'             => $bc->course?->title ?? '—',
@@ -369,6 +397,15 @@ class BatchController extends Controller
             'platform_label'           => $bc->platform_label,
             'display_order'            => $bc->display_order,
         ]);
+
+        
+        $scheduleLines = $batchCourses
+            ->filter(fn ($bc) => !empty($bc['session_day']))
+            ->map(fn ($bc) => $bc['schedule_summary'])
+            ->filter()
+            ->unique()
+            ->values()
+            ->all(); // plain array so JSON serializes correctly
 
         $currentEnrollment = $batch->activeStudents_count ?? $batch->activeStudents()->count();
 
@@ -389,10 +426,10 @@ class BatchController extends Controller
             'notes'              => $batch->notes,
             'is_published'       => $batch->is_published,
             'can_publish'        => $batchCourses->isNotEmpty(),
-            // Courses in this batch
             'batch_courses'      => $batchCourses,
-            // Convenience: list of subject names for display
             'subject_names'      => $batchCourses->pluck('course_title')->join(', '),
+            'schedule_lines'     => $scheduleLines,
+            'has_schedule'       => count($scheduleLines) > 0,
         ];
     }
 

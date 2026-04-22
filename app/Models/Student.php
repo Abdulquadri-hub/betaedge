@@ -67,13 +67,16 @@ class Student extends Model
         return $this->linkingRequests()->where('status', 'pending');
     }
 
-    // NEW: Check if student has pending linking requests
     public function hasPendingLinkingRequests(): bool
     {
         return $this->pendingLinkingRequests()->exists();
     }
 
-    // NEW: Get all parents (both confirmed and pending)
+    public function getFullNameAttribute(): string {
+        return "{$this->last_name} {$this->first_name}";
+    }
+
+   
     public function getAllParentRelationships(): array
     {
         $confirmed = $this->parents()->get()->map(function ($parent) {
@@ -95,7 +98,6 @@ class Student extends Model
         return $confirmed->merge($pending)->toArray();
     }
 
-    // this is same as courses enrolled to 
     public function courses(): BelongsToMany {
         return $this->belongsToMany(Course::class, "enrollments")->withPivot(['enrolled_at', 'status', 'progress_percentage', 'final_grade'])->withTimestamps();
     }
@@ -108,16 +110,9 @@ class Student extends Model
         return $this->hasMany(Attendance::class);
     }
 
-    // public function counselingSessions(): HasMany {
-    //     return $this->hasMany(CounsellingSession::class);
-    // }
-
     public function grades(): HasManyThrough {
         return $this->hasManyThrough(Grade::class, Submission::class);
     }
-
-    // accessors() and mutators
-
 
     public function getFullAddressAttribute(): string {
         return trim("{$this->address}, {$this->city}, {$this->state}, {$this->country}");
