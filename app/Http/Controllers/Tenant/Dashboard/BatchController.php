@@ -7,6 +7,7 @@ use App\Models\Batch;
 use App\Models\BatchCourse;
 use App\Models\Course;
 use App\Models\Instructor;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -74,9 +75,9 @@ class BatchController extends Controller
 
         $students = $batch->activeStudents()->with('user')->get()->map(fn($s) => [
             'id'              => $s->id,
-            'name'            => $s->user?->full_name ?? '—',
+            'name'            => $s->full_name ?? '—',
             'email'           => $s->user?->email ?? '—',
-            'type'            => ($s->date_of_birth && now()->diffInYears($s->date_of_birth) < 18) ? 'child' : 'adult',
+            'type'            => ($s->date_of_birth && Carbon::parse($s->date_of_birth)->age < 18) ? 'child' : 'adult',
             'attendance_rate' => $s->calculateAttendanceRate(),
             'grade'           => null,
             'enrolled_at'     => $s->pivot?->enrolled_at,
@@ -85,6 +86,7 @@ class BatchController extends Controller
         return Inertia::render('School/Dashboard/Batches/DetailPage', [
             'batch'    => $this->formatBatch($batch),
             'students' => $students,
+            'courses' => $batch->courses()->get(), 
         ]);
     }
 
@@ -316,7 +318,7 @@ class BatchController extends Controller
             ->get()
             ->map(fn($i) => [
                 'id'   => $i->id,
-                'name' => $i->user?->full_name ?? '—',
+                'name' => $i->full_name ?? '—',
             ])
             ->toArray();
     }
@@ -389,9 +391,7 @@ class BatchController extends Controller
             'notes'              => $batch->notes,
             'is_published'       => $batch->is_published,
             'can_publish'        => $batchCourses->isNotEmpty(),
-            // Courses in this batch
             'batch_courses'      => $batchCourses,
-            // Convenience: list of subject names for display
             'subject_names'      => $batchCourses->pluck('course_title')->join(', '),
         ];
     }

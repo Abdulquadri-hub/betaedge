@@ -12,6 +12,7 @@ use App\Models\Student;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\School\Payment\PaystackService;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -34,14 +35,11 @@ class EnrollmentService
 
             $this->guardBatchAvailability($batch);
 
-            // ── Create or retrieve student account ─────────────────────────
             $student = $this->createStudentAccount($tenant, $studentData);
 
-            // ── Determine enrollment route ─────────────────────────────────
             $isAdult = $this->isAdult($studentData['date_of_birth']);
             $route   = $isAdult ? 'adult_direct' : 'parent_payment';
 
-            // ── Create parent account if minor ─────────────────────────────
             $payerEmail = $studentData['email'];
             $payerName  = $studentData['name'];
 
@@ -51,7 +49,6 @@ class EnrollmentService
                 $payerName  = $parentData['name'];
             }
 
-            // ── Guard duplicate enrollment ─────────────────────────────────
             $existing = Enrollment::where('student_id', $student->id)
                 ->where('batch_id', $batch->id)
                 ->whereNotIn('status', ['dropped'])
@@ -63,7 +60,6 @@ class EnrollmentService
                 );
             }
 
-            // ── Create pending Enrollment record ───────────────────────────
             $enrollment = Enrollment::create([
                 'tenant_id'         => $tenant->id,
                 'student_id'        => $student->id,
@@ -73,12 +69,10 @@ class EnrollmentService
                 'enrollment_date'   => now(),
             ]);
 
-            // ── Calculate fee split ────────────────────────────────────────
             $amountNaira = (int) ($batch->price ?? 0);
             $split       = PaystackService::calculateSplit($amountNaira);
             $reference   = PaystackService::generateReference($tenant->slug);
 
-            // ── Create pending payment record ──────────────────────────────
             $payment = EnrollmentPayment::create([
                 'tenant_id'          => $tenant->id,
                 'batch_id'           => $batch->id,
@@ -346,7 +340,7 @@ class EnrollmentService
 
     private function isAdult(string $dateOfBirth): bool
     {
-        return now()->diffInYears($dateOfBirth) >= 18;
+        return Carbon::parse($dateOfBirth)->age;
     }
 
     private function inferAcademicLevel(Tenant $tenant, array $data): ?int

@@ -61,6 +61,8 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('tenant_id');
             $table->unsignedBigInteger('user_id');
+            $table->string('first_name')->nullable();
+            $table->string('last_name')->nullable();
             $table->string('instructor_id')->unique();
             $table->string('qualification')->nullable();
             $table->string('specialization')->nullable();
@@ -86,6 +88,8 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('tenant_id');
             $table->unsignedBigInteger('user_id');
+            $table->string('first_name')->nullable();
+            $table->string('last_name')->nullable();
             $table->string('student_id')->unique();
             $table->date('date_of_birth')->nullable();
             $table->enum('gender', ['male', 'female', 'other'])->nullable();

@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Tenant\Dashboard;
 
 use App\Http\Controllers\Controller;
-use App\Mail\InstructorInviteMail;
+// use App\Mail\InstructorInviteMail;
 use App\Models\Batch;
 use App\Models\BatchCourse;
 use App\Models\Instructor;

@@ -49,10 +49,6 @@ class EnrollmentController extends Controller
         $tenantModel = $this->resolveTenant($tenant);
         $batch       = $this->resolveBatch($tenantModel, $batchSlug);
 
-        // Determine if student is a minor from date of birth
-        // $dob      = $request->input('student.date_of_birth');
-        // $isMinor  = $dob && now()->diffInYears($dob) < 18;
-
         $isMinor = $request->input('account_type') === 'parent';
 
         // Build validation rules

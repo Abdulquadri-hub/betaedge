@@ -32,6 +32,7 @@ const props = defineProps({
     pagination: { type: Object, default: null },
 })
 
+
 const page = usePage()
 watch(() => page.props.flash, (flash) => {
     if (flash?.success) toast.success(flash.success)
@@ -41,12 +42,6 @@ watch(() => page.props.flash, (flash) => {
 const search       = ref(props.filters.search ?? '')
 const filterStatus = ref(props.filters.status ?? 'all')
 
-// ── Two-field status model ────────────────────────────────────────────────
-// status          = lifecycle:   planning | active | completed | cancelled
-// enrollment_status = enrollment: open | closed  (independent of lifecycle)
-//
-// Filter tabs use lifecycle status — "All", "Active", "Completed"
-// The "Enrolling" badge is driven by enrollment_status === 'open'
 
 const filteredBatches = computed(() => {
     let list = props.batches

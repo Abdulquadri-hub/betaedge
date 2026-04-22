@@ -94,6 +94,10 @@ class Instructor extends Model
         return $this->classSessions()->where('status', 'completed');
     }
 
+    public function getFullNameAttribute(): string {
+        return "{$this->first_name} {$this->last_name}";
+    }
+
     // ─── Scopes ──────────────────────────────────────────────────────────────────
 
     public function scopeActive($query)
