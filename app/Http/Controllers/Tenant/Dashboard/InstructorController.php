@@ -82,7 +82,7 @@ class InstructorController extends Controller
 
     // ── Single ─────────────────────────────────────────────────────────────────
 
-   public function single(Request $request, $tenant, $instructorId)
+public function single(Request $request, $tenant, $instructorId)
 {
     $tenantId   = (int) session('active_tenant_id');
     $instructor = $this->findInstructor($instructorId, $tenantId);
@@ -236,7 +236,7 @@ class InstructorController extends Controller
 
     // ── Update ─────────────────────────────────────────────────────────────────
 
-    public function update(Request $request, $instructorId)
+    public function update(Request $request, $tenant, $instructorId)
     {
         $tenantId   = (int) session('active_tenant_id');
         $instructor = $this->findInstructor($instructorId, $tenantId);
@@ -271,7 +271,7 @@ class InstructorController extends Controller
 
     // ── Mark paid ──────────────────────────────────────────────────────────────
 
-    public function markPaid(Request $request, $instructorId)
+    public function markPaid(Request $request, $tenant,  $instructorId)
     {
         $tenantId   = (int) session('active_tenant_id');
         $instructor = $this->findInstructor($instructorId, $tenantId);
@@ -302,7 +302,7 @@ class InstructorController extends Controller
         return redirect()->back()->with('success', 'Payment marked as paid');
     }
 
-    public function destroy(Request $request, $instructorId)
+    public function destroy(Request $request, $tenant, $instructorId)
     {
         $tenantId   = (int) session('active_tenant_id');
         $instructor = $this->findInstructor($instructorId, $tenantId);
