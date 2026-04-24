@@ -24,7 +24,7 @@ class PublicBatchController extends Controller
             ->where('enrollment_status', 'open')
             ->with([
                 'batchCourses.course.academicLevel',
-                'batchCourses.instructor.user',
+                'batchCourses.course.instructors.user',
             ]);
 
         if ($search) {
@@ -80,7 +80,7 @@ class PublicBatchController extends Controller
             ->with([
                 'batchCourses.course.academicLevel',
                 'batchCourses.course.materials',
-                'batchCourses.instructor.user',
+                'batchCourses.course.instructors.user',
             ])
             ->first();
 
@@ -164,10 +164,10 @@ class PublicBatchController extends Controller
             'platform_label'  => $bc->platform_label,
             'frequency'       => $bc->session_frequency,
             'schedule_summary'=> $bc->schedule_summary,
-            'instructor'      => $bc->instructor?->user ? [
-                'name'          => $bc->instructor->user->full_name,
-                'qualification' => $bc->instructor->qualification ?? null,
-                'bio'           => $bc->instructor->bio ?? null,
+            'instructor'      => $bc->course?->instructors->first()?->user ? [
+                'name'          => $bc->course->instructors->first()->user->full_name,
+                'qualification' => $bc->course->instructors->first()->qualification ?? null,
+                'bio'           => $bc->course->instructors->first()->bio ?? null,
             ] : null,
         ]);
 

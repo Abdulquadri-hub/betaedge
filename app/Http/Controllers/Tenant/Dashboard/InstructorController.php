@@ -34,12 +34,6 @@ class InstructorController extends Controller
                 'user',
                 'paymentAgreements' => fn($q) =>
                 $q->where('tenant_id', $tenantId)
-            ])
-            ->withCount([
-                'batchCourses as active_batch_count' => fn($q) =>
-                $q->whereHas('batch', fn($b) => $b->where('status', 'active')),
-                'batchCourses as done_batch_count' => fn($q) =>
-                $q->whereHas('batch', fn($b) => $b->where('status', 'completed')),
             ]);
 
         if ($search) {
@@ -99,7 +93,7 @@ public function single(Request $request, $tenant, $instructorId)
         ->all();
 
     $batches = BatchCourse::withoutGlobalScopes()
-        ->where('instructor_id', $instructor->id)
+        ->whereHas('course.instructors', fn($i) => $i->where('id', $instructor->id))
         ->whereHas('batch', fn ($q) => $q->where('tenant_id', $tenantId))
         ->with(['batch', 'course'])
         ->get()
@@ -201,14 +195,19 @@ public function single(Request $request, $tenant, $instructorId)
                 ]
             );
 
-            // Assign instructor to selected batches (via batch_courses)
+            // Assign instructor to courses in selected batches
             if (!empty($validated['batch_ids'])) {
-                foreach ($validated['batch_ids'] as $batchId) {
-                    BatchCourse::withoutGlobalScopes()
-                        ->where('batch_id', $batchId)
-                        ->where('tenant_id', $tenantId)
-                        ->whereNull('instructor_id')
-                        ->update(['instructor_id' => $instructor->id]);
+                $courseIds = BatchCourse::withoutGlobalScopes()
+                    ->whereIn('batch_id', $validated['batch_ids'])
+                    ->where('tenant_id', $tenantId)
+                    ->pluck('course_id')
+                    ->unique();
+
+                foreach ($courseIds as $courseId) {
+                    $instructor->courses()->attach($courseId, [
+                        'assigned_date' => now(),
+                        'is_primary_instructor' => true
+                    ]);
                 }
             }
 
@@ -311,11 +310,8 @@ public function single(Request $request, $tenant, $instructorId)
             return redirect()->back()->withErrors(['message' => 'Instructor not found']);
         }
 
-        // Remove from all batch courses in this tenant
-        BatchCourse::withoutGlobalScopes()
-            ->where('instructor_id', $instructor->id)
-            ->whereHas('batch', fn($q) => $q->where('tenant_id', $tenantId))
-            ->update(['instructor_id' => null]);
+        // Remove from all courses
+        $instructor->courses()->detach();
 
         // Remove TenantUser link
         TenantUser::where('tenant_id', $tenantId)
@@ -342,14 +338,23 @@ public function single(Request $request, $tenant, $instructorId)
     {
         $agreement = $instructor->paymentAgreements->first();
 
-        // Calculate earnings for this instructor at this school
-        $completedBatchCount = BatchCourse::withoutGlobalScopes()
-            ->where('instructor_id', $instructor->id)
-            ->whereHas(
-                'batch',
-                fn($q) =>
-                $q->where('tenant_id', $tenantId)->where('status', 'completed')
-            )->count();
+        // Calculate batch counts
+        $activeBatchCount = Batch::withoutGlobalScopes()
+            ->where('tenant_id', $tenantId)
+            ->where('status', 'active')
+            ->whereHas('courses', fn($q) => $q->whereHas('instructors', fn($i) => $i->where('id', $instructor->id)))
+            ->count();
+
+        $doneBatchCount = Batch::withoutGlobalScopes()
+            ->where('tenant_id', $tenantId)
+            ->where('status', 'completed')
+            ->whereHas('courses', fn($q) => $q->whereHas('instructors', fn($i) => $i->where('id', $instructor->id)))
+            ->count();
+
+        $totalBatches = Batch::withoutGlobalScopes()
+            ->where('tenant_id', $tenantId)
+            ->whereHas('courses', fn($q) => $q->whereHas('instructors', fn($i) => $i->where('id', $instructor->id)))
+            ->count();
 
         $totalExpected = 0;
         $totalPaid     = 0;
@@ -362,17 +367,15 @@ public function single(Request $request, $tenant, $instructorId)
                 ->sum('amount_due');
 
             if ($agreement->payment_type === 'per_batch') {
-                $totalExpected = $completedBatchCount * $agreement->amount;
+                $totalExpected = $doneBatchCount * $agreement->amount;
             } elseif ($agreement->payment_type === 'per_student') {
-                $students = BatchCourse::withoutGlobalScopes()
-                    ->where('instructor_id', $instructor->id)
-                    ->whereHas(
-                        'batch',
-                        fn($q) =>
-                        $q->where('tenant_id', $tenantId)->where('status', 'completed')
-                    )->with('batch')
+                $students = Batch::withoutGlobalScopes()
+                    ->where('tenant_id', $tenantId)
+                    ->where('status', 'completed')
+                    ->whereHas('courses', fn($q) => $q->whereHas('instructors', fn($i) => $i->where('id', $instructor->id)))
+                    ->withCount('activeStudents')
                     ->get()
-                    ->sum(fn($bc) => $bc->batch?->activeStudents()->count() ?? 0);
+                    ->sum('active_students_count');
                 $totalExpected = $students * $agreement->amount;
             } elseif ($agreement->payment_type === 'monthly') {
                 $totalExpected = $agreement->amount; // current month
@@ -382,13 +385,8 @@ public function single(Request $request, $tenant, $instructorId)
         $hasPending = $totalExpected > $totalPaid;
 
         // Completion rate (ratio of completed to total batches)
-        $totalBatches = BatchCourse::withoutGlobalScopes()
-            ->where('instructor_id', $instructor->id)
-            ->whereHas('batch', fn($q) => $q->where('tenant_id', $tenantId))
-            ->count();
-
         $completionRate = $totalBatches > 0
-            ? round(($completedBatchCount / $totalBatches) * 100)
+            ? round(($doneBatchCount / $totalBatches) * 100)
             : null;
 
         // Also teaches at other schools
@@ -408,8 +406,8 @@ public function single(Request $request, $tenant, $instructorId)
             'specialties'     => $instructor->specialties ?? [],
             'rating'          => $instructor->rating,
             'status'          => $instructor->status,
-            'active_batches'  => $instructor->active_batch_count ?? 0,
-            'done_batches'    => $instructor->done_batch_count ?? 0,
+            'active_batches'  => $activeBatchCount,
+            'done_batches'    => $doneBatchCount,
             'completion_rate' => $completionRate,
             'other_schools'   => $otherSchools,
             'payment_agreement' => $agreement ? [

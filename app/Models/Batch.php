@@ -47,7 +47,6 @@ class Batch extends Model
             // ->using(BatchCourse::class)
             ->withPivot([
                 'id',
-                'instructor_id',
                 'session_day',
                 'session_time',
                 'session_duration_minutes',

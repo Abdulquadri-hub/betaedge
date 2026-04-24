@@ -45,15 +45,6 @@ class Instructor extends Model
     }
 
     /**
-     * All batch_courses rows assigned to this instructor.
-     * Used by the controller for withCount() and batch assignment queries.
-     */
-    public function batchCourses(): HasMany
-    {
-        return $this->hasMany(BatchCourse::class, 'instructor_id');
-    }
-
-    /**
      * Payment agreements for this instructor (one per tenant).
      */
     public function paymentAgreements(): HasMany

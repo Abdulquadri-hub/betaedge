@@ -143,7 +143,6 @@ class BatchController extends Controller
             'notes'                              => 'nullable|string|max:1000',
             'courses'                            => 'nullable|array',
             'courses.*.course_id'                => 'required|exists:courses,id',
-            'courses.*.instructor_id'            => 'nullable|exists:instructors,id',
             'courses.*.session_day'              => 'nullable|string|max:100',
             'courses.*.session_time'             => 'nullable|string|max:10',
             'courses.*.session_duration_minutes' => 'nullable|integer|min:15|max:480',
@@ -215,7 +214,6 @@ class BatchController extends Controller
             'notes'                              => 'nullable|string|max:1000',
             'courses'                            => 'nullable|array',
             'courses.*.course_id'                => 'required|exists:courses,id',
-            'courses.*.instructor_id'            => 'nullable|exists:instructors,id',
             'courses.*.session_day'              => 'nullable|string|max:100',
             'courses.*.session_time'             => 'nullable|string|max:10',
             'courses.*.session_duration_minutes' => 'nullable|integer|min:15|max:480',
@@ -366,7 +364,6 @@ class BatchController extends Controller
                 ['batch_id' => $batch->id, 'course_id' => $courseId],
                 [
                     'tenant_id'                => $tenantId,
-                    'instructor_id'            => isset($slot['instructor_id']) ? (int) $slot['instructor_id'] : null,
                     'session_day'              => $slot['session_day']              ?? null,
                     'session_time'             => $slot['session_time']             ?? null,
                     'session_duration_minutes' => $slot['session_duration_minutes'] ?? 90,

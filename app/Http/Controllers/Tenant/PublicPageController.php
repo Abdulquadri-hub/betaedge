@@ -47,7 +47,7 @@ class PublicPageController extends Controller
             ->where('tenant_id', $tenantModel->id)
             ->where('is_published', true)
             ->where('enrollment_status', 'open')
-            ->with(['batchCourses.course', 'batchCourses.instructor.user'])
+            ->with(['batchCourses.course'])
             ->orderBy('start_date')
             ->limit(6)
             ->get()
@@ -76,7 +76,7 @@ class PublicPageController extends Controller
                 'qualification' => $i->qualification,
                 'bio'           => $i->bio,
                 'avatar'        => $i->avatar ? asset('storage/' . $i->avatar) : null,
-                'courses_count' => $i->batchCourses()->distinct('course_id')->count(),
+                'courses_count' => $i->courses()->count(),
             ]);
 
         $stats = [
