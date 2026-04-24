@@ -38,11 +38,9 @@ class PublicPageController extends Controller
                 'duration_weeks' => $c->duration_weeks,
                 'thumbnail'      => $c->thumbnail ? asset('storage/' . $c->thumbnail) : null,
                 'batch_count'    => $c->batch_count,
-                // Enroll goes to the batches listing page — no single-course enrollment
                 'batches_url'    => '/batches',
             ]);
 
-        // Published enrolling batches (for the "enroll now" section)
         $openBatches = Batch::withoutGlobalScopes()
             ->where('tenant_id', $tenantModel->id)
             ->where('is_published', true)
@@ -87,7 +85,7 @@ class PublicPageController extends Controller
             'total_instructors' => Instructor::withoutGlobalScopes()
                 ->where('tenant_id', $tenantModel->id)->where('status', 'active')->count(),
             'total_batches'     => Batch::withoutGlobalScopes()
-                ->where('tenant_id', $tenantModel->id)->where('is_published', true)->count(),
+                ->where('tenant_id', $tenantModel->id)->where('enrollment_status', 'open')->count(),
         ];
 
         return Inertia::render('School/Public', [
