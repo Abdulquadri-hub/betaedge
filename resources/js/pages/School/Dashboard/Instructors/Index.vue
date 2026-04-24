@@ -1,20 +1,18 @@
 <script setup>
-import { ref, reactive, watch } from 'vue'
+import { ref, watch } from 'vue'
 import { router, usePage } from '@inertiajs/vue3'
 import {
     Plus, Search, Star, Users, CheckCircle2, Clock,
     MoreVertical, Eye, Trash2,
-    AlertCircle, DollarSign, Building2,
+    //AlertCircle, 
+    DollarSign, Building2,
 } from 'lucide-vue-next'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+//import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import {
-    Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
-} from '@/components/ui/dialog'
 import {
     DropdownMenu, DropdownMenuContent, DropdownMenuItem,
     DropdownMenuSeparator, DropdownMenuTrigger,
@@ -28,10 +26,11 @@ import { toast } from 'vue-sonner'
 import DashboardLayout from '@/components/Dashboard/School/Layouts/DashboardLayout.vue'
 
 const props = defineProps({
-    instructors: { type: Array,  default: () => [] },
-    batches:     { type: Array,  default: () => [] },
-    filters:     { type: Object, default: () => ({}) },
-    stats:       { type: Object, default: () => ({}) },
+    instructors:    { type: Array,  default: () => [] },
+    pendingInvites: { type: Array,  default: () => [] },
+    batches:        { type: Array,  default: () => [] },
+    filters:        { type: Object, default: () => ({}) },
+    stats:          { type: Object, default: () => ({}) },
 })
 
 const page = usePage()
@@ -41,69 +40,13 @@ watch(() => page.props.flash, (f) => {
 }, { deep: true })
 
 const search = ref(props.filters.search ?? '')
+const pendingInvites = props.pendingInvites ?? []
 
 function applySearch() {
     router.get(window.location.pathname, { search: search.value || undefined }, { preserveState: true })
 }
 
-// ── Invite dialog ──────────────────────────────────────────────────────────────
-const showInvite   = ref(false)
-const isInviting   = ref(false)
-const inviteErrors = ref({})
 
-const inviteForm = reactive({
-    email:          '',
-    name:           '',
-    phone:          '',
-    batch_ids:      [],
-    payment_type:   'per_batch',
-    payment_amount: '',
-    payment_terms:  '',
-})
-
-const PAYMENT_TYPES = [
-    { value: 'per_batch',   label: 'Fixed per Batch',    desc: 'Paid when a batch completes'   },
-    { value: 'per_student', label: 'Fixed per Student',  desc: 'Based on enrollment count'     },
-    { value: 'monthly',     label: 'Monthly Salary',     desc: 'Fixed monthly payment'         },
-    { value: 'custom',      label: 'Custom Arrangement', desc: 'Define your own terms'         },
-]
-
-function paymentLabel(type) {
-    const found = PAYMENT_TYPES.find(p => p.value === type)
-    return found?.label ?? type
-}
-
-function paymentSuffix(type) {
-    return { per_batch: '/ batch', per_student: '/ student', monthly: '/ month', custom: '' }[type] ?? ''
-}
-
-function toggleBatch(id) {
-    const idx = inviteForm.batch_ids.indexOf(id)
-    if (idx === -1) inviteForm.batch_ids.push(id)
-    else inviteForm.batch_ids.splice(idx, 1)
-}
-
-function openInvite() {
-    Object.assign(inviteForm, { email: '', name: '', phone: '', batch_ids: [], payment_type: 'per_batch', payment_amount: '', payment_terms: '' })
-    inviteErrors.value = {}
-    showInvite.value   = true
-}
-
-function handleInvite() {
-    inviteErrors.value = {}
-    const e = {}
-    if (!inviteForm.email?.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) e.email = 'Valid email required'
-    if (!inviteForm.payment_type) e.payment_type = 'Select a payment type'
-    if (!inviteForm.payment_amount || Number(inviteForm.payment_amount) < 0) e.payment_amount = 'Enter payment amount'
-    if (Object.keys(e).length) { inviteErrors.value = e; return }
-
-    isInviting.value = true
-    router.post('/dashboard/instructors/invite', { ...inviteForm }, {
-        onError: (errs) => { inviteErrors.value = errs },
-        onSuccess: () => { showInvite.value = false },
-        onFinish: () => { isInviting.value = false },
-    })
-}
 
 // ── Remove dialog ──────────────────────────────────────────────────────────────
 const showRemove   = ref(false)
@@ -118,7 +61,11 @@ function confirmRemove(inst) {
 function handleRemove() {
     if (!removingInst.value) return
     isRemoving.value = true
-    router.delete(`/dashboard/instructors/${removingInst.value.id}`, {}, {
+    const path = removingInst.value.type === 'invite'
+        ? `/dashboard/instructors/invite/${removingInst.value.id}`
+        : `/dashboard/instructors/${removingInst.value.id}`
+
+    router.delete(path, {}, {
         onSuccess: () => { showRemove.value = false; removingInst.value = null },
         onFinish:  () => { isRemoving.value = false },
     })
@@ -132,6 +79,19 @@ function initials(name) {
 function fmtNaira(n) {
     if (!n) return '₦0'
     return '₦' + Number(n).toLocaleString('en-NG')
+}
+
+function paymentLabel(type) {
+    return {
+        per_batch:   'Fixed per Batch',
+        per_student: 'Fixed per Student',
+        monthly:     'Monthly Salary',
+        custom:      'Custom Arrangement',
+    }[type] ?? type ?? '—'
+}
+
+function paymentSuffix(type) {
+    return { per_batch: '/ batch', per_student: '/ student', monthly: '/ month' }[type] ?? ''
 }
 </script>
 
@@ -147,8 +107,8 @@ function fmtNaira(n) {
                         Manage your teaching team, payment agreements, and permissions.
                     </p>
                 </div>
-                <Button class="gap-2 shrink-0" @click="openInvite">
-                    <Plus class="h-4 w-4" />+ Invite Instructor
+                <Button class="gap-2 shrink-0" @click="router.visit('/dashboard/instructors/create')">
+                    <Plus class="h-4 w-4" />+ Add Instructor
                 </Button>
             </div>
 
@@ -175,18 +135,59 @@ function fmtNaira(n) {
             </div>
 
             <!-- Empty -->
-            <div v-if="instructors.length === 0"
+            <div v-if="instructors.length === 0 && pendingInvites.length === 0"
                 class="flex flex-col items-center py-16 text-center rounded-xl border border-dashed border-border">
                 <Users class="h-10 w-10 text-muted-foreground/30 mb-3" />
                 <p class="text-sm font-medium">No instructors yet</p>
                 <p class="text-xs text-muted-foreground mt-1">Invite your first instructor to get started.</p>
-                <Button class="mt-4 gap-2" size="sm" @click="openInvite">
-                    <Plus class="h-4 w-4" />Invite Instructor
+                <Button class="mt-4 gap-2" size="sm" @click="router.visit('/dashboard/instructors/create')">
+                    <Plus class="h-4 w-4" />Add Instructor
                 </Button>
             </div>
 
+            <!-- Pending invites -->
+            <div v-if="pendingInvites.length" class="space-y-5">
+                <div class="flex items-center justify-between gap-4">
+                    <div>
+                        <h2 class="text-lg font-semibold text-foreground">Pending invitations</h2>
+                        <p class="text-sm text-muted-foreground">Invited instructors who have not yet accepted.</p>
+                    </div>
+                    <Badge variant="outline" class="text-xs capitalize">
+                        {{ pendingInvites.length }} pending
+                    </Badge>
+                </div>
+                <div class="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                    <Card v-for="invite in pendingInvites" :key="`invite-${invite.id}`" class="overflow-hidden">
+                        <CardContent class="p-5 space-y-4">
+                            <div class="flex items-start gap-3">
+                                <Avatar class="h-12 w-12 shrink-0">
+                                    <AvatarFallback class="text-sm bg-muted font-bold text-foreground">
+                                        {{ initials(invite.name || invite.email) }}
+                                    </AvatarFallback>
+                                </Avatar>
+                                <div class="flex-1 min-w-0">
+                                    <p class="font-semibold text-foreground text-sm truncate">{{ invite.name || invite.email }}</p>
+                                    <p class="text-xs text-muted-foreground truncate">{{ invite.email }}</p>
+                                    <div class="flex items-center gap-2 mt-1 flex-wrap">
+                                        <Badge variant="outline" class="text-xs capitalize">Pending invite</Badge>
+                                    </div>
+                                </div>
+                                <Button variant="ghost" size="icon" class="h-7 w-7 shrink-0"
+                                    @click="confirmRemove(invite)">
+                                    <Trash2 class="h-4 w-4" />
+                                </Button>
+                            </div>
+                            <div class="text-xs text-muted-foreground space-y-1">
+                                <p>Invited by: {{ invite.invited_by ?? 'Admin' }}</p>
+                                <p v-if="invite.expires_at">Expires: {{ invite.expires_at }}</p>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
+
             <!-- Cards grid — matches screenshot design -->
-            <div v-else class="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+            <div v-if="instructors.length" class="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
                 <Card v-for="inst in instructors" :key="inst.id" class="overflow-hidden">
                     <CardContent class="p-5 space-y-4">
 
@@ -313,108 +314,7 @@ function fmtNaira(n) {
             </div>
         </div>
 
-        <!-- ── Invite dialog ──────────────────────────────────────────────────── -->
-        <Dialog :open="showInvite" @update:open="showInvite = $event">
-            <DialogContent class="max-w-lg max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                    <DialogTitle class="flex items-center gap-2">
-                        <Plus class="h-5 w-5 text-primary" />Invite Instructor
-                    </DialogTitle>
-                    <DialogDescription class="text-xs">
-                        An invitation email will be sent. If they don't have a BetaEdge account, they'll be prompted to create one.
-                    </DialogDescription>
-                </DialogHeader>
 
-                <div class="space-y-5 py-2">
-                    <!-- Contact details -->
-                    <div class="space-y-1">
-                        <p class="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Contact Details</p>
-                    </div>
-                    <div class="space-y-1.5">
-                        <Label>Email Address <span class="text-destructive">*</span></Label>
-                        <Input v-model="inviteForm.email" type="email"
-                            placeholder="instructor@email.com"
-                            :class="inviteErrors.email && 'border-destructive'" />
-                        <p v-if="inviteErrors.email" class="text-xs text-destructive">{{ inviteErrors.email }}</p>
-                    </div>
-                    <div class="grid grid-cols-2 gap-3">
-                        <div class="space-y-1.5">
-                            <Label>Full Name <span class="text-muted-foreground text-xs">(optional)</span></Label>
-                            <Input v-model="inviteForm.name" placeholder="e.g., Adebayo Johnson" />
-                        </div>
-                        <div class="space-y-1.5">
-                            <Label>Phone <span class="text-muted-foreground text-xs">(optional)</span></Label>
-                            <Input v-model="inviteForm.phone" placeholder="+234 8XX XXX XXXX" />
-                        </div>
-                    </div>
-
-                    <!-- Assign to batches -->
-                    <div class="space-y-2">
-                        <p class="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Assign to Batches</p>
-                        <div v-if="!batches.length" class="text-xs text-muted-foreground">
-                            No active batches available
-                        </div>
-                        <div v-else class="space-y-2 max-h-44 overflow-y-auto pr-1">
-                            <button v-for="b in batches" :key="b.id" type="button"
-                                class="w-full text-left rounded-xl border px-4 py-3 transition-all text-sm"
-                                :class="inviteForm.batch_ids.includes(b.id)
-                                    ? 'border-primary bg-primary/5 ring-1 ring-primary/20'
-                                    : 'border-border hover:border-primary/40'"
-                                @click="toggleBatch(b.id)">
-                                <p class="font-medium text-foreground">{{ b.name }}</p>
-                                <p class="text-xs text-muted-foreground mt-0.5">
-                                    {{ b.subjects }} · {{ b.count }}/{{ b.max }}
-                                </p>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Payment agreement -->
-                    <div class="space-y-3">
-                        <p class="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Payment Agreement</p>
-                        <div class="grid grid-cols-2 gap-2">
-                            <button v-for="pt in PAYMENT_TYPES" :key="pt.value" type="button"
-                                class="rounded-xl border px-3 py-2.5 text-left transition-all"
-                                :class="inviteForm.payment_type === pt.value
-                                    ? 'border-primary bg-primary/5 ring-1 ring-primary/20'
-                                    : 'border-border hover:border-primary/40'"
-                                @click="inviteForm.payment_type = pt.value">
-                                <p class="text-sm font-semibold text-foreground">{{ pt.label }}</p>
-                                <p class="text-xs text-muted-foreground mt-0.5">{{ pt.desc }}</p>
-                            </button>
-                        </div>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div class="space-y-1.5">
-                                <Label>
-                                    Amount (₦)
-                                    <span class="text-muted-foreground text-xs">
-                                        {{ paymentSuffix(inviteForm.payment_type) }}
-                                    </span>
-                                </Label>
-                                <div class="relative">
-                                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium">₦</span>
-                                    <Input v-model="inviteForm.payment_amount" type="number" min="0" class="pl-7"
-                                        :class="inviteErrors.payment_amount && 'border-destructive'" />
-                                </div>
-                                <p v-if="inviteErrors.payment_amount" class="text-xs text-destructive">{{ inviteErrors.payment_amount }}</p>
-                            </div>
-                            <div v-if="inviteForm.payment_type === 'custom'" class="space-y-1.5">
-                                <Label>Terms <span class="text-muted-foreground text-xs">(optional)</span></Label>
-                                <Input v-model="inviteForm.payment_terms" placeholder="Describe the arrangement" />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <DialogFooter>
-                    <Button variant="outline" :disabled="isInviting" @click="showInvite = false">Cancel</Button>
-                    <Button :disabled="isInviting" class="gap-2" @click="handleInvite">
-                        <RefreshCw v-if="isInviting" class="h-4 w-4 animate-spin" />
-                        {{ isInviting ? 'Sending…' : 'Send Invitation' }}
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
 
         <!-- Remove confirmation -->
         <AlertDialog :open="showRemove" @update:open="showRemove = $event">

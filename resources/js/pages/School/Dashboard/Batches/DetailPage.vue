@@ -327,10 +327,13 @@ function handleExportStudents() {
                                 </CardDescription>
                             </CardHeader>
                             <CardContent class="pb-3">
-                                <div class="space-y-2">
-                                    <div v-if="course.instructor" class="flex items-center gap-2 text-xs">
-                                        <span class="text-muted-foreground font-medium">Instructor:</span>
-                                        <span>{{ course.instructor }}</span>
+                                <div class="space-y-3">
+                                    <div>
+                                        <div v-if="course.instructor" class="flex items-center gap-2 text-xs">
+                                            <span class="text-muted-foreground font-medium">Instructor:</span>
+                                            <span>{{ course.instructor }}</span>
+                                        </div>
+                                        <div v-else class="text-xs text-muted-foreground">No instructor assigned</div>
                                     </div>
                                     <div v-if="course.course_code" class="flex items-center gap-2 text-xs">
                                         <span class="text-muted-foreground font-medium">Code:</span>
@@ -340,14 +343,11 @@ function handleExportStudents() {
                                         <span class="text-muted-foreground font-medium">Duration:</span>
                                         <span>{{ course.duration_weeks }} weeks</span>
                                     </div>
-                                    <!-- <div v-if="course.capacity" class="flex items-center gap-2 text-xs">
-                                        <span class="text-muted-foreground font-medium">Capacity:</span>
-                                        <span>{{ course.enrollment_count || 0 }}/{{ course.capacity }} students</span>
-                                    </div> -->
-                                    <!-- <div v-if="course.credits" class="flex items-center gap-2 text-xs">
-                                        <span class="text-muted-foreground font-medium">Credits:</span>
-                                        <span>{{ course.credits }}</span>
-                                    </div> -->
+                                    <div class="flex justify-end">
+                                        <Button size="sm" variant="outline" class="gap-2" @click="router.visit(`/dashboard/courses/${course.course_id}`)">
+                                            View
+                                        </Button>
+                                    </div>
                                 </div>
                             </CardContent>
                         </Card>

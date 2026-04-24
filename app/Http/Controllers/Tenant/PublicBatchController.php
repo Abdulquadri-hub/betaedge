@@ -169,6 +169,11 @@ class PublicBatchController extends Controller
                 'qualification' => $bc->course->instructors->first()->qualification ?? null,
                 'bio'           => $bc->course->instructors->first()->bio ?? null,
             ] : null,
+            'materials'       => $bc->course?->materials?->map(fn ($m) => [
+                'title'         => $m->title,
+                'material_type' => $m->material_type,
+                'module'        => $m->description,
+            ])->take(6)->values()->all() ?? [],
         ]);
 
         return [

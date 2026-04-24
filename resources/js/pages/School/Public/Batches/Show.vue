@@ -1,10 +1,10 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { router } from '@inertiajs/vue3'
 import {
-    ArrowLeft, Calendar, Clock, Users, CheckCircle2,
-    MessageCircle, GraduationCap, Video, BookOpen,
-    ArrowRight, FileText, Link2, AlertCircle,
+    ArrowLeft, Calendar, Clock, Users,
+    MessageCircle, Video, BookOpen,
+    ArrowRight, FileText, Link2, AlertCircle, ChevronDown,
 } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -45,9 +45,17 @@ const fillPct = computed(() =>
     Math.min(100, ((props.batch.current_count ?? 0) / (props.batch.max_students ?? 1)) * 100)
 )
 
+const expandedCourses = ref([])
+
 const canEnroll = computed(() =>
     props.batch.enrollment_status === 'open' && !props.batch.is_full
 )
+
+function toggleCourse(courseId) {
+    const idx = expandedCourses.value.indexOf(courseId)
+    if (idx === -1) expandedCourses.value.push(courseId)
+    else expandedCourses.value.splice(idx, 1)
+}
 
 function goEnroll() {
     router.visit(`/batches/${props.batch.slug}/enroll`)
@@ -143,16 +151,23 @@ if (typeof document !== 'undefined') {
                                             class="h-full w-full object-cover" />
                                     </div>
                                     <div class="flex-1 min-w-0">
-                                        <div class="flex items-center gap-2 flex-wrap mb-1">
-                                            <p class="font-semibold text-foreground text-sm">{{ course.title }}</p>
-                                            <Badge v-if="course.academic_level" variant="outline" class="text-xs">
-                                                {{ course.academic_level }}
-                                            </Badge>
+                                        <div class="flex items-center justify-between gap-2 flex-wrap mb-1">
+                                            <div>
+                                                <p class="font-semibold text-foreground text-sm">{{ course.title }}</p>
+                                                <Badge v-if="course.academic_level" variant="outline" class="text-xs">
+                                                    {{ course.academic_level }}
+                                                </Badge>
+                                            </div>
+                                            <button type="button"
+                                                class="rounded-full p-2 text-muted-foreground hover:bg-muted transition"
+                                                @click="toggleCourse(course.id)">
+                                                <ChevronDown class="h-4 w-4 transition-transform"
+                                                    :class="expandedCourses.includes(course.id) ? 'rotate-180' : ''" />
+                                            </button>
                                         </div>
                                         <p v-if="course.description" class="text-xs text-muted-foreground mb-2 line-clamp-2">
                                             {{ course.description }}
                                         </p>
-                                        <!-- Schedule -->
                                         <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                                             <span v-if="course.session_day" class="flex items-center gap-1">
                                                 <Calendar class="h-3 w-3" />{{ course.session_day }}
@@ -166,11 +181,37 @@ if (typeof document !== 'undefined') {
                                                 <Video class="h-3 w-3" />{{ course.platform_label }}
                                             </span>
                                         </div>
-                                        <!-- Instructor -->
-                                        <div v-if="course.instructor" class="mt-2 flex items-center gap-1.5 text-xs">
-                                            <GraduationCap class="h-3.5 w-3.5 text-muted-foreground" />
-                                            <span class="font-medium">{{ course.instructor.name }}</span>
+                                    </div>
+                                </div>
+                                <div v-if="expandedCourses.includes(course.id)" class="mt-4 rounded-xl border-t border-border pt-4 text-sm space-y-4">
+                                    <div>
+                                        <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Curriculum</p>
+                                        <div v-if="course.materials?.length" class="space-y-2 mt-3">
+                                            <div v-for="(material, index) in course.materials" :key="`${course.id}-${index}`"
+                                                class="flex items-start gap-3 rounded-xl bg-muted/50 p-3">
+                                                <component :is="matIcon(material.material_type)"
+                                                    class="h-4 w-4 text-muted-foreground shrink-0" />
+                                                <div class="min-w-0">
+                                                    <p class="font-medium text-foreground">{{ material.title }}</p>
+                                                    <p class="text-xs text-muted-foreground">{{ material.module }}</p>
+                                                </div>
+                                            </div>
                                         </div>
+                                        <p v-else class="text-xs text-muted-foreground mt-2">No curriculum items available for this subject yet.</p>
+                                    </div>
+
+                                    <div class="space-y-2">
+                                        <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Instructor</p>
+                                        <div v-if="course.instructor" class="rounded-xl bg-muted p-3 text-sm">
+                                            <p class="font-medium text-foreground">{{ course.instructor.name }}</p>
+                                            <p v-if="course.instructor.qualification" class="text-xs text-muted-foreground">
+                                                {{ course.instructor.qualification }}
+                                            </p>
+                                            <p v-if="course.instructor.bio" class="text-xs text-muted-foreground mt-1 line-clamp-3">
+                                                {{ course.instructor.bio }}
+                                            </p>
+                                        </div>
+                                        <p v-else class="text-xs text-muted-foreground">Instructor details will be published soon.</p>
                                     </div>
                                 </div>
                             </div>
@@ -178,7 +219,7 @@ if (typeof document !== 'undefined') {
                     </div>
 
                     <!-- What's included list -->
-                    <div class="space-y-2">
+                    <!-- <div class="space-y-2">
                         <h2 class="text-lg font-bold text-foreground">What you get</h2>
                         <div class="grid sm:grid-cols-2 gap-2">
                             <div v-for="item in [
@@ -194,10 +235,10 @@ if (typeof document !== 'undefined') {
                                 {{ item }}
                             </div>
                         </div>
-                    </div>
+                    </div> -->
 
                     <!-- Sample materials -->
-                    <div v-if="materials.length" class="space-y-3">
+                    <!-- <div v-if="materials.length" class="space-y-3">
                         <h2 class="text-lg font-bold text-foreground">Course materials preview</h2>
                         <div class="space-y-2">
                             <div v-for="(mat, i) in materials" :key="i"
@@ -208,7 +249,7 @@ if (typeof document !== 'undefined') {
                                 <span class="ml-auto text-xs text-muted-foreground">{{ mat.module }}</span>
                             </div>
                         </div>
-                    </div>
+                    </div> -->
                 </div>
 
                 <!-- Sticky sidebar -->

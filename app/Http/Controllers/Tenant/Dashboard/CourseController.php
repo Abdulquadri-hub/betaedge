@@ -70,7 +70,7 @@ class CourseController extends Controller
         $batches = $course->batches()
             ->withoutGlobalScopes()
             ->where('batches.tenant_id', $tenantId)
-            ->with(['batchCourses' => fn ($q) => $q->where('course_id', $course->id)->with('instructor.user')])
+            ->with(['batchCourses' => fn ($q) => $q->where('course_id', $course->id)->with('course.instructors.user')])
             ->get()
             ->map(fn ($b) => [
                 'id'                 => $b->id,
@@ -82,7 +82,7 @@ class CourseController extends Controller
                 'max_students'       => $b->max_students,
                 'current_enrollment' => $b->activeStudents()->count(),
                 'price'              => $b->price,
-                'instructor_name'    => $b->batchCourses->first()?->instructor?->user?->full_name ?? '—',
+                'instructor_name'    => $b->batchCourses->first()?->course?->instructors->first()?->user?->full_name ?? '—',
             ]);
 
         return Inertia::render('School/Dashboard/Courses/Detail', [

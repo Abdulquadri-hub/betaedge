@@ -224,7 +224,7 @@ class EnrollmentController extends Controller
             ->where('tenant_id', $tenant->id)
             ->where('enrollment_status', 'open')
             ->whereRaw('LOWER(REPLACE(batch_code, " ", "-")) = ?', [strtolower($batchSlug)])
-            ->with(['batchCourses.course.academicLevel', 'batchCourses.instructor.user'])
+            ->with(['batchCourses.course.academicLevel', 'batchCourses.course.instructors.user'])
             ->first();
 
         if (!$batch) abort(404, 'Programme not found');
@@ -254,7 +254,7 @@ class EnrollmentController extends Controller
             'duration_minutes' => $bc->session_duration_minutes,
             'platform_label'  => $bc->platform_label,
             'schedule_summary' => $bc->schedule_summary,
-            'instructor_name' => $bc->instructor?->user?->full_name,
+            'instructor_name' => $bc->course?->instructors->first()?->user?->full_name,
         ]);
 
         $currentCount = $batch->activeStudents()->count();

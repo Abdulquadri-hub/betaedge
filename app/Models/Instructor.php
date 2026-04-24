@@ -17,12 +17,14 @@ class Instructor extends Model
     protected $fillable = [
         'tenant_id', 'user_id', 'instructor_id', 'qualification', 'specialization',
         'years_of_experience', 'bio', 'linkedin_url', 'hourly_rate',
-        'employment_type', 'hire_date', 'status',
+        'employment_type', 'hire_date', 'status', 'invite_status', 'invited_at', 'accepted_at',
     ];
 
     protected $casts = [
         'hire_date'   => 'datetime',
         'hourly_rate' => 'decimal:2',
+        'invited_at'  => 'datetime',
+        'accepted_at' => 'datetime',
     ];
 
     // ─── Relationships ───────────────────────────────────────────────────────────
