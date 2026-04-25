@@ -107,8 +107,9 @@ class PublicBatchService implements PublicBatchServiceInterface
 
     public function resolveOpenBatch(string $tenantSlug, string $batchSlug): Batch
     {
+        
         $tenantModel = $this->resolveTenant($tenantSlug);
-
+        
         return Batch::withoutGlobalScopes()
             ->where('tenant_id', $tenantModel->id)
             ->where('enrollment_status', 'open')
@@ -137,6 +138,7 @@ class PublicBatchService implements PublicBatchServiceInterface
 
     private function resolveTenant(string $slug): Tenant
     {
+        
         return Tenant::where('slug', $slug)
             ->where('status', 'active')
             ->firstOrFail();

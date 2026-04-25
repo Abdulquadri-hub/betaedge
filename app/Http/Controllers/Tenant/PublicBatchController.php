@@ -16,16 +16,14 @@ class PublicBatchController extends Controller
 
     public function index(PublicBatchRequest $request, string $tenant)
     {
-        return Inertia::render(
-            'School/Public/Batches/Index',
+        return Inertia::render('School/Public/Batches/Index',
             $this->batchService->list($tenant, $request->validated())
         );
     }
 
     public function show(Request $request, string $tenant, string $batchSlug)
     {
-        return Inertia::render(
-            'School/Public/Batches/Show',
+        return Inertia::render('School/Public/Batches/Show',
             $this->batchService->get($tenant, $batchSlug)
         );
     }
