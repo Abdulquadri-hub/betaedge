@@ -4,7 +4,7 @@ import { router } from '@inertiajs/vue3'
 import {
     MapPin, Users, BookOpen, Clock, GraduationCap,
     Phone, Mail, Calendar, MessageCircle, ArrowRight,
-    CheckCircle2, Video,
+    Video,
 } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'

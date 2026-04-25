@@ -9,15 +9,20 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 
-class PaystackService
+class PaystackService implements PaystackServiceInterface
 {
-    private const PLATFORM_FEE_PERCENT = 0; 
+    private const PLATFORM_FEE_PERCENT = 0;
     private const BASE_URL = 'https://api.paystack.co';
- 
+
     public function __construct(
-        private readonly Tenant $tenant
+        private ?Tenant $tenant = null
     ) {}
- 
+
+    public function setTenant(Tenant $tenant): void
+    {
+        $this->tenant = $tenant;
+    }
+
     private function secretKey(): string
     {
         $key = $this->tenant->paymentConfig?->secret_key;

@@ -11,17 +11,18 @@ use App\Models\ParentModel;
 use App\Models\Student;
 use App\Models\Tenant;
 use App\Models\User;
-use App\Services\School\Payment\PaystackService;
+use App\Contracts\Services\School\EnrollmentServiceInterface;
+use App\Contracts\Services\School\PaystackServiceInterface;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
-class EnrollmentService
+class EnrollmentService implements EnrollmentServiceInterface
 {
     public function __construct(
-        private readonly PaystackService $paystack
+        private readonly PaystackServiceInterface $paystack
     ) {}
      
     public function registerAndBeginEnrollment(
@@ -31,6 +32,8 @@ class EnrollmentService
         ?array $parentData,
         string $callbackUrl
     ): array {
+        $this->paystack->setTenant($tenant);
+
         return DB::transaction(function () use ($batch, $tenant, $studentData, $parentData, $callbackUrl) {
 
             $this->guardBatchAvailability($batch);
@@ -70,8 +73,8 @@ class EnrollmentService
             ]);
 
             $amountNaira = (int) ($batch->price ?? 0);
-            $split       = PaystackService::calculateSplit($amountNaira);
-            $reference   = PaystackService::generateReference($tenant->slug);
+            $split       = PaystackServiceInterface::calculateSplit($amountNaira);
+            $reference   = PaystackServiceInterface::generateReference($tenant->slug);
 
             $payment = EnrollmentPayment::create([
                 'tenant_id'          => $tenant->id,
@@ -146,7 +149,7 @@ class EnrollmentService
                 return $payment->enrollment;
             }
 
-            // Verify with Paystack API
+            $this->paystack->setTenant($payment->tenant);
             $paystackData = $this->paystack->verifyPayment($paystackReference);
 
             // Mark payment completed

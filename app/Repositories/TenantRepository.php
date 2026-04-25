@@ -9,7 +9,6 @@ use Illuminate\Support\Str;
 use App\Models\OnboardingProcess;
 use Illuminate\Support\Facades\Hash;
 use App\Contracts\Repositories\TenantRepositoryInterface;
-use App\Models\TenantUser;
 
 class TenantRepository implements TenantRepositoryInterface
 {
@@ -66,6 +65,38 @@ class TenantRepository implements TenantRepositoryInterface
             ->first();
     }
 
+    public function existsBySlug(string $slug): bool
+    {
+        return Tenant::where('slug', $slug)->exists();
+    }
+
+    public function isSlugReserved(string $slug): bool
+    {
+        return Tenant::isSlugReserved($slug);
+    }
+
+    public function getByVerificationToken(string $token): ?Tenant
+    {
+        return Tenant::where('verification_token', $token)->first();
+    }
+
+    public function getUnverifiedByEmail(string $email): ?Tenant
+    {
+        return Tenant::where('owner_email', $email)
+            ->whereNull('email_verified_at')
+            ->first();
+    }
+
+    public function markEmailAsVerified(Tenant $tenant): void
+    {
+        $tenant->markEmailAsVerified();
+    }
+
+    public function generateVerificationToken(Tenant $tenant): string
+    {
+        return $tenant->generateVerificationToken();
+    }
+
     public function getById(int $id): ?Tenant
     {
         return Tenant::where('id', $id)
@@ -96,6 +127,11 @@ class TenantRepository implements TenantRepositoryInterface
     public function completeOnboarding(Tenant $tenant): void
     {
         $tenant->completeOnboarding();
+    }
+
+    public function updateVerificationStatus(Tenant $tenant, string $status): void
+    {
+        $tenant->update(['verification_status' => $status]);
     }
 
 }

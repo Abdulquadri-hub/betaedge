@@ -9,6 +9,8 @@ use App\Contracts\Repositories\School\BatchRepositoryInterface;
 use App\Contracts\Repositories\School\CourseRepositoryInterface;
 use App\Contracts\Repositories\School\LiveSessionRepositoryInterface;
 use App\Contracts\Repositories\School\TenantNotificationPreferenceRepositoryInterface;
+use App\Contracts\Repositories\School\KycSubmissionRepositoryInterface;
+use App\Contracts\Repositories\School\MaterialRepositoryInterface;
 use App\Contracts\Repositories\School\TenantPaymentConfigRepositoryInterface;
 use App\Contracts\Repositories\SubscriptionPlanRepositoryInterface;
 use App\Contracts\Repositories\TenantPageRepositoryInterface;
@@ -22,6 +24,9 @@ use App\Contracts\Services\OnboardingProcessServiceInterface;
 use App\Contracts\Services\PasswordReset\PasswordResetServiceInterface;
 use App\Contracts\Services\School\DashboardServiceInterface;
 use App\Contracts\Services\School\PaystackServiceInterface;
+use App\Contracts\Services\School\PublicBatchServiceInterface;
+use App\Contracts\Services\School\PublicPageServiceInterface;
+use App\Contracts\Services\School\EnrollmentServiceInterface;
 use App\Contracts\Services\SubscriptionPlanServiceInterface;
 use App\Contracts\Services\TenantPageServiceInterface;
 use App\Contracts\Services\TenantPaymentServiceInterface;
@@ -39,6 +44,8 @@ use App\Repositories\School\CourseRepository;
 use App\Repositories\School\LiveSessionRepository;
 use App\Repositories\School\TenantNotificationPreferenceRepository;
 use App\Repositories\School\TenantPaymentConfigRepository;
+use App\Repositories\School\KycSubmissionRepository;
+use App\Repositories\School\MaterialRepository;
 use App\Repositories\SubscriptionPlanRepository;
 use App\Repositories\TenantPageRepository;
 use App\Repositories\TenantPaymentRepository;
@@ -51,6 +58,9 @@ use App\Services\OnboardingProcessService;
 use App\Services\PasswordReset\PasswordResetService;
 use App\Services\School\DashboardService;
 use App\Services\School\Payment\PaystackService;
+use App\Services\School\PublicBatchService;
+use App\Services\School\PublicPageService;
+use App\Services\School\EnrollmentService;
 use App\Services\SubscriptionPlanService;
 use App\Services\TenantPageService;
 use App\Services\TenantPaymentService;
@@ -75,6 +85,8 @@ return [
         AcademicLevelRepositoryInterface::class => AcademicLevelRepository::class,
         BatchRepositoryInterface::class => BatchRepository::class,
         CourseRepositoryInterface::class => CourseRepository::class,
+        KycSubmissionRepositoryInterface::class => KycSubmissionRepository::class,
+        MaterialRepositoryInterface::class => MaterialRepository::class,
         TenantNotificationPreferenceRepositoryInterface::class => TenantNotificationPreferenceRepository::class,
         TenantPaymentConfigRepositoryInterface::class => TenantPaymentConfigRepository::class,
         LiveSessionRepositoryInterface::class => LiveSessionRepository::class,
@@ -94,5 +106,8 @@ return [
         DashboardServiceInterface::class => DashboardService::class,
         NinVerificationServiceInterface::class => NinVerificationService::class,
         PaystackServiceInterface::class => PaystackService::class,
+        PublicBatchServiceInterface::class => PublicBatchService::class,
+        PublicPageServiceInterface::class => PublicPageService::class,
+        EnrollmentServiceInterface::class => EnrollmentService::class,
     ]
 ];
