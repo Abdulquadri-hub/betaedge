@@ -10,9 +10,11 @@ use App\Models\Instructor;
 use App\Models\InstructorBatchPayment;
 use App\Models\InstructorPaymentAgreement;
 use App\Models\Tenant;
+use App\Models\TenantInvitation;
 use App\Models\TenantUser;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
@@ -34,12 +36,6 @@ class InstructorController extends Controller
                 'user',
                 'paymentAgreements' => fn($q) =>
                 $q->where('tenant_id', $tenantId)
-            ])
-            ->withCount([
-                'batchCourses as active_batch_count' => fn($q) =>
-                $q->whereHas('batch', fn($b) => $b->where('status', 'active')),
-                'batchCourses as done_batch_count' => fn($q) =>
-                $q->whereHas('batch', fn($b) => $b->where('status', 'completed')),
             ]);
 
         if ($search) {
@@ -51,6 +47,30 @@ class InstructorController extends Controller
         }
 
         $instructors = $query->get()->map(fn($i) => $this->formatInstructor($i, $tenantId));
+
+        $pendingInvitesQuery = TenantInvitation::where('tenant_id', $tenantId)
+            ->where('status', 'pending');
+
+        if ($search) {
+            $pendingInvitesQuery->where(function ($q) use ($search) {
+                $q->where('email', 'like', "%{$search}%")
+                  ->orWhere('full_name', 'like', "%{$search}%");
+            });
+        }
+
+        $pendingInvites = $pendingInvitesQuery
+            ->with('inviter')
+            ->orderByDesc('created_at')
+            ->get()
+            ->map(fn ($invite) => [
+                'id'         => $invite->id,
+                'email'      => $invite->email,
+                'name'       => $invite->full_name ?? '—',
+                'status'     => $invite->status,
+                'expires_at' => $invite->expires_at?->toDateTimeString(),
+                'invited_by' => $invite->inviter?->full_name ?? $invite->inviter?->email,
+                'type'       => 'invite',
+            ]);
 
         // Batches for the "assign to batch" select in invite dialog
         $batches = Batch::withoutGlobalScopes()
@@ -73,11 +93,147 @@ class InstructorController extends Controller
         ];
 
         return Inertia::render('School/Dashboard/Instructors/Index', [
-            'instructors' => $instructors,
-            'batches'     => $batches,
-            'filters'     => compact('search'),
-            'stats'       => $stats,
+            'instructors'     => $instructors,
+            'pendingInvites'  => $pendingInvites,
+            'batches'         => $batches,
+            'filters'         => compact('search'),
+            'stats'           => array_merge($stats, ['pending_invites' => $pendingInvites->count()]),
         ]);
+    }
+
+    // ── Create ─────────────────────────────────────────────────────────────────
+
+    public function create(Request $request)
+    {
+        $tenantId = (int) session('active_tenant_id');
+
+        // Batches for assignment
+        $batches = Batch::withoutGlobalScopes()
+            ->where('tenant_id', $tenantId)
+            ->whereIn('status', ['planning', 'active'])
+            ->with('batchCourses.course')
+            ->orderByDesc('start_date')
+            ->get()
+            ->map(fn($b) => [
+                'id'       => $b->id,
+                'name'     => $b->batch_name,
+                'subjects' => $b->batchCourses->map(fn($bc) => $bc->course?->title)->filter()->join(', '),
+                'count'    => $b->activeStudents()->count(),
+                'max'      => $b->max_students,
+            ]);
+
+        return Inertia::render('School/Dashboard/Instructors/Create', [
+            'batches' => $batches,
+        ]);
+    }
+
+    // ── Store ──────────────────────────────────────────────────────────────────
+
+    public function store(Request $request)
+    {
+        $tenantId = (int) session('active_tenant_id');
+
+        $validated = $request->validate([
+            'email'                   => 'required|email|max:255',
+            'name'                    => 'nullable|string|max:255',
+            'phone'                   => 'nullable|string|max:30',
+            'batch_ids'               => 'nullable|array',
+            'batch_ids.*'             => 'exists:batches,id',
+            // Payment agreement
+            'payment_type'            => 'required|in:per_batch,per_student,monthly,custom',
+            'payment_amount'          => 'required|numeric|min:0',
+            'payment_terms'           => 'nullable|string|max:1000',
+        ]);
+
+        return DB::transaction(function () use ($validated, $tenantId) {
+            $tenant = Tenant::findOrFail($tenantId);
+
+            // Find or create user account for the instructor
+            $user = User::where('email', $validated['email'])->first();
+            $isNewUser = !$user;
+
+            if (!$user) {
+                $tempPassword = Str::random(12);
+                $nameParts    = explode(' ', trim($validated['name'] ?? ''), 2);
+
+                $user = User::create([
+                    'email'      => $validated['email'],
+                    'phone'      => $validated['phone']   ?? null,
+                    'password'   => Hash::make($tempPassword),
+                    'user_type'  => 'instructor',
+                ]);
+            }
+
+            // Create or retrieve instructor record
+            $instructor = Instructor::withoutGlobalScopes()
+                ->where('user_id', $user->id)
+                ->where('tenant_id', $tenantId)
+                ->first();
+
+            if (!$instructor) {
+                // Auto-generate a unique instructor code for this tenant
+                $lastCode = Instructor::withoutGlobalScopes()
+                    ->where('tenant_id', $tenantId)
+                    ->orderByDesc('id')
+                    ->value('instructor_id');
+
+                $nextNumber = $lastCode
+                    ? (int) filter_var($lastCode, FILTER_SANITIZE_NUMBER_INT) + 1
+                    : 1;
+
+                $instructorCode = 'INST-' . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
+
+                $instructor = Instructor::create([
+                    'tenant_id'      => $tenantId,
+                    'user_id'        => $user->id,
+                    'instructor_id'  => $instructorCode,
+                    'status'         => 'active',
+                    'invite_status'  => 'accepted',
+                    'invited_at'     => now(),
+                    'accepted_at'    => now(),
+                ]);
+            }
+
+            // Link to tenant (multi-school instructors)
+            TenantUser::firstOrCreate(
+                ['tenant_id' => $tenantId, 'user_id' => $user->id],
+                ['role' => 'instructor', 'status' => 'active', 'joined_at' => now()]
+            );
+
+            // Payment agreement
+            InstructorPaymentAgreement::updateOrCreate(
+                ['instructor_id' => $instructor->id, 'tenant_id' => $tenantId],
+                [
+                    'payment_type'  => $validated['payment_type'],
+                    'amount'        => $validated['payment_amount'],
+                    'payment_terms' => $validated['payment_terms'] ?? null,
+                    'status'        => 'active',
+                ]
+            );
+
+            // Assign instructor to courses in selected batches
+            if (!empty($validated['batch_ids'])) {
+                $courseIds = BatchCourse::withoutGlobalScopes()
+                    ->whereIn('batch_id', $validated['batch_ids'])
+                    ->where('tenant_id', $tenantId)
+                    ->pluck('course_id')
+                    ->unique();
+
+                foreach ($courseIds as $courseId) {
+                    $instructor->courses()->attach($courseId, [
+                        'assigned_date' => now(),
+                        'is_primary_instructor' => true
+                    ]);
+                }
+            }
+
+            return redirect('/dashboard/instructors')->with(
+                'success',
+                $isNewUser
+                    ? "Instructor created successfully. Temporary password: {$tempPassword}"
+                    : "Instructor added to your school."
+            );
+        });
     }
 
     // ── Single ─────────────────────────────────────────────────────────────────
@@ -99,7 +255,7 @@ public function single(Request $request, $tenant, $instructorId)
         ->all();
 
     $batches = BatchCourse::withoutGlobalScopes()
-        ->where('instructor_id', $instructor->id)
+        ->whereHas('course.instructors', fn($i) => $i->where('instructors.id', $instructor->id))
         ->whereHas('batch', fn ($q) => $q->where('tenant_id', $tenantId))
         ->with(['batch', 'course'])
         ->get()
@@ -137,99 +293,41 @@ public function single(Request $request, $tenant, $instructorId)
             'payment_terms'           => 'nullable|string|max:1000',
         ]);
 
-        return DB::transaction(function () use ($validated, $tenantId) {
-            $tenant = Tenant::findOrFail($tenantId);
-
-            // Find or create user account for the instructor
-            $user = User::where('email', $validated['email'])->first();
-            $isNewUser = !$user;
-
-            if (!$user) {
-                $tempPassword = Str::random(12);
-                $nameParts    = explode(' ', trim($validated['name'] ?? ''), 2);
-
-                $user = User::create([
-                    'email'      => $validated['email'],
-                    'phone'      => $validated['phone']   ?? null,
-                    'password'   => Hash::make($tempPassword),
-                    'user_type'  => 'instructor',
-                ]);
-            }
-
-            // Create or retrieve instructor record
-            // Create or retrieve instructor record
-            $instructor = Instructor::withoutGlobalScopes()
-                ->where('user_id', $user->id)
-                ->where('tenant_id', $tenantId)
-                ->first();
-
-            if (!$instructor) {
-                // Auto-generate a unique instructor code for this tenant
-                $lastCode = Instructor::withoutGlobalScopes()
-                    ->where('tenant_id', $tenantId)
-                    ->orderByDesc('id')
-                    ->value('instructor_id');
-
-                $nextNumber = $lastCode
-                    ? (int) filter_var($lastCode, FILTER_SANITIZE_NUMBER_INT) + 1
-                    : 1;
-
-                $instructorCode = 'INST-' . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
-
-                $instructor = Instructor::create([
-                    'tenant_id'     => $tenantId,
-                    'user_id'       => $user->id,
-                    'instructor_id' => $instructorCode,   
-                    'status'        => 'active',
-                ]);
-            }
-
-            // Link to tenant (multi-school instructors)
-            TenantUser::firstOrCreate(
-                ['tenant_id' => $tenantId, 'user_id' => $user->id],
-                ['role' => 'instructor', 'status' => 'active', 'joined_at' => now()]
-            );
-
-            // Payment agreement
-            InstructorPaymentAgreement::updateOrCreate(
-                ['instructor_id' => $instructor->id, 'tenant_id' => $tenantId],
+        return DB::transaction(function () use ($validated, $tenantId, $request) {
+            $invitation = TenantInvitation::updateOrCreate(
                 [
-                    'payment_type'  => $validated['payment_type'],
-                    'amount'        => $validated['payment_amount'],
-                    'payment_terms' => $validated['payment_terms'] ?? null,
-                    'status'        => 'active',
+                    'tenant_id' => $tenantId,
+                    'email'     => $validated['email'],
+                    'status'    => 'pending',
+                ],
+                [
+                    'full_name'   => $validated['name'] ?? null,
+                    'role'        => 'instructor',
+                    'invited_by'  => Auth::id(),
+                    'expires_at'  => now()->addDays(7),
+                    'metadata'    => [
+                        'phone'          => $validated['phone'] ?? null,
+                        'batch_ids'      => $validated['batch_ids'] ?? [],
+                        'payment_type'   => $validated['payment_type'],
+                        'payment_amount' => $validated['payment_amount'],
+                        'payment_terms'  => $validated['payment_terms'] ?? null,
+                    ],
                 ]
             );
 
-            // Assign instructor to selected batches (via batch_courses)
-            if (!empty($validated['batch_ids'])) {
-                foreach ($validated['batch_ids'] as $batchId) {
-                    BatchCourse::withoutGlobalScopes()
-                        ->where('batch_id', $batchId)
-                        ->where('tenant_id', $tenantId)
-                        ->whereNull('instructor_id')
-                        ->update(['instructor_id' => $instructor->id]);
-                }
-            }
-
-            // Send invitation email
             try {
-                // Mail::to($validated['email'])->send(
-                //     InstructorInviteMail($tenant, $user, $isNewUser, $tempPassword ?? null)
-                // );
+                // Trigger email or notification for pending invite
+                // event(new TenantInvitationSent($invitation));
             } catch (\Throwable $e) {
-                \Illuminate\Support\Facades\Log::error('Instructor invite email failed', [
-                    'instructor' => $instructor->id,
-                    'error'      => $e->getMessage(),
+                \Illuminate\Support\Facades\Log::error('Instructor invite event failed', [
+                    'invite' => $invitation->id,
+                    'error'  => $e->getMessage(),
                 ]);
-                // Don't fail the invite — just log it
             }
 
             return redirect()->back()->with(
                 'success',
-                $isNewUser
-                    ? "Invitation sent to {$validated['email']}. They'll receive login credentials."
-                    : "{$user->full_name} added to your school."
+                "Invitation sent to {$validated['email']}. The instructor can accept when ready."
             );
         });
     }
@@ -302,33 +400,159 @@ public function single(Request $request, $tenant, $instructorId)
         return redirect()->back()->with('success', 'Payment marked as paid');
     }
 
+    public function acceptInvitation(Request $request, $tenant, $invitationId)
+    {
+        $tenantId   = (int) session('active_tenant_id');
+        $invitation = TenantInvitation::where('tenant_id', $tenantId)
+            ->where('status', 'pending')
+            ->find($invitationId);
+
+        if (!$invitation) {
+            return redirect()->back()->withErrors(['message' => 'Invitation not found or already processed']);
+        }
+
+        $meta = $invitation->metadata ?? [];
+        $user = User::firstWhere('email', $invitation->email);
+
+        if (!$user) {
+            $tempPassword = Str::random(12);
+            $user = User::create([
+                'email'      => $invitation->email,
+                'password'   => Hash::make($tempPassword),
+                'user_type'  => 'instructor',
+                'full_name'  => $invitation->full_name,
+                'phone'      => $meta['phone'] ?? null,
+            ]);
+        } else {
+            $user->fill([
+                'full_name' => $user->full_name ?: $invitation->full_name,
+                'phone'     => $user->phone ?: ($meta['phone'] ?? null),
+                'user_type' => $user->user_type ?: 'instructor',
+            ])->save();
+        }
+
+        $instructor = Instructor::withoutGlobalScopes()
+            ->firstOrCreate([
+                'tenant_id' => $tenantId,
+                'user_id'   => $user->id,
+            ], [
+                'instructor_id' => $this->generateInstructorCode($tenantId),
+                'status'        => 'active',
+                'invite_status' => 'accepted',
+                'invited_at'    => $invitation->created_at,
+                'accepted_at'   => now(),
+            ]);
+
+        TenantUser::firstOrCreate(
+            ['tenant_id' => $tenantId, 'user_id' => $user->id],
+            ['role' => 'instructor', 'status' => 'active', 'joined_at' => now()]
+        );
+
+        if ($meta['payment_type'] ?? null) {
+            InstructorPaymentAgreement::updateOrCreate(
+                ['instructor_id' => $instructor->id, 'tenant_id' => $tenantId],
+                [
+                    'payment_type'  => $meta['payment_type'],
+                    'amount'        => $meta['payment_amount'] ?? 0,
+                    'payment_terms' => $meta['payment_terms'] ?? null,
+                    'status'        => 'active',
+                ]
+            );
+        }
+
+        if (!empty($meta['batch_ids'])) {
+            $courseIds = BatchCourse::withoutGlobalScopes()
+                ->whereIn('batch_id', $meta['batch_ids'])
+                ->where('tenant_id', $tenantId)
+                ->pluck('course_id')
+                ->unique();
+
+            $attachPayload = collect($courseIds)
+                ->mapWithKeys(fn ($courseId) => [
+                    $courseId => [
+                        'assigned_date' => now(),
+                        'is_primary_instructor' => true,
+                    ],
+                ])
+                ->all();
+
+            $instructor->courses()->syncWithoutDetaching($attachPayload);
+        }
+
+        $invitation->update([
+            'status'      => 'accepted',
+            'accepted_at' => now(),
+            'accepted_by' => $request->user()->id(),
+        ]);
+
+        return redirect()->route('dashboard.instructors.index')
+            ->with('success', 'Invitation accepted and instructor created successfully');
+    }
+
+    public function destroyInvite(Request $request, $tenant, $invitationId)
+    {
+        $tenantId = (int) session('active_tenant_id');
+
+        $invitation = TenantInvitation::where('tenant_id', $tenantId)
+            ->where('status', 'pending')
+            ->find($invitationId);
+
+        if (!$invitation) {
+            return redirect()->back()->withErrors(['message' => 'Pending invitation not found']);
+        }
+
+        $invitation->delete();
+
+        return redirect()->back()->with('success', 'Pending invitation removed');
+    }
+
     public function destroy(Request $request, $tenant, $instructorId)
     {
         $tenantId   = (int) session('active_tenant_id');
         $instructor = $this->findInstructor($instructorId, $tenantId);
 
-        if (!$instructor) {
-            return redirect()->back()->withErrors(['message' => 'Instructor not found']);
+        if ($instructor) {
+            // Remove from all courses
+            $instructor->courses()->detach();
+
+            // Remove TenantUser link
+            TenantUser::where('tenant_id', $tenantId)
+                ->where('user_id', $instructor->user_id)
+                ->delete();
+
+            // Soft-delete or deactivate (don't hard-delete — they may teach elsewhere)
+            $instructor->update(['status' => 'inactive']);
+
+            return redirect()->back()->with('success', 'Instructor removed from school');
         }
 
-        // Remove from all batch courses in this tenant
-        BatchCourse::withoutGlobalScopes()
-            ->where('instructor_id', $instructor->id)
-            ->whereHas('batch', fn($q) => $q->where('tenant_id', $tenantId))
-            ->update(['instructor_id' => null]);
+        $invitation = TenantInvitation::where('tenant_id', $tenantId)
+            ->where('id', $instructorId)
+            ->first();
 
-        // Remove TenantUser link
-        TenantUser::where('tenant_id', $tenantId)
-            ->where('user_id', $instructor->user_id)
-            ->delete();
+        if ($invitation) {
+            $invitation->delete();
+            return redirect()->back()->with('success', 'Pending invitation removed');
+        }
 
-        // Soft-delete or deactivate (don't hard-delete — they may teach elsewhere)
-        $instructor->update(['status' => 'inactive']);
-
-        return redirect()->back()->with('success', 'Instructor removed from school');
+        return redirect()->back()->withErrors(['message' => 'Instructor or invitation not found']);
     }
 
     // ── Private helpers ────────────────────────────────────────────────────────
+
+    private function generateInstructorCode(int $tenantId): string
+    {
+        $lastCode = Instructor::withoutGlobalScopes()
+            ->where('tenant_id', $tenantId)
+            ->orderByDesc('id')
+            ->value('instructor_id');
+
+        $nextNumber = $lastCode
+            ? (int) filter_var($lastCode, FILTER_SANITIZE_NUMBER_INT) + 1
+            : 1;
+
+        return 'INST-' . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
+    }
 
     private function findInstructor(int|string $id, int $tenantId): ?Instructor
     {
@@ -342,14 +566,23 @@ public function single(Request $request, $tenant, $instructorId)
     {
         $agreement = $instructor->paymentAgreements->first();
 
-        // Calculate earnings for this instructor at this school
-        $completedBatchCount = BatchCourse::withoutGlobalScopes()
-            ->where('instructor_id', $instructor->id)
-            ->whereHas(
-                'batch',
-                fn($q) =>
-                $q->where('tenant_id', $tenantId)->where('status', 'completed')
-            )->count();
+        // Calculate batch counts
+        $activeBatchCount = Batch::withoutGlobalScopes()
+            ->where('tenant_id', $tenantId)
+            ->where('status', 'active')
+            ->whereHas('courses', fn($q) => $q->whereHas('instructors', fn($i) => $i->where('instructors.id', $instructor->id)))
+            ->count();
+
+        $doneBatchCount = Batch::withoutGlobalScopes()
+            ->where('tenant_id', $tenantId)
+            ->where('status', 'completed')
+            ->whereHas('courses', fn($q) => $q->whereHas('instructors', fn($i) => $i->where('instructors.id', $instructor->id)))
+            ->count();
+
+        $totalBatches = Batch::withoutGlobalScopes()
+            ->where('tenant_id', $tenantId)
+            ->whereHas('courses', fn($q) => $q->whereHas('instructors', fn($i) => $i->where('instructors.id', $instructor->id)))
+            ->count();
 
         $totalExpected = 0;
         $totalPaid     = 0;
@@ -362,17 +595,15 @@ public function single(Request $request, $tenant, $instructorId)
                 ->sum('amount_due');
 
             if ($agreement->payment_type === 'per_batch') {
-                $totalExpected = $completedBatchCount * $agreement->amount;
+                $totalExpected = $doneBatchCount * $agreement->amount;
             } elseif ($agreement->payment_type === 'per_student') {
-                $students = BatchCourse::withoutGlobalScopes()
-                    ->where('instructor_id', $instructor->id)
-                    ->whereHas(
-                        'batch',
-                        fn($q) =>
-                        $q->where('tenant_id', $tenantId)->where('status', 'completed')
-                    )->with('batch')
+                $students = Batch::withoutGlobalScopes()
+                    ->where('tenant_id', $tenantId)
+                    ->where('status', 'completed')
+                    ->whereHas('courses', fn($q) => $q->whereHas('instructors', fn($i) => $i->where('instructors.id', $instructor->id)))
+                    ->withCount('activeStudents')
                     ->get()
-                    ->sum(fn($bc) => $bc->batch?->activeStudents()->count() ?? 0);
+                    ->sum('active_students_count');
                 $totalExpected = $students * $agreement->amount;
             } elseif ($agreement->payment_type === 'monthly') {
                 $totalExpected = $agreement->amount; // current month
@@ -382,13 +613,8 @@ public function single(Request $request, $tenant, $instructorId)
         $hasPending = $totalExpected > $totalPaid;
 
         // Completion rate (ratio of completed to total batches)
-        $totalBatches = BatchCourse::withoutGlobalScopes()
-            ->where('instructor_id', $instructor->id)
-            ->whereHas('batch', fn($q) => $q->where('tenant_id', $tenantId))
-            ->count();
-
         $completionRate = $totalBatches > 0
-            ? round(($completedBatchCount / $totalBatches) * 100)
+            ? round(($doneBatchCount / $totalBatches) * 100)
             : null;
 
         // Also teaches at other schools
@@ -408,8 +634,8 @@ public function single(Request $request, $tenant, $instructorId)
             'specialties'     => $instructor->specialties ?? [],
             'rating'          => $instructor->rating,
             'status'          => $instructor->status,
-            'active_batches'  => $instructor->active_batch_count ?? 0,
-            'done_batches'    => $instructor->done_batch_count ?? 0,
+            'active_batches'  => $activeBatchCount,
+            'done_batches'    => $doneBatchCount,
             'completion_rate' => $completionRate,
             'other_schools'   => $otherSchools,
             'payment_agreement' => $agreement ? [

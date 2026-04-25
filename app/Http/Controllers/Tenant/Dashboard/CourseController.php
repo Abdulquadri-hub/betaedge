@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers\Tenant\Dashboard;
 
+use App\Contracts\Repositories\School\AcademicLevelRepositoryInterface;
+use App\Contracts\Repositories\School\CourseRepositoryInterface;
+use App\Contracts\Repositories\School\MaterialRepositoryInterface;
 use App\Http\Controllers\Controller;
-use App\Models\AcademicLevel;
 use App\Models\Course;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -11,38 +13,25 @@ use Inertia\Inertia;
 
 class CourseController extends Controller
 {
+    public function __construct(
+        protected CourseRepositoryInterface $courseRepo,
+        protected AcademicLevelRepositoryInterface $academicLevelRepo,
+        protected MaterialRepositoryInterface $materialRepo
+    ) {}
+
     public function index(Request $request)
     {
-        $tenantId = (int) session('active_tenant_id');
-        $search   = $request->get('search', '');
-        $status   = $request->get('status', '');
+        $search = $request->get('search', '');
+        $status = $request->get('status', '');
 
-        $query = Course::withoutGlobalScopes()
-            ->where('tenant_id', $tenantId)
-            ->with('academicLevel')
-            ->withCount(['batchCourses as batch_count']);
-
-        if ($search) {
-            $query->where(fn ($q) => $q
-                ->where('title', 'like', "%{$search}%")
-                ->orWhere('course_code', 'like', "%{$search}%")
-            );
-        }
-
-        if ($status && $status !== 'all') {
-            $query->where('status', $status);
-        }
-
-        $paginated = $query->latest()->paginate(50);
+        $paginated = $this->courseRepo->getPaginated(50, [
+            'search' => $search,
+            'status' => $status,
+        ]);
 
         $courses = $paginated->getCollection()->map(fn ($c) => $this->formatCourse($c));
 
-        $stats = [
-            'total'    => Course::withoutGlobalScopes()->where('tenant_id', $tenantId)->count(),
-            'active'   => Course::withoutGlobalScopes()->where('tenant_id', $tenantId)->where('status', 'active')->count(),
-            'draft'    => Course::withoutGlobalScopes()->where('tenant_id', $tenantId)->where('status', 'draft')->count(),
-            'archived' => Course::withoutGlobalScopes()->where('tenant_id', $tenantId)->where('status', 'archived')->count(),
-        ];
+        $stats = $this->courseRepo->getStats();
 
         return Inertia::render('School/Dashboard/Courses/Index', [
             'courses'    => $courses,
@@ -58,20 +47,16 @@ class CourseController extends Controller
 
     public function single(Request $request, $tenant, $courseId)
     {
-        $tenantId = (int) session('active_tenant_id');
-        $course   = $this->findCourse($courseId, $tenantId);
+        $course = $this->courseRepo->getWithRelations((int) $courseId);
 
-        if (!$course) {
+        if (! $course) {
             return redirect('/dashboard/courses')->with('error', 'Course not found');
         }
 
-        $materials = $this->mapMaterials($course->materials()->orderBy('display_order')->get());
+        $materials = $this->mapMaterials($course->materials->sortBy('display_order'));
 
-        $batches = $course->batches()
-            ->withoutGlobalScopes()
-            ->where('batches.tenant_id', $tenantId)
-            ->with(['batchCourses' => fn ($q) => $q->where('course_id', $course->id)->with('instructor.user')])
-            ->get()
+        $batches = $course->batches
+            ->where('tenant_id', session('active_tenant_id'))
             ->map(fn ($b) => [
                 'id'                 => $b->id,
                 'name'               => $b->batch_name,
@@ -82,7 +67,7 @@ class CourseController extends Controller
                 'max_students'       => $b->max_students,
                 'current_enrollment' => $b->activeStudents()->count(),
                 'price'              => $b->price,
-                'instructor_name'    => $b->batchCourses->first()?->instructor?->user?->full_name ?? '—',
+                'instructor_name'    => $b->batchCourses->first()?->course?->instructors->first()?->user?->full_name ?? '—',
             ]);
 
         return Inertia::render('School/Dashboard/Courses/Detail', [
@@ -116,50 +101,43 @@ class CourseController extends Controller
             'thumbnail'        => 'nullable|image|mimes:jpeg,jpg,png,webp|max:2048',
         ]);
 
-        $tenantId = (int) session('active_tenant_id');
-
         if ($request->hasFile('thumbnail') && $request->file('thumbnail')->isValid()) {
             $validated['thumbnail'] = $request->file('thumbnail')
-                ->store("tenants/{$tenantId}/course-thumbnails", 'public');
+                ->store("tenants/" . session('active_tenant_id') . "/course-thumbnails", 'public');
         } else {
             unset($validated['thumbnail']);
         }
 
-        $validated['tenant_id'] = $tenantId;
-        $validated['status']    = 'draft';
+        $validated['status'] = 'draft';
 
-        $course = Course::create($validated);
+        $course = $this->courseRepo->create($validated);
 
         return redirect("/dashboard/courses/{$course->id}/edit")
             ->with('success', 'Course created. Add materials below.');
     }
 
-   
     public function edit(Request $request, $tenant, $courseId)
     {
-        $tenantId = (int) session('active_tenant_id');
-        $course   = $this->findCourse($courseId, $tenantId);
+        $course = $this->courseRepo->getWithRelations((int) $courseId);
 
-        if (!$course) {
+        if (! $course) {
             return redirect('/dashboard/courses')->with('error', 'Course not found');
         }
 
-        $materials = $this->mapMaterials($course->materials()->orderBy('display_order')->get());
+        $materials = $this->mapMaterials($course->materials->sortBy('display_order'));
 
         return Inertia::render('School/Dashboard/Courses/Builder', [
             'course'         => $this->formatCourse($course),
             'materials'      => $materials,
-            'academicLevels' => $this->getAcademicLevels($tenantId),
+            'academicLevels' => $this->getAcademicLevels((int) session('active_tenant_id')),
         ]);
     }
 
-   
     public function update(Request $request, $tenant, $courseId)
     {
-        $tenantId = (int) session('active_tenant_id');
-        $course   = $this->findCourse($courseId, $tenantId);
+        $course = $this->courseRepo->getById((int) $courseId);
 
-        if (!$course) {
+        if (! $course) {
             return redirect('/dashboard/courses')->with('error', 'Course not found');
         }
 
@@ -177,26 +155,25 @@ class CourseController extends Controller
                 Storage::disk('public')->delete($course->thumbnail);
             }
             $validated['thumbnail'] = $request->file('thumbnail')
-                ->store("tenants/{$tenantId}/course-thumbnails", 'public');
+                ->store("tenants/" . session('active_tenant_id') . "/course-thumbnails", 'public');
         } else {
             unset($validated['thumbnail']);
         }
 
-        $course->update($validated);
+        $this->courseRepo->update($course->id, $validated);
 
         return redirect()->back()->with('success', 'Course saved');
     }
 
     public function publish(Request $request, $tenant, $courseId)
     {
-        $tenantId = (int) session('active_tenant_id');
-        $course   = $this->findCourse($courseId, $tenantId);
+        $course = $this->courseRepo->getById((int) $courseId);
 
-        if (!$course) {
+        if (! $course) {
             return redirect()->back()->withErrors(['message' => 'Course not found']);
         }
 
-        $course->update([
+        $this->courseRepo->update($course->id, [
             'status'       => 'active',
             'is_published' => true,
             'published_at' => now(),
@@ -207,30 +184,29 @@ class CourseController extends Controller
 
     public function archive(Request $request, $tenant, $courseId)
     {
-        $tenantId = (int) session('active_tenant_id');
-        $course   = $this->findCourse($courseId, $tenantId);
+        $course = $this->courseRepo->getById((int) $courseId);
 
-        if (!$course) {
+        if (! $course) {
             return redirect()->back()->withErrors(['message' => 'Course not found']);
         }
 
-        $course->update(['status' => 'archived', 'is_published' => false]);
+        $this->courseRepo->update($course->id, [
+            'status' => 'archived',
+            'is_published' => false,
+        ]);
 
         return redirect()->back()->with('success', 'Course archived');
     }
 
-
     public function duplicate(Request $request, $tenant, $courseId)
     {
-        $tenantId = (int) session('active_tenant_id');
-        $course   = $this->findCourse($courseId, $tenantId);
+        $course = $this->courseRepo->getById((int) $courseId);
 
-        if (!$course) {
+        if (! $course) {
             return redirect()->back()->withErrors(['message' => 'Course not found']);
         }
 
-        $copy = Course::create([
-            'tenant_id'         => $tenantId,
+        $copy = $this->courseRepo->create([
             'title'             => $course->title . ' (Copy)',
             'course_code'       => $course->course_code . '_' . strtolower(substr(uniqid(), -4)),
             'description'       => $course->description,
@@ -245,10 +221,9 @@ class CourseController extends Controller
 
     public function destroy(Request $request, $tenant, $courseId)
     {
-        $tenantId = (int) session('active_tenant_id');
-        $course   = $this->findCourse($courseId, $tenantId);
+        $course = $this->courseRepo->getWithRelations((int) $courseId);
 
-        if (!$course) {
+        if (! $course) {
             return redirect()->back()->withErrors(['message' => 'Course not found']);
         }
 
@@ -261,33 +236,14 @@ class CourseController extends Controller
             Storage::disk('public')->delete($course->thumbnail);
         }
 
-        $course->delete();
+        $this->courseRepo->delete($course->id);
 
         return redirect('/dashboard/courses')->with('success', 'Course deleted');
     }
 
-
-    private function findCourse(int|string $id, int $tenantId): ?Course
-    {
-        return Course::withoutGlobalScopes()
-            ->where('tenant_id', $tenantId)
-            ->with('academicLevel')
-            ->find((int) $id);
-    }
-
     private function getAcademicLevels(int $tenantId): array
     {
-        return AcademicLevel::withoutGlobalScopes()
-            ->where('tenant_id', $tenantId)
-            ->where('is_active', true)
-            ->orderBy('level_number')
-            ->get()
-            ->map(fn ($l) => [
-                'id'   => $l->id,
-                'name' => $l->name,
-                'code' => $l->code,
-            ])
-            ->toArray();
+        return $this->academicLevelRepo->getActive();
     }
 
     private function formatCourse(Course $course): array

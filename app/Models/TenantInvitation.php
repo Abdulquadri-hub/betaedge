@@ -13,17 +13,19 @@ class TenantInvitation extends Model
         'email',
         'full_name',
         'role',
-        'invited_by',
-        'invitation_code',
-        'status',
+        'token',
         'expires_at',
+        'invited_by',
+        'accepted_by',
         'accepted_at',
-        'message',
+        'status',
+        'metadata',
     ];
 
     protected $casts = [
         'expires_at' => 'datetime',
         'accepted_at' => 'datetime',
+        'metadata' => 'array',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
@@ -33,8 +35,8 @@ class TenantInvitation extends Model
         parent::boot();
 
         static::creating(function ($invitation) {
-            if(empty($invitation->invitation_code)) {
-                $invitation->invitation_code = self::generateInvitationCode();
+            if(empty($invitation->token)) {
+                $invitation->token = self::generateToken();
             }
 
             if(empty($invitation->expires_at)) {
@@ -99,9 +101,6 @@ class TenantInvitation extends Model
             'expires_at' => now()->addDays(7),
             'status' => 'pending',
         ]);
-
-        // Send notification
-        event(new TenantInvitationSent($this));
     }
 
     public function isExpired(): bool {
@@ -112,10 +111,10 @@ class TenantInvitation extends Model
         return $this->status === 'pending' && !$this->isExpired();
     }
 
-    protected function generateInvitationCode(): string {
+    protected static function generateToken(): string {
         do {
             $code = Str::random(32);
-        } while (self::where('invitation_code', $code)->exists());
+        } while (self::where('token', $code)->exists());
 
         return $code;
     }

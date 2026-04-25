@@ -11,6 +11,7 @@ interface CourseRepositoryInterface
     public function getPaginated(int $perPage = 15, array $filters = []): LengthAwarePaginator;
     public function getActive();
     public function getById(int $id): ?Course;
+    public function getWithRelations(int $id): ?Course;
     public function count(): int;
     public function countPublished(): int;
     public function create(array $data): Course;

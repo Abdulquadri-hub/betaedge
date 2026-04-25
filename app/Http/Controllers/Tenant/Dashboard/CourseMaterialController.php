@@ -2,13 +2,17 @@
 
 namespace App\Http\Controllers\Tenant\Dashboard;
 
+use App\Contracts\Repositories\School\MaterialRepositoryInterface;
 use App\Http\Controllers\Controller;
-use App\Models\Material;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
 class CourseMaterialController extends Controller
 {
+    public function __construct(
+        protected MaterialRepositoryInterface $materialRepository
+    ) {}
+
     public function store(Request $request, $tenant, $courseId)
     {
         $request->validate([
@@ -44,16 +48,14 @@ class CourseMaterialController extends Controller
             $fileUrl = $request->url;
         }
 
-        $count = Material::where('tenant_id', $tenantId)
-            ->where('course_id', (int) $courseId)
-            ->count();
+        $count = $this->materialRepository->countForCourse($tenantId, (int) $courseId);
 
-        Material::create([
+        $this->materialRepository->createForCourse([
             'tenant_id'       => $tenantId,
             'course_id'       => (int) $courseId,
             'title'           => $request->title,
-            'description'     => $request->module ?? 'General', 
-            'material_type'   => $dbType,                       
+            'description'     => $request->module ?? 'General',
+            'material_type'   => $dbType,
             'file_url'        => $fileUrl,
             'file_path'       => $filePath,
             'file_mime_type'  => $mimeType,
@@ -69,15 +71,17 @@ class CourseMaterialController extends Controller
     {
         $tenantId = (int) session('active_tenant_id');
 
-        $material = Material::where('tenant_id', $tenantId)
-            ->where('course_id', (int) $courseId)
-            ->findOrFail((int) $materialId);
+        $material = $this->materialRepository->findForCourse($tenantId, (int) $courseId, (int) $materialId);
+
+        if (! $material) {
+            abort(404);
+        }
 
         if ($material->file_path) {
             Storage::disk('public')->delete($material->file_path);
         }
 
-        $material->delete();
+        $this->materialRepository->delete($material);
 
         return redirect()->back()->with('success', 'Material removed');
     }

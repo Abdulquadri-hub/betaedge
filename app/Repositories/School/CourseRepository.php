@@ -51,6 +51,13 @@ class CourseRepository implements CourseRepositoryInterface
             ->find((int) $id);
     }
 
+    public function getWithRelations(int $id): ?Course
+    {
+        return Course::where('tenant_id', session('active_tenant_id'))
+            ->with(['academicLevel', 'materials', 'batchCourses.course.instructors.user'])
+            ->find((int) $id);
+    }
+
     public function count(): int
     {
         return Course::where('tenant_id', session('active_tenant_id'))

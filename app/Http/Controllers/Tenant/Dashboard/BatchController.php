@@ -23,7 +23,7 @@ class BatchController extends Controller
 
         $query = Batch::withoutGlobalScopes()
             ->where('tenant_id', $tenantId)
-            ->with(['batchCourses.course', 'batchCourses.instructor.user'])
+            ->with(['batchCourses.course.instructors.user'])
             ->withCount([
                 'students as total_students',
                 'students as active_students_count' => fn($q) => $q->where('batch_student.status', 'active'),
@@ -88,7 +88,7 @@ class BatchController extends Controller
             ]);
 
         $courses = $batch->batchCourses()
-            ->with(['course', 'instructor.user'])
+            ->with(['course.instructors.user'])
             ->orderBy('display_order')
             ->get()
             ->map(fn ($bc) => [
@@ -99,7 +99,7 @@ class BatchController extends Controller
                 'course_code'      => $bc->course?->course_code,
                 'status'           => $bc->course?->status ?? 'active',
                 'duration_weeks'   => $bc->course?->duration_weeks,
-                'instructor'       => $bc->instructor?->user?->full_name ?? 'No instructor assigned',
+                'instructor'       => $bc->course?->instructors->first()?->user?->full_name ?? 'No instructor assigned',
                 'schedule_summary' => $bc->schedule_summary,
                 'platform_label'   => $bc->platform_label,
                 'session_day'      => $bc->session_day,
@@ -143,7 +143,6 @@ class BatchController extends Controller
             'notes'                              => 'nullable|string|max:1000',
             'courses'                            => 'nullable|array',
             'courses.*.course_id'                => 'required|exists:courses,id',
-            'courses.*.instructor_id'            => 'nullable|exists:instructors,id',
             'courses.*.session_day'              => 'nullable|string|max:100',
             'courses.*.session_time'             => 'nullable|string|max:10',
             'courses.*.session_duration_minutes' => 'nullable|integer|min:15|max:480',
@@ -215,7 +214,6 @@ class BatchController extends Controller
             'notes'                              => 'nullable|string|max:1000',
             'courses'                            => 'nullable|array',
             'courses.*.course_id'                => 'required|exists:courses,id',
-            'courses.*.instructor_id'            => 'nullable|exists:instructors,id',
             'courses.*.session_day'              => 'nullable|string|max:100',
             'courses.*.session_time'             => 'nullable|string|max:10',
             'courses.*.session_duration_minutes' => 'nullable|integer|min:15|max:480',
@@ -310,7 +308,7 @@ class BatchController extends Controller
             ->where('tenant_id', $tenantId)
             ->with([
                 'batchCourses.course.academicLevel',
-                'batchCourses.instructor.user',
+                'batchCourses.course.instructors.user',
             ])
             ->find((int) $id);
     }
@@ -366,7 +364,6 @@ class BatchController extends Controller
                 ['batch_id' => $batch->id, 'course_id' => $courseId],
                 [
                     'tenant_id'                => $tenantId,
-                    'instructor_id'            => isset($slot['instructor_id']) ? (int) $slot['instructor_id'] : null,
                     'session_day'              => $slot['session_day']              ?? null,
                     'session_time'             => $slot['session_time']             ?? null,
                     'session_duration_minutes' => $slot['session_duration_minutes'] ?? 90,
@@ -386,8 +383,8 @@ class BatchController extends Controller
             'course_title'             => $bc->course?->title ?? '—',
             'course_code'              => $bc->course?->course_code ?? '—',
             'academic_level'           => $bc->course?->academicLevel?->name,
-            'instructor_id'            => $bc->instructor_id,
-            'instructor_name'          => $bc->instructor?->user?->full_name ?? 'No instructor',
+            'instructor_id'            => $bc->course?->instructors->first()?->id,
+            'instructor_name'          => $bc->course?->instructors->first()?->user?->full_name ?? 'No instructor',
             'session_day'              => $bc->session_day,
             'session_time'             => $bc->session_time,
             'session_duration_minutes' => $bc->session_duration_minutes,

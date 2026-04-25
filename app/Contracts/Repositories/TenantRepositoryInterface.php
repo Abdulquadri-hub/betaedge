@@ -15,4 +15,11 @@ interface TenantRepositoryInterface
     public function getStats(): array;
     public function completeOnboarding(Tenant $tenant): void;
     public function updateOnboardingStep(Tenant $tenant, string $tep): void;
+    public function updateVerificationStatus(Tenant $tenant, string $status): void;
+    public function existsBySlug(string $slug): bool;
+    public function isSlugReserved(string $slug): bool;
+    public function getByVerificationToken(string $token): ?Tenant;
+    public function getUnverifiedByEmail(string $email): ?Tenant;
+    public function markEmailAsVerified(Tenant $tenant): void;
+    public function generateVerificationToken(Tenant $tenant): string;
 }

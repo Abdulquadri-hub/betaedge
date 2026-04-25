@@ -12,6 +12,7 @@ interface LiveSessionRepositoryInterface
     public function getByBatch(int $batchId): array;
     public function getUpcoming(int $limit = 5): array;
     public function getLiveNow(): ?ClassSession;
+    public function getBatchOptions(): array;
     public function create(array $data): ClassSession;
     public function update(int $id, array $data): ClassSession;
     public function delete(int $id): bool;

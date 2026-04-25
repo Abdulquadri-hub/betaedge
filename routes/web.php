@@ -228,8 +228,12 @@ Route::domain('{tenant}.' . config('app.main_domain'))->middleware(['web', 'tena
 
         Route::prefix('instructors')->controller(InstructorController::class)->group(function () {
             Route::get('', 'index')->name('dashboard.instructors.index');
+            Route::get('/create', 'create')->name('dashboard.instructors.create');
+            Route::post('/create', 'store')->name('dashboard.instructors.store');
             Route::get('/{instructorId}', 'single')->name('dashboard.instructors.single');
             Route::post('/invite', 'invite')->name('dashboard.instructors.invite');
+            Route::post('/invite/{invitationId}/accept', 'acceptInvitation')->name('dashboard.instructors.invite.accept');
+            Route::delete('/invite/{invitationId}', 'destroyInvite')->name('dashboard.instructors.invite.destroy');
             Route::put('/{instructorId}', 'update')->name('dashboard.instructors.update');
             Route::delete('/{instructorId}', 'destroy')->name('dashboard.instructors.destroy');
             Route::post('/{instructorId}/mark-paid', 'markPaid')->name('dashboard.instructors.mark-paid');

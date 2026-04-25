@@ -2,25 +2,30 @@
 
 namespace App\Http\Controllers\Tenant\Dashboard;
 
+use App\Contracts\Repositories\School\KycSubmissionRepositoryInterface;
+use App\Contracts\Repositories\TenantRepositoryInterface;
 use App\Http\Controllers\Controller;
-use App\Models\KycSubmission;
-use App\Models\Tenant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
-
 class VerificationController extends Controller
 {
+    public function __construct(
+        protected KycSubmissionRepositoryInterface $kycSubmissionRepository,
+        protected TenantRepositoryInterface $tenantRepository
+    ) {}
+
     public function index(Request $request)
     {
         $tenantId = (int) session('active_tenant_id');
-        $tenant   = Tenant::findOrFail($tenantId);
+        $tenant   = $this->tenantRepository->getById($tenantId);
 
-        $submission = KycSubmission::withoutGlobalScopes()
-            ->where('tenant_id', $tenantId)
-            ->latest()
-            ->first();
+        if (! $tenant) {
+            abort(404);
+        }
+
+        $submission = $this->kycSubmissionRepository->latestForTenant($tenantId);
 
         return Inertia::render('School/Dashboard/Verification/Index', [
             'tenant'     => [
@@ -42,19 +47,18 @@ class VerificationController extends Controller
     public function submit(Request $request)
     {
         $tenantId = (int) session('active_tenant_id');
-        $tenant   = Tenant::findOrFail($tenantId);
+        $tenant   = $this->tenantRepository->getById($tenantId);
         $user = $request->user();
 
-        // Already verified — no need to resubmit
+        if (! $tenant) {
+            abort(404);
+        }
+
         if ($tenant->is_verified && $tenant->verification_status != 'unverified') {
             return redirect()->back()->with('success', 'Your school is already verified.');
         }
 
-        // Already pending review
-        $existing = KycSubmission::withoutGlobalScopes()
-            ->where('tenant_id', $tenantId)
-            ->whereIn('status', ['pending', 'under_review'])
-            ->first();
+        $existing = $this->kycSubmissionRepository->pendingForTenant($tenantId);
 
         if ($existing) {
             return redirect()->back()
@@ -108,17 +112,14 @@ class VerificationController extends Controller
 
         $validated = $request->validate($rules);
 
-        DB::transaction(function () use ($validated, $tenantId, $user) {
-            KycSubmission::withoutGlobalScopes()->where('tenant_id', $tenantId)->delete();
+        DB::transaction(function () use ($validated, $tenantId, $user, $tenant) {
+            $this->kycSubmissionRepository->deleteForTenant($tenantId);
 
-            KycSubmission::create(array_merge($validated, [
-                'tenant_id'    => $tenantId,
+            $this->kycSubmissionRepository->createForTenant($tenantId, array_merge($validated, [
                 'submitted_by' => $user->id,
-                'status'       => 'pending',
-                'submitted_at' => now(),
             ]));
 
-            Tenant::find($tenantId)?->update(['verification_status' => 'pending']);
+            $this->tenantRepository->updateVerificationStatus($tenant, 'pending');
         });
 
         return redirect()->back()->with(

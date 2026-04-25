@@ -87,6 +87,30 @@ class LiveSessionRepository implements LiveSessionRepositoryInterface
             ->first();
     }
 
+    public function getBatchOptions(): array
+    {
+        return Batch::withoutGlobalScopes()
+            ->where('tenant_id', $this->tenantId())
+            ->whereIn('status', ['planning', 'active'])
+            ->with(['batchCourses.course'])
+            ->orderBy('batch_name')
+            ->get()
+            ->map(fn ($b) => [
+                'id'      => $b->id,
+                'name'    => $b->batch_name,
+                'courses' => $b->batchCourses->map(fn ($bc) => [
+                    'id'               => $bc->course_id,
+                    'title'            => $bc->course?->title ?? '—',
+                    'instructor_id'    => $bc->instructor_id,
+                    'session_day'      => $bc->session_day,
+                    'session_time'     => $bc->session_time,
+                    'duration_minutes' => $bc->session_duration_minutes,
+                    'platform'         => $bc->session_platform,
+                ]),
+            ])
+            ->toArray();
+    }
+
     public function create(array $data): ClassSession
     {
         $data['tenant_id'] = $this->tenantId();

@@ -4,7 +4,7 @@ import { router } from '@inertiajs/vue3'
 import {
     MapPin, Users, BookOpen, Clock, GraduationCap,
     Phone, Mail, Calendar, MessageCircle, ArrowRight,
-    CheckCircle2, Video,
+    Video,
 } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -13,7 +13,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
 
-// ── Props from PublicPageController@landing ───────────────────────────────────
 const props = defineProps({
     tenant:       { type: Object, required: true },
     courses:      { type: Array,  default: () => [] },
@@ -191,7 +190,6 @@ if (typeof document !== 'undefined') {
                 </div>
             </section>
 
-            <!-- ── Tabs: Courses / Instructors / About ─────────────────────── -->
             <Tabs v-model="activeTab">
                 <TabsList class="grid w-full grid-cols-3 max-w-md">
                     <TabsTrigger value="courses" class="cursor-pointer">Courses</TabsTrigger>
@@ -242,14 +240,14 @@ if (typeof document !== 'undefined') {
                                 <Separator class="mb-4" />
 
                                 <!-- What students get -->
-                                <div class="space-y-1.5 mb-4">
+                                <!-- <div class="space-y-1.5 mb-4">
                                     <div v-for="feat in ['Live interactive classes', 'Course materials included', 'Certificate on completion']"
                                         :key="feat"
                                         class="flex items-center gap-2 text-xs text-muted-foreground">
                                         <CheckCircle2 class="h-3.5 w-3.5 text-emerald-600 shrink-0" />
                                         {{ feat }}
                                     </div>
-                                </div>
+                                </div> -->
 
                                 <Button class="w-full gap-2 group-hover:bg-primary transition-colors" @click.stop="goToBatches">
                                     <Video class="h-4 w-4" />View Batches

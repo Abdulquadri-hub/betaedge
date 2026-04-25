@@ -16,7 +16,6 @@ class BatchCourse extends Model
         'tenant_id',
         'batch_id',
         'course_id',
-        'instructor_id',
         'session_day',
         'session_time',
         'session_duration_minutes',
@@ -38,11 +37,6 @@ class BatchCourse extends Model
     public function course(): BelongsTo
     {
         return $this->belongsTo(Course::class);
-    }
-
-    public function instructor(): BelongsTo
-    {
-        return $this->belongsTo(Instructor::class);
     }
 
     public function getScheduleSummaryAttribute(): string

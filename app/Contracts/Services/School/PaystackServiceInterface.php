@@ -2,8 +2,11 @@
 
 namespace App\Contracts\Services\School;
 
+use App\Models\Tenant;
+
 interface PaystackServiceInterface
 {
+    public function setTenant(Tenant $tenant): void;
     public function publicKey(): string;
     public function initializePayment(string $email,int $amountNaira,string $reference,array  $metadata,string $callbackUrl): array; 
     public function verifyPayment(string $reference): array;

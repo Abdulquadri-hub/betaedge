@@ -3,19 +3,21 @@
 namespace App\Http\Controllers;
 
 use Inertia\Inertia;
-use App\Models\Tenant;
 use App\GateWays\Paystack;
 use Illuminate\Http\Request;
-use App\Models\OnboardingProcess;
 use Illuminate\Support\Facades\RateLimiter;
 use App\Contracts\Services\OnboardingProcessServiceInterface;
+use App\Contracts\Repositories\OnboardingProcessRepositoryInterface;
 use App\Contracts\Repositories\SubscriptionPlanRepositoryInterface;
+use App\Contracts\Repositories\TenantRepositoryInterface;
 
 class OnboardingController extends Controller
 {
     public function __construct(
         private OnboardingProcessServiceInterface $service,
         private SubscriptionPlanRepositoryInterface $subRepo,
+        private OnboardingProcessRepositoryInterface $onboardingRepo,
+        private TenantRepositoryInterface $tenantRepository,
         private Paystack $gateway,
     ){}
 
@@ -64,7 +66,7 @@ class OnboardingController extends Controller
             ], 429);
         }
 
-        RateLimiter::hit($key, 600); // 10 minutes
+        RateLimiter::hit($key, 600);
 
         $result = $this->service->submit($sessionId);
     
@@ -117,12 +119,12 @@ class OnboardingController extends Controller
         $slug = $validated['slug'];
         $errors = [];
 
-        if (Tenant::isSlugReserved($slug)) {
-            $errors[] = 'This slug is reserved and cannot be used. Please choose another.';
+        if ($this->tenantRepository->existsBySlug($slug)) {
+            $errors[] = 'This slug is already taken. Please choose another.';
         }
 
-        if (Tenant::where('slug', $slug)->exists()) {
-            $errors[] = 'This slug is already taken. Please choose another.';
+        if ($this->tenantRepository->isSlugReserved($slug)) {
+            $errors[] = 'This slug is reserved and cannot be used. Please choose another.';
         }
 
         return response()->json([
@@ -131,9 +133,6 @@ class OnboardingController extends Controller
         ]);
     }
 
-    /**
-     * Upload school logo and return URL
-     */
     public function uploadLogo(Request $request)
     {
         $validated = $request->validate([
@@ -147,14 +146,8 @@ class OnboardingController extends Controller
 
         try {
             $file = $validated['logo'];
-            
-            // Generate unique filename
             $filename = 'logo-' . uniqid() . '.' . $file->getClientOriginalExtension();
-            
-            // Store file in public storage
             $path = $file->storeAs('onboarding/logos', $filename, 'public');
-            
-            // Generate public URL
             $url = asset('storage/' . $path);
 
             return response()->json([
@@ -171,10 +164,8 @@ class OnboardingController extends Controller
 
     private function canAccessJob(string $jobId, string $sessionId): bool
     {
-        $onboarding = OnboardingProcess::where('job_id', $jobId)
-            ->where('session_id', $sessionId)
-            ->first();
+        $onboarding = $this->onboardingRepo->getByJobId($jobId);
 
-        return $onboarding !== null;
+        return $onboarding !== null && $onboarding->session_id === $sessionId;
     }
 }

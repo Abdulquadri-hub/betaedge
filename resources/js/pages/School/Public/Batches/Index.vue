@@ -93,11 +93,11 @@ if (typeof document !== 'undefined') {
                     </div>
                     
                     <!-- Logo -->
-                    <div class="h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-border bg-muted flex items-center justify-center">
+                    <!-- <div class="h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-border bg-muted flex items-center justify-center">
                         <img v-if="tenant.logo" :src="tenant.logo" :alt="tenant.name"
                             class="h-full w-full object-cover" />
                         <GraduationCap v-else class="h-6 w-6 text-muted-foreground" />
-                    </div>
+                    </div> -->
                     <div class="flex-1 min-w-0">
                         <h1 class="text-lg font-bold text-foreground truncate">{{ tenant.name }}</h1>
                         <p class="text-xs text-muted-foreground">
